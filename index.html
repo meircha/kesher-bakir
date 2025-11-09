@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>קשר בכיר</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+        * { font-family: 'Rubik', sans-serif; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-green-50 via-amber-50 to-blue-50">
+    <div id="app">
+        <div class="min-h-screen flex items-center justify-center">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto mb-4"></div>
+                <p class="text-xl font-medium text-gray-700">טוען...</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        setTimeout(() => {
+            if (!window.firebase) {
+                document.getElementById('app').innerHTML = '<div style="text-align:center;padding:50px;"><h1 style="color:red;font-size:24px;">⚠️ שגיאה בטעינת Firebase</h1><p>נא לרענן את הדף</p></div>';
+                return;
+            }
+            
+            const firebaseConfig = {
+                apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM",
+                authDomain: "kesher-bakir.firebaseapp.com",
+                projectId: "kesher-bakir",
+                storageBucket: "kesher-bakir.firebasestorage.app",
+                messagingSenderId: "671996189455",
+                appId: "1:671996189455:web:d8ee089585a852ab38fc7a"
+            };
+            
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+            
+            let currentUser = null;
+            let screen = 'login';
+            const ADMIN_EMAIL = "meircha.ai@gmail.com";
+            const ADMIN_PASSWORD = "02021969";
+            
+            async function initAdmin() {
+                try {
+                    const snap = await db.collection('users').get();
+                    if (snap.empty) {
+                        const cred = await auth.createUserWithEmailAndPassword(ADMIN_EMAIL, ADMIN_PASSWORD);
+                        await db.collection('users').doc(cred.user.uid).set({
+                            name: "meir admin",
+                            email: ADMIN_EMAIL,
+                            role: 'admin',
+                            age: 65,
+                            city: 'תל אביב',
+                            points: 1000,
+                            joinDate: new Date().toISOString()
+                        });
+                        await db.collection('settings').doc('config').set({ minAge: 60 });
+                        console.log('Admin created!');
+                    }
+                } catch(e) { console.error(e); }
+            }
+            
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    const doc = await db.collection('users').doc(user.uid).get();
+                    if (doc.exists) {
+                        currentUser = { id: user.uid, ...doc.data() };
+                        screen = 'home';
+                        render();
+                    }
+                } else {
+                    screen = 'login';
+                    render();
+                }
+            });
+            
+            function render() {
+                const app = document.getElementById('app');
+                if (screen === 'login') {
+                    app.innerHTML = `
+                        <div class="min-h-screen flex items-center justify-center p-4">
+                            <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+                                <div class="text-center mb-8">
+                                    <div class="inline-block bg-green-100 p-4 rounded-full mb-4">
+                                        <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <h1 class="text-3xl font-bold text-green-800 mb-2">קשר בכיר</h1>
+                                    <p class="text-gray-600">קהילה חמה ומזמינה לגיל הזהב</p>
+                                </div>
+                                <div class="space-y-4 mb-6">
+                                    <input id="email" type="email" value="${ADMIN_EMAIL}" placeholder="דוא״ל" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" />
+                                    <input id="password" type="password" placeholder="סיסמה" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" />
+                                </div>
+                                <button onclick="handleLogin()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 mb-4">כניסה</button>
+                                <button onclick="screen='register'; render();" class="w-full bg-amber-100 text-amber-800 py-3 rounded-xl font-bold hover:bg-amber-200">הרשמה</button>
+                            </div>
+                        </div>
+                    `;
+                } else if (screen === 'home') {
+                    app.innerHTML = `
+                        <header class="bg-white shadow-md p-4">
+                            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                                <h1 class="text-2xl font-bold text-green-800">קשר בכיר</h1>
+                                <div class="flex items-center gap-4">
+                                    <span class="font-medium">${currentUser.name}</span>
+                                    ${currentUser.role === 'admin' ? '<span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm">מנהל</span>' : ''}
+                                    <button onclick="auth.signOut()" class="text-gray-600 hover:text-gray-800">יציאה</button>
+                                </div>
+                            </div>
+                        </header>
+                        <div class="max-w-7xl mx-auto px-4 py-6">
+                            <div class="bg-white p-8 rounded-xl shadow-md text-center">
+                                <h2 class="text-3xl font-bold text-green-800 mb-4">🎉 ברוך הבא!</h2>
+                                <p class="text-xl text-gray-700 mb-6">המערכת פועלת ומחוברת ל-Firebase</p>
+                                <div class="bg-green-50 p-6 rounded-lg">
+                                    <p class="text-lg font-medium text-green-800">✅ האתר עלה בהצלחה!</p>
+                                    <p class="text-gray-700 mt-2">עכשיו אפשר להוסיף עוד פיצ'רים ולפתח את האפליקציה</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            window.handleLogin = async () => {
+                const email = document.getElementById('email').value;
+                const pwd = document.getElementById('password').value;
+                try {
+                    await auth.signInWithEmailAndPassword(email, pwd);
+                } catch(e) {
+                    alert('שגיאה: ' + e.message);
+                }
+            };
+            
+            initAdmin().then(() => render());
+        }, 2000);
+    </script>
+</body>
+</html>
