@@ -331,13 +331,13 @@
                                     <p class="text-gray-600">קהילה חמה ומזמינה לגיל הזהב</p>
                                 </div>
                                 <div class="space-y-4 mb-6">
-                                    <input id="loginEmail" type="email" placeholder="דוא״ל" value="meircha.ai@gmail.com" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" />
+                                    <input id="loginEmail" type="email" placeholder="דוא״ל" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" />
                                     <input id="loginPassword" type="password" placeholder="סיסמה" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" />
                                 </div>
                                 <button onclick="handleLogin()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition mb-4">
                                     כניסה למערכת
                                 </button>
-                                <button onclick="screen='register'; render();" class="w-full bg-amber-100 text-amber-800 py-3 rounded-xl font-bold hover:bg-amber-200 transition">
+                                <button onclick="screen='register'; regForm={name:'',email:'',password:'',age:'',city:'',hobbies:[],contributions:[],emergencyName:'',emergencyContact:'',agreedToTerms:false}; render();" class="w-full bg-amber-100 text-amber-800 py-3 rounded-xl font-bold hover:bg-amber-200 transition">
                                     הרשמה חדשה
                                 </button>
                                 <p class="text-xs text-gray-500 text-center mt-4">גרסה 2.0 | מופעל על ידי Firebase</p>
@@ -351,19 +351,19 @@
                                 <h1 class="text-2xl md:text-3xl font-bold text-green-800 mb-6 text-center">הרשמה לקשר בכיר</h1>
                                 
                                 <div class="space-y-4 mb-6">
-                                    <input id="regName" type="text" placeholder="שם מלא *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.name}" onchange="regForm.name=this.value" />
+                                    <input id="regName" type="text" placeholder="שם מלא *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.name}" oninput="regForm.name=this.value" />
                                     
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <input id="regEmail" type="email" placeholder="דוא״ל *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.email}" onchange="regForm.email=this.value" />
-                                        <input id="regPassword" type="password" placeholder="סיסמה (6+ תווים) *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.password}" onchange="regForm.password=this.value" />
+                                        <input id="regEmail" type="email" placeholder="דוא״ל *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.email}" oninput="regForm.email=this.value" />
+                                        <input id="regPassword" type="password" placeholder="סיסמה (6+ תווים) *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.password}" oninput="regForm.password=this.value" />
                                     </div>
                                     
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <input id="regAge" type="number" placeholder="גיל *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.age}" onchange="regForm.age=this.value" />
+                                            <input id="regAge" type="number" placeholder="גיל *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.age}" oninput="regForm.age=this.value" />
                                             <p class="text-xs text-gray-500 mt-1">גיל מינימלי: 60</p>
                                         </div>
-                                        <input id="regCity" type="text" placeholder="עיר מגורים *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.city}" onchange="regForm.city=this.value" />
+                                        <input id="regCity" type="text" placeholder="עיר מגורים *" class="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 outline-none" value="${regForm.city}" oninput="regForm.city=this.value" />
                                     </div>
                                     
                                     <div>
@@ -391,8 +391,8 @@
                                     <div class="bg-red-50 p-4 rounded-xl">
                                         <label class="block font-medium text-gray-700 mb-2">איש קשר לחירום</label>
                                         <div class="space-y-2">
-                                            <input type="text" placeholder="שם איש הקשר" class="w-full px-4 py-2 border-2 rounded-lg focus:border-red-500 outline-none" value="${regForm.emergencyName}" onchange="regForm.emergencyName=this.value" />
-                                            <input type="text" placeholder="טלפון או דוא״ל" class="w-full px-4 py-2 border-2 rounded-lg focus:border-red-500 outline-none" value="${regForm.emergencyContact}" onchange="regForm.emergencyContact=this.value" />
+                                            <input type="text" placeholder="שם איש הקשר" class="w-full px-4 py-2 border-2 rounded-lg focus:border-red-500 outline-none" value="${regForm.emergencyName}" oninput="regForm.emergencyName=this.value" />
+                                            <input type="text" placeholder="טלפון או דוא״ל" class="w-full px-4 py-2 border-2 rounded-lg focus:border-red-500 outline-none" value="${regForm.emergencyContact}" oninput="regForm.emergencyContact=this.value" />
                                         </div>
                                     </div>
                                 </div>
@@ -415,15 +415,15 @@
                                 </div>
                                 
                                 <div class="flex items-start gap-3 p-4 bg-blue-50 rounded-lg mb-6">
-                                    <input type="checkbox" id="agreeCheck" ${regForm.agreedToTerms ? 'checked' : ''} onchange="regForm.agreedToTerms=this.checked; render();" class="mt-1 w-5 h-5" />
+                                    <input type="checkbox" id="agreeCheck" ${regForm.agreedToTerms ? 'checked' : ''} onchange="regForm.agreedToTerms=this.checked" class="mt-1 w-5 h-5" />
                                     <label for="agreeCheck" class="font-medium text-gray-700 cursor-pointer">
                                         אני מאשר/ת שקראתי והבנתי את תנאי השימוש וקוד ההתנהגות, ואני מתחייב/ת לפעול על פיהם
                                     </label>
                                 </div>
                                 
                                 <div class="flex gap-4">
-                                    <button onclick="screen='register'; render();" class="flex-1 bg-gray-300 py-3 rounded-xl font-bold hover:bg-gray-400">חזרה</button>
-                                    <button onclick="register()" class="flex-1 py-3 rounded-xl font-bold ${regForm.agreedToTerms ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">
+                                    <button type="button" onclick="screen='register'; render();" class="flex-1 bg-gray-300 py-3 rounded-xl font-bold hover:bg-gray-400">חזרה</button>
+                                    <button type="button" onclick="register()" class="flex-1 py-3 rounded-xl font-bold ${regForm.agreedToTerms ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">
                                         אישור והרשמה
                                     </button>
                                 </div>
@@ -732,4 +732,3 @@
     </script>
 </body>
 </html>
-                    
