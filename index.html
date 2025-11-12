@@ -39,15 +39,18 @@
         // --- 1. הגדרות Firebase ואיחזור נתונים פיקטיביים ---
         
         // **!!! פרטי ה-Firebase Config שלך הוכנסו בהצלחה !!!**
+      // *** השתמש במפתח שנלקח מהתמונה האחרונה (7fab06) ***
         const firebaseConfig = {
-            apiKey: "AIzaSyC42RHWSXPND8MKuc10KjJSwREm", 
+            apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM", // המפתח מהתמונה 7fab06
             authDomain: "kesher-bakir.firebaseapp.com",
             projectId: "kesher-bakir",
             storageBucket: "kesher-bakir.firebasestorage.app",
             messagingSenderId: "671996189455",
-            appId: "1:671996189455:web:dbe089d69a85a2ab38fc7a",
-            measurementId: "G-42EWSKFXW" // לא נחוץ לאימות, אבל נשאר ליתר ביטחון
+            appId: "1:671996189455:web:dbe089d69a85a2ab38fc7a", // שימוש ב-appId מתמונה 7f3b3c/7fab06
+            measurementId: "G-42EWSKFXW" 
         };
+        
+        // ... המשך הקוד
         
         // אתחול Firebase
         if (!firebase.apps.length) {
