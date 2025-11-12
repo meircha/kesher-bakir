@@ -225,7 +225,7 @@
                 }
             }
             render();
-            // גלילה אוטומטית למטה בצ'אט
+            // גלילה אוטומטית למטה בצ'אט (מבוצעת שוב ב-openChat)
             if (screen === 'chat') {
                 setTimeout(() => {
                     const chatBox = document.getElementById('chatBox');
@@ -235,13 +235,14 @@
         }
 
         /**
-         * פתיחת צ'אט ואחזור הודעות
+         * פתיחת צ'אט ואחזור הודעות - **הפונקציה תוקנה כדי למנוע קריסה לדף לבן**
          */
         window.openChat = async (targetUser) => {
-            if (!state.user || !state.user.id) {
-                console.error("שגיאה: המשתמש הנוכחי לא מחובר או חסר ID.");
-                alert("שגיאה: המשתמש הנוכחי לא מחובר. אנא התחבר מחדש.");
-                goTo('login');
+            // **בדיקת נתונים קריטית למניעת קריסה**
+            if (!state.user || !state.user.id || !targetUser || !targetUser.id) {
+                console.error("שגיאה: חסר משתמש מחובר או משתמש יעד לצ'אט.", { user: state.user, target: targetUser });
+                alert("שגיאה פנימית: לא ניתן לפתוח צ'אט. חסר פרטי משתמש.");
+                goTo('users');
                 return;
             }
 
@@ -255,6 +256,9 @@
                  return;
             }
             
+            // **ניתוב מיידי למסך הצ'אט עם הודעת טעינה** - מונע דף לבן זמני!
+            goTo('chat'); 
+            
             try {
                 // אחזור הודעות קודמות
                 const messagesSnapshot = await db.collection('chats').doc(chatRoomId)
@@ -266,7 +270,8 @@
                 const batch = db.batch();
                 let unreadCountToClear = 0;
                 messagesSnapshot.docs.forEach(doc => {
-                    if (doc.data().senderId === targetUser.id && doc.data().read === false) {
+                    // ודא שהשדות קיימים לפני הגישה, וכן מטפל במקרה של 'read: undefined'
+                    if (doc.data().senderId === targetUser.id && (doc.data().read === false || doc.data().read === undefined)) {
                         batch.update(doc.ref, { read: true });
                         unreadCountToClear++;
                     }
@@ -274,25 +279,38 @@
                 
                 await batch.commit();
 
-                // הסרת מונה ה"לא נקראו" הגלובלי (Firebase)
+                // הסרת מונה ה"לא נקראו" הגלובלי (Firestore)
                 if (unreadCountToClear > 0) {
                     delete state.unreadCounts[chatRoomId];
-                    // איפוס המונה ב-Firestore
                     await db.collection('chats').doc(chatRoomId).update({ 
                         [`unread_${state.user.id}`]: 0 
                     });
                 }
+                
+                // רנדור מחדש עם ההודעות שנטענו
+                render(); 
 
             } catch (error) {
-                console.error("שגיאה קריטית בטעינת צ'אט, סביר להניח שגיאת Firestore/Config:", error);
-                // הצגת הודעה פיקטיבית במקרה של כשל חיבור
-                if (state.chatMessages.length === 0) {
-                    state.chatMessages = [{ id: 'm0', senderId: targetUser.id, content: `זהו הצ'אט הראשון שלכם! שלח הודעה ל- ${targetUser.name}. **שגיאת חיבור**: אם אינך מצליח לשלוח, יש בעיה ב-Firebase Config.`, timestamp: firebase.firestore.Timestamp.now() }];
-                }
+                console.error("שגיאה קריטית בטעינת צ'אט (Firestore/Config/Rules):", error);
+                
+                // **טיפול חזק בשגיאה למניעת קריסה**
+                // הצגת הודעה פיקטיבית עם שגיאה במקום ההודעות
+                state.chatMessages = [{ 
+                    id: 'm0', 
+                    senderId: targetUser.id, 
+                    content: `**שגיאת חיבור!** לא ניתן לטעון הודעות מהשרת. ייתכן שיש בעיה בהגדרות Firebase (Rules/Config). אנא נסה שוב.`, 
+                    timestamp: firebase.firestore.Timestamp.now() 
+                }];
+                // וודא שנשארים במסך הצ'אט כדי שהמשתמש יראה את השגיאה
+                render();
             }
-
-            goTo('chat'); // ניתוב ל-Chat יקרה רק אם לא הייתה שגיאת משתמש
-        }
+            
+            // גלילה אוטומטית לתחתית הצ'אט
+            setTimeout(() => {
+                const chatBox = document.getElementById('chatBox');
+                if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+            }, 50);
+        };
 
 
         // --- 2. פונקציות Firebase (התחברות, רישום, שחזור) ---
@@ -812,13 +830,17 @@
                             ${state.chatMessages.map(msg => {
                                 const isMe = msg.senderId === state.user.id;
                                 const time = msg.timestamp && msg.timestamp.toDate ? new Date(msg.timestamp.toDate()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : 'עכשיו';
+                                
+                                // בדיקה אם זו הודעת שגיאה קריטית
+                                const isError = msg.content.includes('שגיאת חיבור!');
+                                
                                 return `
                                     <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
-                                        <div class="${isMe ? 'bg-kesher-secondary text-white rounded-tr-none' : 'bg-gray-200 text-gray-800 rounded-tl-none'} max-w-xs p-3 rounded-xl shadow-md">
+                                        <div class="${isError ? 'bg-red-100 border border-red-400 text-red-800' : isMe ? 'bg-kesher-secondary text-white rounded-tr-none' : 'bg-gray-200 text-gray-800 rounded-tl-none'} max-w-xs p-3 rounded-xl shadow-md">
                                             <p class="text-sm">${msg.content}</p>
                                             <div class="text-xs mt-1 flex justify-between items-center">
-                                                <span class="${isMe ? 'text-teal-200' : 'text-gray-500'}">${time} ${isMe && msg.read ? '✅' : isMe ? '...' : ''}</span>
-                                                ${!isMe ? `<button onclick="reportItem('${msg.id}', 'message', '${msg.senderId}')" class="text-red-400 hover:text-red-600 mr-2"><i class="fa-solid fa-flag"></i> דווח</button>` : ''}
+                                                <span class="${isError ? 'text-red-500' : isMe ? 'text-teal-200' : 'text-gray-500'}">${time} ${isMe && msg.read ? '✅' : isMe ? '...' : ''}</span>
+                                                ${!isMe && !isError ? `<button onclick="reportItem('${msg.id}', 'message', '${msg.senderId}')" class="text-red-400 hover:text-red-600 mr-2"><i class="fa-solid fa-flag"></i> דווח</button>` : ''}
                                             </div>
                                         </div>
                                     </div>
