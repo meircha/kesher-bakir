@@ -71,19 +71,20 @@
             currentPostReplies: [],
             selectedUser: null, // המשתמש בצ'אט
             chatMessages: [],
-            usersFilter: { city: '', role: '' }, // סינון במסך משתמשים
+            usersFilter: { city: '', role: '', hobby: '' }, // סינון במסך משתמשים (נוסף תחביב)
         };
 
         // נתונים פיקטיביים (לצורך הדגמה)
         function loadFakeData() {
             const now = firebase.firestore.Timestamp.now();
             
+            // נתוני משתמשים מעודכנים כוללים hobbies ו-contributions
             state.users = [
-                { id: 'user1', name: 'אורית לוי', email: 'orit@example.com', city: 'תל אביב', role: 'user', points: 150, isOnline: true },
-                { id: 'user2', name: 'דניאל כהן', email: 'daniel@example.com', city: 'ירושלים', role: 'user', points: 320, isOnline: false },
-                { id: 'user3', name: 'מאיה אלון', email: 'maya@example.com', city: 'חיפה', role: 'admin', points: 900, isOnline: true },
-                { id: 'user4', name: 'יוסי שקד', email: 'yossi@example.com', city: 'תל אביב', role: 'user', points: 50, isOnline: true },
-                { id: 'user5', name: 'שלומית וקנין', email: 'shlomit@example.com', city: 'באר שבע', role: 'user', points: 280, isOnline: false },
+                { id: 'user1', name: 'אורית לוי', email: 'orit@example.com', city: 'תל אביב', role: 'user', points: 150, isOnline: true, hobbies: ['בישול', 'טיולים'], contributions: ['ייעוץ עסקי', 'ארגון אירועים'] },
+                { id: 'user2', name: 'דניאל כהן', email: 'daniel@example.com', city: 'ירושלים', role: 'user', points: 320, isOnline: false, hobbies: ['קריאה', 'ריצה'], contributions: ['תרגום', 'קידוד'] },
+                { id: 'user3', name: 'מאיה אלון', email: 'maya@example.com', city: 'חיפה', role: 'admin', points: 900, isOnline: true, hobbies: ['צילום', 'אפייה'], contributions: ['ניהול קהילה', 'גרפיקה'] },
+                { id: 'user4', name: 'יוסי שקד', email: 'yossi@example.com', city: 'תל אביב', role: 'user', points: 50, isOnline: true, hobbies: ['ספורט', 'מוזיקה'], contributions: ['תיקונים קלים', 'הובלות קטנות'] },
+                { id: 'user5', name: 'שלומית וקנין', email: 'shlomit@example.com', city: 'באר שבע', role: 'user', points: 280, isOnline: false, hobbies: ['גינון'], contributions: ['ייעוץ משפטי'] },
             ];
 
             const post1Replies = [
@@ -168,11 +169,15 @@
 
         // --- 3. פונקציות Firebase (Authentication & Firestore) ---
         
-        // פונקציה חסרה: התחברות
+        // פונקציה מעודכנת: התחברות
         window.doLogin = async () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('pwd').value;
             const errorElement = document.getElementById('loginError');
+
+            // איפוס הודעת שגיאה קודמת משחזור סיסמה
+            errorElement.style.color = 'red'; 
+            errorElement.textContent = ''; 
 
             if (!email || !password) {
                 errorElement.textContent = 'יש למלא את כל השדות.';
@@ -180,15 +185,23 @@
             }
 
             try {
-                // נניח שהתחברות הצליחה (במציאות: נשתמש ב-auth.signInWithEmailAndPassword)
-                // במקום זאת, נדמה כניסה באמצעות הנתונים הפיקטיביים:
+                // הדמיית כניסה: בדיקה מול נתונים פיקטיביים
                 const fakeUser = state.users.find(u => u.email === email);
 
                 if (fakeUser) {
-                    state.user = { id: fakeUser.id, email: fakeUser.email, name: fakeUser.name, role: fakeUser.role, points: fakeUser.points };
+                    // במציאות נוודא סיסמה (אך זהו קוד דמה)
+                    state.user = { 
+                        id: fakeUser.id, 
+                        email: fakeUser.email, 
+                        name: fakeUser.name, 
+                        role: fakeUser.role, 
+                        points: fakeUser.points,
+                        hobbies: fakeUser.hobbies, 
+                        contributions: fakeUser.contributions 
+                    };
                     errorElement.textContent = '';
                     goTo('home');
-                    // עדכון סטטוס אונליין (פיקטיבי)
+                    // עדכון סטטוס אונליין
                     fakeUser.isOnline = true;
                     render();
                 } else {
@@ -201,21 +214,25 @@
             }
         };
 
-        // פונקציה חסרה: רישום
+        // פונקציה מעודכנת: רישום
         window.doRegister = async () => {
             const name = document.getElementById('regName').value;
             const email = document.getElementById('regEmail').value;
             const password = document.getElementById('regPwd').value;
             const city = document.getElementById('regCity').value;
+            const hobbiesInput = document.getElementById('regHobbies').value;
+            const contributionsInput = document.getElementById('regContributions').value;
             const errorElement = document.getElementById('registerError');
 
-            if (!name || !email || !password || !city) {
+            if (!name || !email || !password || !city || !hobbiesInput || !contributionsInput) {
                 errorElement.textContent = 'יש למלא את כל השדות.';
                 return;
             }
-
-            // במציאות, כאן נשתמש ב-auth.createUserWithEmailAndPassword ו-db.collection('users').add(...)
             
+            // המרת שדות המופרדים בפסיקים למערך
+            const hobbiesArray = hobbiesInput.split(',').map(item => item.trim()).filter(item => item !== '');
+            const contributionsArray = contributionsInput.split(',').map(item => item.trim()).filter(item => item !== '');
+
             // הדמיית רישום
             const newUserId = 'user' + (state.users.length + 1);
             const newUser = {
@@ -226,6 +243,8 @@
                 role: 'user',
                 points: 0,
                 isOnline: true,
+                hobbies: hobbiesArray, 
+                contributions: contributionsArray,
             };
 
             state.users.push(newUser);
@@ -251,15 +270,33 @@
             }
         };
 
-        // פונקציה חסרה: איפוס סיסמה
+        // פונקציה מעודכנת: איפוס סיסמה (הדמיה)
         window.doResetPassword = () => {
-            const email = document.getElementById('email').value; // שימוש בשדה המייל במסך הכניסה
+            const email = document.getElementById('email').value;
+            const errorElement = document.getElementById('loginError');
+
             if (!email) {
-                alert('יש להזין כתובת דוא"ל בשדה המייל.');
+                errorElement.textContent = 'יש להזין כתובת דוא"ל בשדה המייל כדי לשחזר סיסמה.';
+                errorElement.style.color = 'red';
                 return;
             }
-            // במציאות: נשתמש ב-auth.sendPasswordResetEmail(email)
-            alert(`בקשת איפוס סיסמה נשלחה לכתובת: ${email}. אנא בדוק את תיבת הדואר שלך (הדמיה בלבד).`);
+            
+            // בדיקה האם המייל קיים (פיקטיבי)
+            const userExists = state.users.some(u => u.email === email);
+            
+            if (userExists) {
+                // הדמיית שליחת מייל
+                errorElement.textContent = '👍 נשלח קישור לאיפוס סיסמה לכתובת ' + email;
+                errorElement.style.color = 'green';
+            } else {
+                errorElement.textContent = 'כתובת המייל אינה קיימת במערכת.';
+                errorElement.style.color = 'red';
+            }
+            // אחרי כמה שניות ננקה את ההודעה
+            setTimeout(() => {
+                errorElement.textContent = '';
+                errorElement.style.color = 'red';
+            }, 5000);
         };
 
 
@@ -487,6 +524,7 @@
             </div>
         `;
 
+        // רכיב רישום מעודכן
         const renderRegister = () => `
             <div class="flex items-center justify-center min-h-screen bg-gray-100 p-4 pt-16">
                 <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl">
@@ -508,6 +546,17 @@
                             <label for="regCity" class="block text-sm font-medium text-gray-700">עיר מגורים</label>
                             <input type="text" id="regCity" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" required>
                         </div>
+                        
+                        <div>
+                            <label for="regHobbies" class="block text-sm font-medium text-gray-700">תחביבים (הפרד בפסיק, לדוגמה: ספורט, בישול)</label>
+                            <input type="text" id="regHobbies" placeholder="לדוגמה: גינון, קריאה, טיולים" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" required>
+                        </div>
+                        
+                        <div>
+                            <label for="regContributions" class="block text-sm font-medium text-gray-700">תחומים בהם אני יכול/ה לתרום (הפרד בפסיק, לדוגמה: ייעוץ משפטי, נגרות)</label>
+                            <input type="text" id="regContributions" placeholder="לדוגמה: עזרה טכנית, שיעורי עזר, ייעוץ" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" required>
+                        </div>
+
                         <p id="registerError" class="text-red-600 text-sm text-center"></p>
                         <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-bold text-white bg-kesher-blue hover:bg-blue-600 transition">
                             השלם הרשמה
@@ -523,16 +572,18 @@
             </div>
         `;
 
-        // דרישה 1: מסך חברים
+        // דרישה 1: מסך חברים - עודכן להצגת נתוני פרופיל וסינון
         const renderUsers = () => {
             const filteredUsers = state.users.filter(u => 
                 u.id !== state.user.id && // לא להציג את המשתמש הנוכחי
                 (state.usersFilter.city === '' || u.city === state.usersFilter.city) &&
-                (state.usersFilter.role === '' || u.role === state.usersFilter.role)
+                (state.usersFilter.role === '' || u.role === state.usersFilter.role) &&
+                (state.usersFilter.hobby === '' || u.hobbies?.includes(state.usersFilter.hobby))
             );
 
             const cities = [...new Set(state.users.map(u => u.city))];
-
+            const allHobbies = [...new Set(state.users.flatMap(u => u.hobbies || []))];
+            
             return `
                 ${getHeader()}
                 <div class="max-w-6xl mx-auto px-4">
@@ -551,19 +602,29 @@
                             <option value="user" ${state.usersFilter.role === 'user' ? 'selected' : ''}>משתמש רגיל</option>
                             <option value="admin" ${state.usersFilter.role === 'admin' ? 'selected' : ''}>מנהל</option>
                         </select>
+                        
+                        <select onchange="state.usersFilter.hobby = this.value; render()" class="p-2 border rounded-lg">
+                            <option value="">כל התחביבים</option>
+                            ${allHobbies.map(h => `<option value="${h}" ${state.usersFilter.hobby === h ? 'selected' : ''}>${h}</option>`).join('')}
+                        </select>
                     </div>
 
                     <div class="space-y-4">
                         ${filteredUsers.length > 0 ? filteredUsers.map(u => `
-                            <div class="bg-white p-6 rounded-xl shadow-md flex justify-between items-center hover:shadow-lg transition">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl font-bold text-kesher-blue">${u.name[0]}</div>
-                                    <div>
+                            <div class="bg-white p-6 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition">
+                                <div class="flex items-start gap-4 mb-4 md:mb-0">
+                                    <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl font-bold text-kesher-blue shrink-0">${u.name[0]}</div>
+                                    <div class="flex-grow">
                                         <h3 class="text-xl font-bold text-gray-800">${u.name}</h3>
                                         <p class="text-sm text-gray-600">${u.city} | ⭐ ${u.points || 0} נקודות</p>
+                                        
+                                        <div class="mt-2 text-xs">
+                                            <p class="font-semibold text-kesher-green">תחביבים: <span class="font-normal text-gray-700">${u.hobbies?.join(', ') || 'לא צוין'}</span></p>
+                                            <p class="font-semibold text-kesher-blue">יכול/ה לתרום: <span class="font-normal text-gray-700">${u.contributions?.join(', ') || 'לא צוין'}</span></p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 items-center">
                                     <span class="text-xs font-semibold px-3 py-1 rounded-full ${u.isOnline ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}">${u.isOnline ? '🟢 מחובר' : '⚫ לא מחובר'}</span>
                                     <button onclick="openChat({ id: '${u.id}', name: '${u.name}' })" class="bg-kesher-blue hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm">שלח הודעה</button>
                                     <button onclick="reportItem('${u.id}', 'user', '${u.id}')" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 rounded-lg transition text-sm">דווח 🚩</button>
@@ -1032,19 +1093,6 @@
             } else {
                 goTo('login');
             }
-            // במציאות, נשתמש ב-auth.onAuthStateChanged
-            // auth.onAuthStateChanged(firebaseUser => {
-            //     if (firebaseUser) {
-            //         // משתמש מחובר
-            //         // נטען את נתוני המשתמש המלאים מ-Firestore ל-state.user
-            //         state.user = { id: firebaseUser.uid, email: firebaseUser.email, name: 'טוען...', role: 'user' }; 
-            //         goTo('home');
-            //     } else {
-            //         // אין משתמש מחובר
-            //         state.user = null;
-            //         goTo('login');
-            //     }
-            // });
         }
 
         initializeApp(); // הפעלת האפליקציה
