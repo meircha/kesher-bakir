@@ -92,6 +92,7 @@
                     ...doc.data(), 
                     isOnline: doc.data().isOnline || false 
                 }));
+                
                 // 2. אחזור פעילויות (הפעלת פונקציות הפיקטיביות הוסרה מכיוון שהנתונים נטענים מ-Firestore)
                 loadFakeForumData();
                 const activitiesSnapshot = await db.collection('activities').get();
@@ -636,8 +637,9 @@
         };
 
         const renderHome = () => {
-            const onlineUsers = state.users.filter(u => u.isOnline && u.id !== state.user.id);
-            const myActivities = state.activities.filter(a => a.attendees.includes(state.user.id));
+            // *** תיקון לבעיית ה-TypeError: שימוש ב- || [] לגישה בטוחה לנתונים ***
+            const onlineUsers = (state.users || []).filter(u => u.isOnline && u.id !== state.user.id);
+            const myActivities = (state.activities || []).filter(a => a.attendees?.includes(state.user.id));
             
             return `
                 ${getHeader()}
@@ -705,13 +707,13 @@
         };
         
         const renderUsers = () => {
-             const filteredUsers = state.users.filter(u => u.id !== state.user.id)
+             const filteredUsers = (state.users || []).filter(u => u.id !== state.user.id)
                 .filter(u => !state.usersFilter.city || u.city === state.usersFilter.city)
                 .filter(u => !state.usersFilter.role || u.role === state.usersFilter.role)
                 .filter(u => !state.usersFilter.hobby || u.hobbies?.includes(state.usersFilter.hobby));
             
-            const allCities = [...new Set(state.users.map(u => u.city).filter(c => c))];
-            const allHobbies = [...new Set(state.users.flatMap(u => u.hobbies || []).filter(h => h))];
+            const allCities = [...new Set((state.users || []).map(u => u.city).filter(c => c))];
+            const allHobbies = [...new Set((state.users || []).flatMap(u => u.hobbies || []).filter(h => h))];
 
             return `
                 ${getHeader()}
@@ -942,7 +944,7 @@
         };
         
         const renderActivities = () => {
-             const upcomingActivities = state.activities.sort((a, b) => a.date - b.date).filter(a => a.date >= new Date());
+             const upcomingActivities = (state.activities || []).sort((a, b) => a.date - b.date).filter(a => a.date >= new Date());
              
              return `
                 ${getHeader()}
@@ -1008,8 +1010,8 @@
         const renderAdmin = () => {
             if (state.user.role !== 'admin') { goTo('home'); return ''; }
 
-            const newReports = state.reports.filter(r => r.status === 'חדש');
-            const inProgressReports = state.reports.filter(r => r.status === 'בטיפול');
+            const newReports = (state.reports || []).filter(r => r.status === 'חדש');
+            const inProgressReports = (state.reports || []).filter(r => r.status === 'בטיפול');
 
             return `
                 ${getHeader()}
@@ -1018,11 +1020,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                         <div class="bg-white p-5 rounded-xl shadow-lg border-r-4 border-kesher-blue">
                             <p class="text-xs text-gray-500">סה"כ משתמשים</p>
-                            <p class="text-3xl font-bold text-kesher-blue">${state.users.length}</p>
+                            <p class="text-3xl font-bold text-kesher-blue">${(state.users || []).length}</p>
                         </div>
                         <div class="bg-white p-5 rounded-xl shadow-lg border-r-4 border-kesher-green">
                             <p class="text-xs text-gray-500">פעילויות קרובות</p>
-                            <p class="text-3xl font-bold text-kesher-green">${state.activities.filter(a => a.date >= new Date()).length}</p>
+                            <p class="text-3xl font-bold text-kesher-green">${(state.activities || []).filter(a => a.date >= new Date()).length}</p>
                         </div>
                         <div class="bg-white p-5 rounded-xl shadow-lg border-r-4 border-red-500">
                             <p class="text-xs text-gray-500">דיווחים חדשים</p>
@@ -1031,9 +1033,9 @@
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-xl">
-                        <h3 class="text-2xl font-bold text-red-600 mb-4">?? ניהול דיווחים (${state.reports.length})</h3>
+                        <h3 class="text-2xl font-bold text-red-600 mb-4">?? ניהול דיווחים (${(state.reports || []).length})</h3>
                         <div class="space-y-4">
-                            ${state.reports.map(r => {
+                            ${(state.reports || []).map(r => {
                                 const statusColor = r.status === 'חדש' ? 'bg-red-100 text-red-800' : 
                                                     r.status === 'בטיפול' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800';
                                 return `
@@ -1114,7 +1116,7 @@
                                 contributions: userData.contributions || [] 
                             };
                             
-                            // טעינת נתונים נוספים לאחר אימות (חיוני לרנדור הבית)
+                            // ** המתנה חובה ** לטעינת נתונים נוספים לפני המעבר
                             await fetchInitialData(); 
 
                             goTo('home');
