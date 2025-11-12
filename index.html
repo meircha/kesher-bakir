@@ -134,7 +134,8 @@
                     id: doc.id, 
                     ...doc.data(), 
                     isOnline: doc.data().isOnline || false,
-                    role: doc.data().role || 'user'
+                    role: doc.data().role || 'user',
+                    isActive: doc.data().isActive !== false // הוספת שדה isActive
                 }));
                 
                 // 2. אחזור פעילויות
@@ -183,9 +184,10 @@
             if (forceUserFakes || state.users.length === 0) {
                  // **חשוב: אם Firebase לא עובד, המשתמשים הפיקטיביים האלה נטענים**
                  state.users = [
-                    { id: 'user1', name: 'אורית לוי', email: 'orit@example.com', city: 'תל אביב', role: 'admin', points: 150, isOnline: true, hobbies: ['בישול', 'טיולים'], contributions: ['ייעוץ עסקי', 'ארגון אירועים'] },
-                    { id: 'user2', name: 'דניאל כהן', email: 'daniel@example.com', city: 'ירושלים', role: 'senior', points: 300, isOnline: false, hobbies: ['ספורט', 'צילום'], contributions: ['עזרה טכנית', 'הדרכה'] },
-                    { id: 'user3', name: 'מאיה אלון', email: 'maya@example.com', city: 'חיפה', role: 'user', points: 900, isOnline: true, hobbies: ['צילום', 'אפייה'], contributions: ['ניהול קהילה', 'גרפיקה'] },
+                    { id: 'user1', name: 'אורית לוי', email: 'orit@example.com', city: 'תל אביב', role: 'admin', points: 150, isOnline: true, hobbies: ['בישול', 'טיולים'], contributions: ['ייעוץ עסקי', 'ארגון אירועים'], isActive: true },
+                    { id: 'user2', name: 'דניאל כהן', email: 'daniel@example.com', city: 'ירושלים', role: 'senior', points: 300, isOnline: false, hobbies: ['ספורט', 'צילום'], contributions: ['עזרה טכנית', 'הדרכה'], isActive: true },
+                    { id: 'user3', name: 'מאיה אלון', email: 'maya@example.com', city: 'חיפה', role: 'user', points: 900, isOnline: true, hobbies: ['צילום', 'אפייה'], contributions: ['ניהול קהילה', 'גרפיקה'], isActive: true },
+                    { id: 'user4', name: 'יוסף מושהה', email: 'yosef@example.com', city: 'חיפה', role: 'user', points: 10, isOnline: false, hobbies: ['שחמט'], contributions: ['פנסיה'], isActive: false },
                 ];
                 // אם אנחנו בטעינה פיקטיבית, נטען גם פעילויות פיקטיביות אם לא נטענו מ-Firebase
                 if (state.activities.length === 0) {
@@ -291,6 +293,7 @@
                 render(); 
 
             } catch (error) {
+                // **זה הבלוק שצריך לבדוק אם הוא קורה**
                 console.error("שגיאה קריטית בטעינת צ'אט (Firestore/Config/Rules):", error);
                 
                 // **טיפול חזק בשגיאה למניעת קריסה**
@@ -328,6 +331,14 @@
                 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
+                    
+                    // בדיקת סטטוס השעיה (isActive: false)
+                    if (userData.isActive === false) {
+                        errorElement.textContent = 'חשבונך מושהה על ידי מנהל המערכת.';
+                        auth.signOut();
+                        return;
+                    }
+
                     state.user = { 
                         id: user.uid, 
                         email: user.email, 
@@ -335,7 +346,8 @@
                         role: userData.role || 'user', 
                         points: userData.points || 0,
                         hobbies: userData.hobbies || [], 
-                        contributions: userData.contributions || [] 
+                        contributions: userData.contributions || [],
+                        isActive: userData.isActive !== false
                     };
                     await fetchInitialData(); 
                     goTo('home');
@@ -375,6 +387,7 @@
                     role: 'user', // ברירת מחדל: משתמש רגיל
                     points: 0,
                     isOnline: true,
+                    isActive: true, // משתמש חדש פעיל כברירת מחדל
                     hobbies: hobbiesArray, 
                     contributions: contributionsArray,
                     email: email,
@@ -504,6 +517,65 @@
             } catch (error) {
                 console.error("שגיאה בעדכון דרגה:", error);
                 alert("שגיאה בעדכון דרגה ב-Firestore. בדוק את החיבור וכללי האבטחה.");
+            }
+        };
+
+        /**
+         * מחיקת משתמש לצמיתות (Admin only)
+         */
+        window.deleteUser = async (userId, userName) => {
+            if (state.user.role !== 'admin') {
+                alert('רק אדמין יכול למחוק משתמשים.');
+                return;
+            }
+            if (userId === state.user.id) {
+                alert('אינך יכול למחוק את החשבון שלך דרך הממשק הזה.');
+                return;
+            }
+            if (!confirm(`האם אתה בטוח שברצונך למחוק לצמיתות את המשתמש ${userName}? פעולה זו בלתי הפיכה.`)) return;
+
+            try {
+                // **הערה חשובה: מחיקה אמיתית של משתמש Auth דורשת פונקציית צד שרת (Cloud Function)**
+                // במודל הנוכחי, נסמן אותו כ'מחק' ב-Firestore ונאתחל את ה-state.
+                await db.collection('users').doc(userId).delete();
+                
+                // עדכון ה-state המקומי
+                state.users = state.users.filter(u => u.id !== userId);
+                alert(`המשתמש ${userName} נמחק בהצלחה (מ-Firestore בלבד).`);
+                render();
+            } catch (error) {
+                console.error("שגיאה במחיקת משתמש:", error);
+                alert("שגיאה במחיקת המשתמש. בדוק כללי אבטחה.");
+            }
+        };
+
+        /**
+         * השהיה או הפעלה מחדש של משתמש (Admin only)
+         */
+        window.toggleUserActive = async (userId, userName, isActive) => {
+            if (state.user.role !== 'admin') {
+                alert('רק אדמין יכול להשהות משתמשים.');
+                return;
+            }
+            const newStatus = isActive ? false : true; // אם פעיל כרגע, הפוך ללא פעיל (false)
+            const actionText = newStatus ? 'הפעלה מחדש' : 'השהיה';
+            
+            if (!confirm(`האם אתה בטוח שברצונך לבצע ${actionText} למשתמש ${userName}?`)) return;
+
+            try {
+                // עדכון שדה חדש ב-Firestore שיסמן אם המשתמש יכול להתחבר
+                await db.collection('users').doc(userId).update({ isActive: newStatus });
+                
+                // עדכון ה-state המקומי
+                const userToUpdate = state.users.find(u => u.id === userId);
+                if (userToUpdate) {
+                    userToUpdate.isActive = newStatus;
+                }
+                alert(`המשתמש ${userName} עודכן לסטטוס: ${newStatus ? 'פעיל' : 'מושהה'}`);
+                render();
+            } catch (error) {
+                console.error("שגיאה בעדכון סטטוס משתמש:", error);
+                alert("שגיאה בעדכון סטטוס המשתמש. בדוק כללי אבטחה.");
             }
         };
         
@@ -666,7 +738,8 @@
         };
 
         const renderHome = () => {
-            const onlineUsers = (state.users || []).filter(u => u.isOnline && u.id !== state.user.id);
+            // סינון משתמשים שהושעו (isActive: false)
+            const onlineUsers = (state.users || []).filter(u => u.isOnline && u.id !== state.user.id && u.isActive !== false);
             const myActivities = (state.activities || []).filter(a => a.attendees?.includes(state.user.id));
             const dailyRec = getDailyRecommendation();
 
@@ -748,7 +821,10 @@
         };
         
         const renderUsers = () => {
-             const filteredUsers = (state.users || []).filter(u => u.id !== state.user.id)
+             // סינון משתמשים שהושעו או לא פעילים
+             const activeUsers = (state.users || []).filter(u => u.isActive !== false);
+
+             const filteredUsers = activeUsers.filter(u => u.id !== state.user.id)
                 .filter(u => !state.usersFilter.city || u.city === state.usersFilter.city)
                 .filter(u => !state.usersFilter.role || u.role === state.usersFilter.role)
                 .filter(u => !state.usersFilter.hobby || u.hobbies?.includes(state.usersFilter.hobby));
@@ -1057,12 +1133,17 @@
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">עיר</th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">דרגה נוכחית</th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">שנה דרגה</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">פעולות</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     ${(state.users || []).map(u => `
                                         <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${u.name} ${u.id === state.user.id ? '(אני)' : ''}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                ${u.name} 
+                                                ${u.id === state.user.id ? '(אני)' : ''}
+                                                ${u.isActive === false ? ' <span class="text-red-500 font-bold">(מושהה)</span>' : ''}
+                                            </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${u.city}</td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                                                 <span class="${u.role === 'admin' ? 'text-red-600' : u.role === 'senior' ? 'text-kesher-secondary' : 'text-gray-500'}">${u.role}</span>
@@ -1073,6 +1154,17 @@
                                                     <option value="senior" ${u.role === 'senior' ? 'selected' : ''}>משתמש בכיר</option>
                                                     <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>אדמין</option>
                                                 </select>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2 space-x-reverse">
+                                                <button 
+                                                    onclick="toggleUserActive('${u.id}', '${u.name}', ${u.isActive !== false})" 
+                                                    class="p-1 rounded text-xs ${u.isActive !== false ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-kesher-secondary hover:bg-teal-600 text-white'}"
+                                                    ${u.id === state.user.id ? 'disabled' : ''}>
+                                                    ${u.isActive !== false ? '<i class="fa-solid fa-pause"></i> השהה' : '<i class="fa-solid fa-play"></i> הפעל מחדש'}
+                                                </button>
+                                                <button onclick="deleteUser('${u.id}', '${u.name}')" class="p-1 rounded text-xs bg-red-500 hover:bg-red-600 text-white" ${u.id === state.user.id ? 'disabled' : ''}>
+                                                    <i class="fa-solid fa-trash"></i> מחק
+                                                </button>
                                             </td>
                                         </tr>
                                     `).join('')}
@@ -1158,6 +1250,13 @@
                         if (userDoc.exists) {
                             const userData = userDoc.data();
                             
+                            // בדיקת סטטוס השעיה (isActive: false)
+                            if (userData.isActive === false) {
+                                console.log("המשתמש מושהה. יציאה.");
+                                auth.signOut();
+                                return;
+                            }
+
                             state.user = { 
                                 id: user.uid, 
                                 email: user.email, 
@@ -1165,7 +1264,8 @@
                                 role: userData.role || 'user', 
                                 points: userData.points || 0,
                                 hobbies: userData.hobbies || [], 
-                                contributions: userData.contributions || [] 
+                                contributions: userData.contributions || [],
+                                isActive: userData.isActive !== false // ברירת מחדל: פעיל
                             };
                             
                             // 2. טעינת נתונים כלליים (משתמשים, פעילויות, מוני צ'אט)
