@@ -215,15 +215,25 @@
                     const userData = userDoc.data();
                     
                     // עדכון המצב הגלובלי עם נתוני המשתמש האמיתיים
-                    state.user = { 
-                        id: user.uid, 
-                        email: user.email, 
-                        name: userData.name, 
-                        role: userData.role || 'user', 
-                        points: userData.points || 0,
-                        hobbies: userData.hobbies || [], 
-                        contributions: userData.contributions || [] 
-                    };
+                    // ... סביב שורה 227-230
+                // עדכון המצב הגלובלי עם נתוני המשתמש האמיתיים
+                state.user = { 
+                    id: user.uid, 
+                    email: user.email, 
+                    name: userData.name, 
+                    role: userData.role || 'user', // זה ימשוך את 'admin'
+                    points: userData.points || 0,
+                    hobbies: userData.hobbies || [], 
+                    contributions: userData.contributions || [] 
+                };
+
+                // **!!! השורה הקריטית החסרה !!!**
+                await fetchInitialData(); 
+                
+                errorElement.textContent = '';
+                goTo('home'); // המעבר יתבצע רק לאחר טעינת כל הנתונים
+            } else {
+// ... };
 
                     // עדכון ה-state.users הכללי לשמירת הסטטוסים
                     await fetchInitialData(); 
