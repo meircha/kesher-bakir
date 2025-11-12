@@ -574,8 +574,8 @@ async function openChat(otherUserId) {
             });
         }
 
-        // **************** הפונקציה renderChatScreen המתוקנת ****************
-        // התיקון הקריטי: הוספת || [] כדי למנוע קריסה בצ'אט חדש ללא הודעות
+// **************** הפונקציה renderChatScreen המתוקנת ****************
+        // התיקון הקריטי הוא בבדיקה של msg.timestamp
         function renderChatScreen(chatData) {
             const chatScreen = document.getElementById('chat-screen');
             if (!chatScreen) return;
@@ -594,10 +594,23 @@ async function openChat(otherUserId) {
                 </div>
             `;
             
-            // **התיקון כאן:** (chatData.messages || [])
+            // התיקון: (chatData.messages || []) כדי לטפל בצ'אט חדש, כפי שתוקן קודם.
             const messagesHTML = (chatData.messages || []).map(msg => {
-                // ודא שה-timestamp הוא אובייקט Firebase תקין
-                const timestamp = msg.timestamp && msg.timestamp.seconds ? new Date(msg.timestamp.seconds * 1000) : new Date();
+                
+                // **התיקון החדש לבעיית ה-timestamp:**
+                let timestamp;
+                if (msg.timestamp && msg.timestamp.seconds) {
+                    // אובייקט תקין של Firebase Timestamp
+                    timestamp = new Date(msg.timestamp.seconds * 1000);
+                } else if (msg.timestamp instanceof firebase.firestore.Timestamp) {
+                    // אובייקט Firebase Timestamp שנשלף בצורה מעט שונה
+                    timestamp = msg.timestamp.toDate();
+                } 
+                else {
+                    // ברירת מחדל אם ה-timestamp חסר/לא תקין (הודעות ישנות)
+                    timestamp = new Date();
+                }
+
                 const timeString = timestamp.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
                 const isMe = msg.senderId === state.user.id;
