@@ -66,6 +66,7 @@
         
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const FieldValue = firebase.firestore.FieldValue; // קיצור נוח יותר
 
         // מצב גלובלי (State Management)
         const state = {
@@ -122,55 +123,8 @@
         }
 
         /**
-         * אחזור נתונים ראשוני מ-Firestore (חיוני למניעת המסך הלבן)
+         * פונקציית טעינת נתונים פיקטיביים למבנים (פורום, פעילויות)
          */
-        async function fetchInitialData() {
-            // טעינת נתונים פיקטיביים קודם
-            loadFakeForumData(false); 
-            
-            try {
-                // 1. אחזור רשימת משתמשים
-                const usersSnapshot = await db.collection('users').get();
-                state.users = usersSnapshot.docs.map(doc => ({ 
-                    id: doc.id, 
-                    ...doc.data(), 
-                    isOnline: doc.data().isOnline || false,
-                    role: doc.data().role || 'user',
-                    isActive: doc.data().isActive !== false // הוספת שדה isActive
-                }));
-                
-                // 2. אחזור פעילויות
-                const activitiesSnapshot = await db.collection('activities').get();
-                state.activities = activitiesSnapshot.docs.map(doc => ({ 
-                    id: doc.id, 
-                    ...doc.data(),
-                    date: doc.data().date?.toDate() || new Date() 
-                }));
-
-                // 3. אחזור מונה הודעות שלא נקראו - **רק אם המשתמש מחובר**
-                if (state.user && state.user.id) {
-                    // אחזור כל חדרי הצ'אט בהם המשתמש משתתף
-                    const myChatsSnapshot = await db.collection('chats')
-                        .where('participants', 'array-contains', state.user.id)
-                        .get();
-
-                    state.unreadCounts = {};
-                    for (const chatDoc of myChatsSnapshot.docs) {
-                        // המפתח הוא 'unread_UID_שלי'
-                        const unreadCountForMe = chatDoc.data()[`unread_${state.user.id}`] || 0;
-                        if (unreadCountForMe > 0) {
-                            state.unreadCounts[chatDoc.id] = unreadCountForMe;
-                        }
-                    }
-                }
-                
-            } catch (error) {
-                console.error("שגיאה באחזור נתונים מ-Firebase. טוען נתונים פיקטיביים מלאים:", error);
-                loadFakeForumData(true); 
-            }
-        }
-        
-        // פונקציית טעינת נתונים פיקטיביים למבנים (פורום, פעילויות)
         function loadFakeForumData(forceUserFakes = false) {
             const now = firebase.firestore.Timestamp.now();
             const post1Replies = [
@@ -184,28 +138,98 @@
                 { id: 'f2', title: 'טיולים וטבע', description: 'מסלולים מומלצים וציוד קמפינג.', icon: '<i class="fa-solid fa-mountain-sun"></i>', posts: [] },
                 { id: 'f3', title: 'בריאות וכושר', description: 'טיפים ודיונים על שמירה על כושר בגיל השלישי.', icon: '<i class="fa-solid fa-heart-pulse"></i>', posts: [] },
             ];
+            
+            // טעינת משתמשים פיקטיביים אם אין אף משתמש במערכת או נכשל איחזור
             if (forceUserFakes || state.users.length === 0) {
-                 // **חשוב: אם Firebase לא עובד, המשתמשים הפיקטיביים האלה נטענים**
                  state.users = [
                     { id: 'user1', name: 'אורית לוי', email: 'orit@example.com', city: 'תל אביב', role: 'admin', points: 150, isOnline: true, hobbies: ['בישול', 'טיולים'], contributions: ['ייעוץ עסקי', 'ארגון אירועים'], isActive: true },
                     { id: 'user2', name: 'דניאל כהן', email: 'daniel@example.com', city: 'ירושלים', role: 'senior', points: 300, isOnline: false, hobbies: ['ספורט', 'צילום'], contributions: ['עזרה טכנית', 'הדרכה'], isActive: true },
                     { id: 'user3', name: 'מאיה אלון', email: 'maya@example.com', city: 'חיפה', role: 'user', points: 900, isOnline: true, hobbies: ['צילום', 'אפייה'], contributions: ['ניהול קהילה', 'גרפיקה'], isActive: true },
                     { id: 'user4', name: 'יוסף מושהה', email: 'yosef@example.com', city: 'חיפה', role: 'user', points: 10, isOnline: false, hobbies: ['שחמט'], contributions: ['פנסיה'], isActive: false },
                 ];
-                // אם אנחנו בטעינה פיקטיבית, נטען גם פעילויות פיקטיביות אם לא נטענו מ-Firebase
-                if (state.activities.length === 0) {
-                     state.activities = [
-                        { id: 'a1', title: 'טיול רגלי בגן הבוטני', description: 'מסלול קל מתאים לכולם.', date: new Date(new Date().getTime() + 86400000 * 5), location: 'תל אביב', creatorName: 'אורית לוי', attendees: ['user1', 'user3'] },
-                        { id: 'a2', title: 'סדנת אפייה למתקדמים', description: 'נאפה עוגות שמרים מיוחדות.', date: new Date(new Date().getTime() + 86400000 * 10), location: 'ירושלים', creatorName: 'מאיה אלון', attendees: ['user3'] },
-                    ];
-                }
+            }
+
+            // טעינת פעילויות פיקטיביות אם לא נטענו מ-Firebase
+            if (state.activities.length === 0) {
+                 state.activities = [
+                    { id: 'a1', title: 'טיול רגלי בגן הבוטני', description: 'מסלול קל מתאים לכולם.', date: new Date(new Date().getTime() + 86400000 * 5), location: 'תל אביב', creatorName: 'אורית לוי', attendees: ['user1', 'user3'] },
+                    { id: 'a2', title: 'סדנת אפייה למתקדמים', description: 'נאפה עוגות שמרים מיוחדות.', date: new Date(new Date().getTime() + 86400000 * 10), location: 'ירושלים', creatorName: 'מאיה אלון', attendees: ['user3'] },
+                ];
             }
 
             state.reports = [
                 { id: 'rep1', itemId: 'p1', itemType: 'post', reason: 'שפה בוטה', reporterName: 'דניאל כהן', reportedUserId: 'user1', status: 'חדש' },
             ];
         }
+        
+        /**
+         * אחזור נתונים ראשוני מ-Firestore (חיוני למניעת המסך הלבן) - **תוקן לטיפול בשגיאות**
+         */
+        async function fetchInitialData() {
+            // **שלב 1: טעינת נתונים פיקטיביים קודם (כברירת מחדל)**
+            loadFakeForumData(false); 
+            
+            try {
+                // 2.1. אחזור רשימת משתמשים
+                const usersSnapshot = await db.collection('users').get();
+                if (!usersSnapshot.empty) {
+                    state.users = usersSnapshot.docs.map(doc => ({ 
+                        id: doc.id, 
+                        ...doc.data(), 
+                        isOnline: doc.data().isOnline || false,
+                        role: doc.data().role || 'user',
+                        isActive: doc.data().isActive !== false
+                    }));
+                } else {
+                    // אם אין משתמשים ב-Firestore, טען פיקטיביים (forceUserFakes = true)
+                    loadFakeForumData(true); 
+                }
+                
+                // 2.2. אחזור פעילויות
+                try {
+                    const activitiesSnapshot = await db.collection('activities').get();
+                    state.activities = activitiesSnapshot.docs.map(doc => ({ 
+                        id: doc.id, 
+                        ...doc.data(), 
+                        date: doc.data().date?.toDate() || new Date() 
+                    }));
+                } catch (error) {
+                    console.warn("אזהרה: שגיאה באחזור פעילויות. נטענו פעילויות פיקטיביות.", error.message);
+                    // הנתונים הפיקטיביים כבר נטענו ב-loadFakeForumData(false)
+                }
+                
+                // 2.3. אחזור מונה הודעות שלא נקראו - **רק אם המשתמש מחובר**
+                if (state.user && state.user.id) {
+                    try {
+                        // אחזור כל חדרי הצ'אט בהם המשתמש משתתף
+                        const myChatsSnapshot = await db.collection('chats')
+                            .where('participants', 'array-contains', state.user.id)
+                            .get();
 
+                        state.unreadCounts = {};
+                        for (const chatDoc of myChatsSnapshot.docs) {
+                            // המפתח הוא 'unread_UID_שלי'
+                            const unreadCountForMe = chatDoc.data()[`unread_${state.user.id}`] || 0;
+                            if (unreadCountForMe > 0) {
+                                state.unreadCounts[chatDoc.id] = unreadCountForMe;
+                            }
+                        }
+                    } catch (error) {
+                         console.warn("אזהרה: שגיאה באחזור מוני הודעות צ'אט (אולי בגלל כללי אבטחה). מונה הצ'אטים נשאר 0.", error.message);
+                         state.unreadCounts = {}; // נקה למקרה שהייתה שגיאה חלקית
+                    }
+                }
+                
+            } catch (error) {
+                // שגיאה כללית (כנראה בשלב ה-users) - השתמש בנתונים הפיקטיביים שנשמרו בהתחלה
+                console.error("שגיאה קריטית באחזור נתונים ראשי מ-Firebase. שימוש בנתונים פיקטיביים בלבד:", error);
+                loadFakeForumData(true); // אם יש שגיאה קריטית, וודא טעינה כפויה של משתמשים פיקטיביים
+            }
+        }
+        
+        // פונקציית טעינת נתונים פיקטיביים למבנים (פורום, פעילויות) - לוגיקה הועברה מעלה
+        // ...
+        
         /**
          * פונקציית ניתוב בסיסית
          */
@@ -290,21 +314,24 @@
                         const unreadCountKey = `unread_${state.user.id}`;
                         
                         // בדיקה האם יש צורך באפס את המונה
-                        const chatDocSnapshot = await chatDocRef.get();
+                        // אין צורך לחכות ל-get כאן, אפשר לנסות לעדכן ישר
                         
-                        if (chatDocSnapshot.exists && chatDocSnapshot.data()[unreadCountKey] > 0) {
-                            try {
-                                // איפוס המונה ב-Firestore
-                                await chatDocRef.update({ 
-                                    [unreadCountKey]: 0 
-                                });
-                                // איפוס המונה ב-State המקומי והפעלת רנדור לעדכון מונה ההודעות בכותרת
+                        try {
+                            // איפוס המונה ב-Firestore (set עם Merge אם המסמך לא קיים)
+                            await chatDocRef.set({ 
+                                [unreadCountKey]: 0,
+                                participants: [state.user.id, targetUser.id], // לוודא שמשתתפים תמיד קיימים
+                            }, { merge: true });
+                            
+                            // איפוס המונה ב-State המקומי והפעלת רנדור לעדכון מונה ההודעות בכותרת
+                            if (state.unreadCounts[chatRoomId] > 0) {
                                 delete state.unreadCounts[chatRoomId];
-                                
-                            } catch (e) {
-                                // שגיאה כאן יכולה לקרות אם המסמך עדיין לא קיים (הצ'אט הראשון נשלח עכשיו)
-                                console.log("אזהרה: לא ניתן לאפס את מונה ההודעות שלא נקראו (אולי המסמך אינו קיים עדיין).", e.message);
+                                console.log(`מונה הודעות ${chatRoomId} אופס בהצלחה.`);
                             }
+                            
+                        } catch (e) {
+                            // אם יש בעיה בכתיבה ל-Firestore (למשל, כללי אבטחה), הצ'אט עדיין ירוץ עם ה-onSnapshot
+                            console.warn("אזהרה: לא ניתן לאפס את מונה ההודעות שלא נקראו.", e.message);
                         }
                     }
 
@@ -404,7 +431,7 @@
                     hobbies: hobbiesArray, 
                     contributions: contributionsArray,
                     email: email,
-                    joinDate: firebase.firestore.FieldValue.serverTimestamp()
+                    joinDate: FieldValue.serverTimestamp()
                 };
                 await db.collection('users').doc(user.uid).set(newUserData);
                 
@@ -446,7 +473,7 @@
             const newMessage = {
                 senderId: state.user.id,
                 content: content,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                timestamp: FieldValue.serverTimestamp(),
                 read: false,
             };
             
@@ -460,12 +487,10 @@
                 await db.collection('chats').doc(chatRoomId).set({
                     participants: [state.user.id, receiverId],
                     lastMessage: content,
-                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
-                    [`unread_${receiverId}`]: firebase.firestore.FieldValue.increment(1), // <--- שינוי קריטי! הגדלת המונה
+                    lastMessageTime: FieldValue.serverTimestamp(),
+                    [`unread_${receiverId}`]: FieldValue.increment(1), // <--- שינוי קריטי! הגדלת המונה
                 }, { merge: true });
 
-                // עדכון ה-state המקומי של מונה ההודעות הכללי כדי לעדכן את ההידר
-                // מאחר שהמשתמש השולח נמצא בתוך הצ'אט, הוא לא צריך לראות מונה לא נקרא
                 
                 input.value = '';
                 // גלילה לתחתית הצ'אט באופן מיידי - ה-onSnapshot יפעיל רנדור נוסף
@@ -1283,15 +1308,16 @@
                             }
                         } else {
                             // המשתמש מחובר ב-Auth אבל לא קיים במסמך users (כנראה נמחק)
+                            console.error("שגיאה: משתמש קיים ב-Auth אך חסר ב-Firestore. חזרה ללוגין.");
                             auth.signOut();
                         }
                     } catch (error) {
-                        console.error("שגיאה קריטית באחזור פרופיל משתמש או נתונים (Firebase/Config):", error);
+                        console.error("שגיאה קריטית באחזור פרופיל משתמש או נתונים:", error);
                          // אם יש שגיאה בחיבור ל-Firebase, אנו חוזרים ללוגין
                         state.user = null;
                         state.screen = 'login';
                         render();
-                        alert("שגיאה בחיבור לשרת או באחזור נתונים. נסה להתחבר שוב.");
+                        alert("שגיאה קריטית באחזור נתונים. אנא נסה להתחבר שוב.");
                     }
                 } else {
                     // **המשתמש לא מחובר או יצא**
