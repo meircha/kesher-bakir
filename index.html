@@ -85,6 +85,7 @@
             currentPostReplies: [],
             selectedUser: null,
             chatMessages: [],
+            chatListenerUnsubscribe: null, // <--- מנוי להודעות בזמן אמת (פונקציה שמבטלת האזנה)
             usersFilter: { city: '', role: '', hobby: '' },
         };
         
@@ -148,12 +149,14 @@
 
                 // 3. אחזור מונה הודעות שלא נקראו - **רק אם המשתמש מחובר**
                 if (state.user && state.user.id) {
+                    // אחזור כל חדרי הצ'אט בהם המשתמש משתתף
                     const myChatsSnapshot = await db.collection('chats')
                         .where('participants', 'array-contains', state.user.id)
                         .get();
 
                     state.unreadCounts = {};
                     for (const chatDoc of myChatsSnapshot.docs) {
+                        // המפתח הוא 'unread_UID_שלי'
                         const unreadCountForMe = chatDoc.data()[`unread_${state.user.id}`] || 0;
                         if (unreadCountForMe > 0) {
                             state.unreadCounts[chatDoc.id] = unreadCountForMe;
@@ -207,6 +210,12 @@
          * פונקציית ניתוב בסיסית
          */
         function goTo(screen, params = {}) {
+            // **בטל מנוי צ'אט אם עוזבים את המסך** if (state.chatListenerUnsubscribe && screen !== 'chat') {
+                state.chatListenerUnsubscribe();
+                state.chatListenerUnsubscribe = null;
+                state.chatMessages = []; // נקה הודעות מקומיות
+            }
+            
             state.screen = screen;
             state.currentForumId = params.forumId || null;
             state.currentPost = null;
@@ -237,15 +246,20 @@
         }
 
         /**
-         * פתיחת צ'אט ואחזור הודעות - **הפונקציה תוקנה כדי למנוע קריסה לדף לבן**
+         * פתיחת צ'אט ואחזור הודעות בזמן אמת (onSnapshot) - **הפונקציה תוקנה לזרימה חלקה יותר**
          */
-        window.openChat = async (targetUser) => {
+        window.openChat = (targetUser) => {
             // **בדיקת נתונים קריטית למניעת קריסה**
             if (!state.user || !state.user.id || !targetUser || !targetUser.id) {
                 console.error("שגיאה: חסר משתמש מחובר או משתמש יעד לצ'אט.", { user: state.user, target: targetUser });
                 alert("שגיאה פנימית: לא ניתן לפתוח צ'אט. חסר פרטי משתמש.");
                 goTo('users');
                 return;
+            }
+            
+            // בטל מנוי קודם אם קיים (למקרה של מעבר בין צ'אטים)
+            if (state.chatListenerUnsubscribe) {
+                 state.chatListenerUnsubscribe();
             }
 
             state.selectedUser = targetUser;
@@ -258,61 +272,60 @@
                  return;
             }
             
-            // **ניתוב מיידי למסך הצ'אט עם הודעת טעינה** - מונע דף לבן זמני!
+            // ניתוב מיידי למסך הצ'אט עם הודעת טעינה
             goTo('chat'); 
             
-            try {
-                // אחזור הודעות קודמות
-                const messagesSnapshot = await db.collection('chats').doc(chatRoomId)
-                    .collection('messages').orderBy('timestamp').get();
-                
-                state.chatMessages = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                // סימון הודעות כ"נקראו" (של המשתמש השני)
-                const batch = db.batch();
-                let unreadCountToClear = 0;
-                messagesSnapshot.docs.forEach(doc => {
-                    // ודא שהשדות קיימים לפני הגישה, וכן מטפל במקרה של 'read: undefined'
-                    if (doc.data().senderId === targetUser.id && (doc.data().read === false || doc.data().read === undefined)) {
-                        batch.update(doc.ref, { read: true });
-                        unreadCountToClear++;
-                    }
-                });
-                
-                await batch.commit();
-
-                // הסרת מונה ה"לא נקראו" הגלובלי (Firestore)
-                if (unreadCountToClear > 0) {
-                    delete state.unreadCounts[chatRoomId];
-                    await db.collection('chats').doc(chatRoomId).update({ 
-                        [`unread_${state.user.id}`]: 0 
-                    });
-                }
-                
-                // רנדור מחדש עם ההודעות שנטענו
-                render(); 
-
-            } catch (error) {
-                // **זה הבלוק שצריך לבדוק אם הוא קורה**
-                console.error("שגיאה קריטית בטעינת צ'אט (Firestore/Config/Rules):", error);
-                
-                // **טיפול חזק בשגיאה למניעת קריסה**
-                // הצגת הודעה פיקטיבית עם שגיאה במקום ההודעות
-                state.chatMessages = [{ 
-                    id: 'm0', 
-                    senderId: targetUser.id, 
-                    content: `**שגיאת חיבור!** לא ניתן לטעון הודעות מהשרת. ייתכן שיש בעיה בהגדרות Firebase (Rules/Config). אנא נסה שוב.`, 
-                    timestamp: firebase.firestore.Timestamp.now() 
-                }];
-                // וודא שנשארים במסך הצ'אט כדי שהמשתמש יראה את השגיאה
-                render();
-            }
+            // **הפעלת Listener בזמן אמת (onSnapshot) ועדכון ה-state**
+            const chatDocRef = db.collection('chats').doc(chatRoomId);
+            const messagesRef = chatDocRef.collection('messages');
             
-            // גלילה אוטומטית לתחתית הצ'אט
-            setTimeout(() => {
-                const chatBox = document.getElementById('chatBox');
-                if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-            }, 50);
+            state.chatListenerUnsubscribe = messagesRef
+                .orderBy('timestamp')
+                .onSnapshot(async (snapshot) => {
+                    // עדכון הודעות הצ'אט ב-State
+                    state.chatMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // ניקוי מונה ההודעות שלא נקראו עבור המשתמש הנוכחי
+                    if (state.user && state.user.id) {
+                        const unreadCountKey = `unread_${state.user.id}`;
+                        
+                        // בדיקה האם יש צורך באפס את המונה
+                        const chatDocSnapshot = await chatDocRef.get();
+                        
+                        if (chatDocSnapshot.exists && chatDocSnapshot.data()[unreadCountKey] > 0) {
+                            try {
+                                // איפוס המונה ב-Firestore
+                                await chatDocRef.update({ 
+                                    [unreadCountKey]: 0 
+                                });
+                                // איפוס המונה ב-State המקומי והפעלת רנדור לעדכון מונה ההודעות בכותרת
+                                delete state.unreadCounts[chatRoomId];
+                                
+                            } catch (e) {
+                                // שגיאה כאן יכולה לקרות אם המסמך עדיין לא קיים (הצ'אט הראשון נשלח עכשיו)
+                                console.log("אזהרה: לא ניתן לאפס את מונה ההודעות שלא נקראו (אולי המסמך אינו קיים עדיין).", e.message);
+                            }
+                        }
+                    }
+
+                    // גלילה אוטומטית לתחתית הצ'אט לאחר טעינת ההודעות
+                    render(); // רנדור לאחר עדכון state.chatMessages
+                    setTimeout(() => {
+                        const chatBox = document.getElementById('chatBox');
+                        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+                    }, 50);
+
+                }, (error) => {
+                    console.error("שגיאה ב-onSnapshot של הצ'אט:", error);
+                    // הצגת הודעת שגיאה בתוך הצ'אט במקום קריסה
+                    state.chatMessages = [{ 
+                        id: 'm0', 
+                        senderId: targetUser.id, 
+                        content: `**שגיאת חיבור קריטית!** לא ניתן לטעון הודעות בזמן אמת. ייתכן שיש בעיה בהגדרות Firebase (Rules/Config).`, 
+                        timestamp: firebase.firestore.Timestamp.now() 
+                    }];
+                    render();
+                });
         };
 
 
@@ -439,25 +452,28 @@
             
             try {
                 // הוספת ההודעה לאוסף Messages
-                const messageRef = await db.collection('chats').doc(chatRoomId).collection('messages').add(newMessage);
+                // הערה: אין צורך לעדכן את ה-state המקומי כאן, מכיוון שה-onSnapshot מטפל בכך בזמן אמת.
+                await db.collection('chats').doc(chatRoomId).collection('messages').add(newMessage);
                 
                 // עדכון (או יצירת) מסמך הצ'אט הראשי
+                // **הגברת מונה ההודעות שלא נקראו עבור המשתמש המקבל**
                 await db.collection('chats').doc(chatRoomId).set({
                     participants: [state.user.id, receiverId],
                     lastMessage: content,
                     lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
-                    [`unread_${receiverId}`]: firebase.firestore.FieldValue.increment(1), // הגדלת מונה ההודעות שלא נקראו
+                    [`unread_${receiverId}`]: firebase.firestore.FieldValue.increment(1), // <--- שינוי קריטי! הגדלת המונה
                 }, { merge: true });
 
-                // עדכון ה-state המקומי והצגה מיידית
-                state.chatMessages.push({ id: messageRef.id, ...newMessage, timestamp: firebase.firestore.Timestamp.now() });
+                // עדכון ה-state המקומי של מונה ההודעות הכללי כדי לעדכן את ההידר
+                // מאחר שהמשתמש השולח נמצא בתוך הצ'אט, הוא לא צריך לראות מונה לא נקרא
+                
                 input.value = '';
-                // גלילה לתחתית הצ'אט באופן מיידי
+                // גלילה לתחתית הצ'אט באופן מיידי - ה-onSnapshot יפעיל רנדור נוסף
                 setTimeout(() => {
                     const chatBox = document.getElementById('chatBox');
                     if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
                 }, 0); 
-                render(); 
+                
             } catch (error) {
                 console.error("שגיאה בשליחת הודעה (Firebase/Config):", error);
                 alert("שגיאה בשליחת ההודעה. בדוק את החיבור ל-Firebase וכללי האבטחה.");
@@ -533,12 +549,10 @@
                 return;
             }
             if (!confirm(`האם אתה בטוח שברצונך למחוק לצמיתות את המשתמש ${userName}? פעולה זו בלתי הפיכה.`)) return;
-
             try {
                 // **הערה חשובה: מחיקה אמיתית של משתמש Auth דורשת פונקציית צד שרת (Cloud Function)**
-                // במודל הנוכחי, נסמן אותו כ'מחק' ב-Firestore ונאתחל את ה-state.
+                // במודל הנוכחי, נמחק מ-Firestore ונאתחל את ה-state.
                 await db.collection('users').doc(userId).delete();
-                
                 // עדכון ה-state המקומי
                 state.users = state.users.filter(u => u.id !== userId);
                 alert(`המשתמש ${userName} נמחק בהצלחה (מ-Firestore בלבד).`);
@@ -559,29 +573,29 @@
             }
             const newStatus = isActive ? false : true; // אם פעיל כרגע, הפוך ללא פעיל (false)
             const actionText = newStatus ? 'הפעלה מחדש' : 'השהיה';
-            
             if (!confirm(`האם אתה בטוח שברצונך לבצע ${actionText} למשתמש ${userName}?`)) return;
-
             try {
-                // עדכון שדה חדש ב-Firestore שיסמן אם המשתמש יכול להתחבר
                 await db.collection('users').doc(userId).update({ isActive: newStatus });
-                
-                // עדכון ה-state המקומי
                 const userToUpdate = state.users.find(u => u.id === userId);
                 if (userToUpdate) {
                     userToUpdate.isActive = newStatus;
+                    alert(`${actionText} בוצעה בהצלחה למשתמש ${userName}.`);
                 }
-                alert(`המשתמש ${userName} עודכן לסטטוס: ${newStatus ? 'פעיל' : 'מושהה'}`);
                 render();
             } catch (error) {
-                console.error("שגיאה בעדכון סטטוס משתמש:", error);
-                alert("שגיאה בעדכון סטטוס המשתמש. בדוק כללי אבטחה.");
+                console.error("שגיאה בהשהיית/הפעלת משתמש:", error);
+                alert("שגיאה בהשהיית/הפעלת משתמש. בדוק את החיבור וכללי האבטחה.");
             }
         };
-        
 
-        function timeSince(date) { 
-             const seconds = Math.floor((new Date() - date) / 1000);
+
+        // --- 4. פונקציות עזר ל-UI ולזמן ---
+
+        /**
+         * פונקציית עזר להצגת זמן שעבר
+         */
+        function timeSince(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
             let interval = seconds / 31536000;
             if (interval > 1) return Math.floor(interval) + " שנים";
             interval = seconds / 2592000;
@@ -592,18 +606,20 @@
             if (interval > 1) return Math.floor(interval) + " שעות";
             interval = seconds / 60;
             if (interval > 1) return Math.floor(interval) + " דקות";
-            return "עכשיו";
+            return "הרגע";
         }
 
 
-        // --- 4. רכיבים חזותיים (Rendering Components) ---
+        // --- 5. רכיבי UI (Render Functions) ---
 
+        /**
+         * רכיב Header עליון
+         */
         const getHeader = () => {
             if (!state.user) return '';
-
-            const isCurrent = (screen) => state.screen === screen ? 'bg-white text-kesher-primary shadow-md' : 'text-white hover:bg-kesher-primary/80';
+            const isCurrent = (screenName) => state.screen === screenName ? 'bg-white text-kesher-primary' : 'hover:bg-kesher-primary/80';
             const totalUnread = Object.values(state.unreadCounts).reduce((sum, count) => sum + count, 0);
-
+            
             return `
                 <header class="fixed top-0 left-0 right-0 bg-kesher-primary text-white shadow-lg z-50">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -626,69 +642,63 @@
                                     <i class="fa-solid fa-calendar-check"></i> פעילויות
                                 </button>
                                 ${state.user.role === 'admin' ? `
-                                    <button onclick="goTo('admin')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('admin')} bg-red-700 hover:bg-red-800">
+                                    <button onclick="goTo('admin')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('admin')}">
                                         <i class="fa-solid fa-shield-halved"></i> ניהול
                                     </button>
                                 ` : ''}
                             </div>
-                            <div class="flex items-center gap-4">
-                                <span class="text-sm font-medium"><i class="fa-solid fa-user"></i> ${state.user.name}</span>
-                                <button onclick="doLogout()" class="bg-kesher-secondary hover:bg-teal-600 text-white px-3 py-1 rounded-full transition text-sm">יציאה</button>
+                            <div>
+                                <button onclick="doLogout()" class="bg-white text-kesher-primary hover:bg-gray-100 px-3 py-1 rounded-lg font-semibold transition shadow">
+                                    <i class="fa-solid fa-sign-out-alt ml-1"></i> יציאה
+                                </button>
                             </div>
                         </div>
                     </div>
                 </header>
             `;
         };
-        
-        const renderLoading = () => {
-             return `
-                <div class="flex justify-center items-center min-h-screen">
-                     <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-kesher-primary"></div>
-                     <p class="text-kesher-primary text-lg mr-4">טוען נתונים...</p>
-                </div>
-             `;
-        }
 
+        const renderLoading = () => {
+            return `<div class="flex justify-center items-center min-h-screen">
+                        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-kesher-primary"></div>
+                        <p class="text-kesher-primary text-lg mr-4">טוען נתונים...</p>
+                    </div>`;
+        };
+        
         const renderLogin = () => {
-            return `
+             return `
                 <div class="flex items-center justify-center min-h-screen bg-gray-100 p-4 pt-16">
                     <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl">
-                        <h2 class="text-4xl font-extrabold text-center text-kesher-primary mb-2">ברוכים הבאים לקהילת קשר</h2>
-                        <p class="text-center text-gray-500 mb-8"><i class="fa-solid fa-heart"></i> איפה שהחיים הטובים מתחילים</p>
+                        <h2 class="text-4xl font-extrabold text-center text-kesher-primary mb-8">כניסה לקהילה</h2>
                         <form onsubmit="event.preventDefault(); doLogin()" class="space-y-6">
                             <div>
                                 <label for="email" class="block text-sm font-medium text-gray-700">דוא"ל</label>
-                                <input type="email" id="email" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-kesher-primary focus:border-kesher-primary" required>
+                                <input type="email" id="email" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" required>
                             </div>
                             <div>
                                 <label for="pwd" class="block text-sm font-medium text-gray-700">סיסמה</label>
-                                <input type="password" id="pwd" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-kesher-primary focus:border-kesher-primary" required>
+                                <input type="password" id="pwd" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" required>
                             </div>
-                            <p id="loginError" class="text-red-600 text-sm text-center"></p>
-                            <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-bold text-white bg-kesher-secondary hover:bg-teal-600 transition">
-                                התחבר
-                            </button>
-                            <button type="button" onclick="alert('שחזור סיסמה...')" class="w-full text-sm text-kesher-primary hover:text-red-700 mt-2">
-                                שכחתי סיסמה
+                            <p id="loginError" class="text-red-500 text-center font-medium"></p>
+                            <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-bold text-white bg-kesher-primary hover:bg-kesher-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-kesher-primary transition">
+                                <i class="fa-solid fa-sign-in-alt ml-2"></i> כניסה
                             </button>
                         </form>
                         <div class="mt-6 text-center">
                             <p class="text-sm text-gray-600">
-                                אין לך חשבון?
-                                <button onclick="goTo('register')" class="font-medium text-kesher-primary hover:text-red-700">הירשם כאן</button>
+                                אין לך חשבון? <button onclick="goTo('register')" class="font-medium text-kesher-secondary hover:text-teal-700 transition">הירשם כאן</button>
                             </p>
                         </div>
-                        <div class="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-gray-700">
-                            **בדיקה:** נסה להתחבר עם: <br>
-                            אדמין: **orit@example.com** / **123456** (אם הנתונים הפיקטיביים נטענו)
+                        <div class="mt-6 text-xs text-gray-400 text-center border-t pt-4">
+                        לצורך בדיקה: <br>
+                        אדמין: **orit@example.com** / **123456** (אם הנתונים הפיקטיביים נטענו)
                         </div>
                     </div>
                 </div>
             `;
         };
 
-        const renderRegister = () => { 
+        const renderRegister = () => {
              return `
                 <div class="flex items-center justify-center min-h-screen bg-gray-100 p-4 pt-16">
                     <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl">
@@ -710,26 +720,22 @@
                                 <label for="regCity" class="block text-sm font-medium text-gray-700">עיר מגורים</label>
                                 <input type="text" id="regCity" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" required>
                             </div>
-                            
                             <div>
-                                <label for="regHobbies" class="block text-sm font-medium text-gray-700">תחביבים (הפרד בפסיק, לדוגמה: ספורט, בישול)</label>
-                                <input type="text" id="regHobbies" placeholder="לדוגמה: גינון, קריאה, טיולים" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" required>
+                                <label for="regHobbies" class="block text-sm font-medium text-gray-700">תחביבים (מופרדים בפסיק)</label>
+                                <input type="text" id="regHobbies" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" placeholder="למשל: צילום, בישול, שחמט" required>
                             </div>
-                            
                             <div>
-                                <label for="regContributions" class="block text-sm font-medium text-gray-700">תחומים בהם אני יכול/ה לתרום (הפרד בפסיק, לדוגמה: ייעוץ משפטי, נגרות)</label>
-                                <input type="text" id="regContributions" placeholder="לדוגמה: עזרה טכנית, שיעורי עזר, ייעוץ" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" required>
+                                <label for="regContributions" class="block text-sm font-medium text-gray-700">תחומים בהם אני יכול/ה לתרום (מופרדים בפסיק)</label>
+                                <input type="text" id="regContributions" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm" placeholder="למשל: ייעוץ כלכלי, עזרה טכנית" required>
                             </div>
-
-                            <p id="registerError" class="text-red-600 text-sm text-center"></p>
-                            <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-bold text-white bg-kesher-primary hover:bg-red-700 transition">
-                                השלם הרשמה
+                            <p id="registerError" class="text-red-500 text-center font-medium"></p>
+                            <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-bold text-white bg-kesher-secondary hover:bg-kesher-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-kesher-secondary transition">
+                                <i class="fa-solid fa-user-plus ml-2"></i> הירשם
                             </button>
                         </form>
                         <div class="mt-6 text-center">
                             <p class="text-sm text-gray-600">
-                                כבר יש לך חשבון?
-                                <button onclick="goTo('login')" class="font-medium text-kesher-secondary hover:text-teal-700">התחבר כאן</button>
+                                כבר יש לך חשבון? <button onclick="goTo('login')" class="font-medium text-kesher-primary hover:text-red-700 transition">היכנס כאן</button>
                             </p>
                         </div>
                     </div>
@@ -738,29 +744,24 @@
         };
 
         const renderHome = () => {
-            // סינון משתמשים שהושעו (isActive: false)
-            const onlineUsers = (state.users || []).filter(u => u.isOnline && u.id !== state.user.id && u.isActive !== false);
-            const myActivities = (state.activities || []).filter(a => a.attendees?.includes(state.user.id));
-            const dailyRec = getDailyRecommendation();
-
+            const onlineUsers = state.users.filter(u => u.isOnline && u.id !== state.user.id);
+            const recommendation = getDailyRecommendation();
             return `
                 ${getHeader()}
-                <div class="max-w-6xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-8">
-                        <i class="fa-solid fa-hand"></i> ברוך הבא, ${state.user.name}! 
-                        <span class="text-base font-normal text-gray-500">(${state.user.role === 'admin' ? 'מנהל' : state.user.role === 'senior' ? 'בכיר' : 'משתמש רגיל'})</span>
-                    </h2>
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+                    <h1 class="text-4xl font-extrabold text-kesher-primary mb-8">
+                        שלום, ${state.user.name}! 👋
+                    </h1>
 
-                    <div class="bg-kesher-secondary text-white p-5 rounded-2xl shadow-xl mb-8 flex items-center justify-between">
+                    <div class="bg-kesher-accent/20 p-5 rounded-2xl shadow-md mb-8 flex items-center gap-4 border-r-8 border-kesher-accent">
+                        <i class="fa-solid fa-lightbulb text-kesher-accent text-3xl shrink-0"></i>
                         <div>
-                            <h3 class="text-xl font-bold mb-1"><i class="fa-solid fa-book-open-reader"></i> ההמלצה היומית שלנו לחיים בריאים:</h3>
-                            <p class="text-lg font-medium">${dailyRec}</p>
+                            <p class="text-lg font-semibold text-gray-800">המלצת היום:</p>
+                            <p class="text-gray-700">${recommendation}</p>
                         </div>
-                        <img src="https://picsum.photos/seed/happy-senior/100/100" alt="שמחה" class="rounded-full w-16 h-16 object-cover hidden sm:block"/>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        
                         <div class="bg-kesher-primary text-white p-6 rounded-2xl shadow-xl lg:col-span-1 flex flex-col justify-between">
                             <h3 class="text-2xl font-bold mb-2"><i class="fa-solid fa-star"></i> הניקוד שלי</h3>
                             <p class="text-5xl font-extrabold mb-4">${state.user.points || 0}</p>
@@ -778,59 +779,45 @@
                                         <div class="w-2 h-2 bg-kesher-secondary rounded-full shrink-0"></div>
                                         <span class="text-sm font-medium">${u.name} (${u.city})</span>
                                     </button>
-                                `).join('') : '<p class="text-gray-500">אין חברים מחוברים כרגע.</p>'}
+                                `).join('') : '<p class="text-gray-500 text-center mt-4">אף אחד לא מחובר כרגע. 😴</p>'}
                             </div>
                         </div>
+                    </div>
 
-                        <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-xl">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-xl font-bold text-kesher-secondary"><i class="fa-solid fa-comments"></i> פורומים פופולריים</h3>
-                                <button onclick="goTo('forums')" class="text-kesher-secondary hover:text-teal-700 text-sm font-medium">הכל <i class="fa-solid fa-arrow-right"></i></button>
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                                ${state.forums.slice(0, 4).map(f => `
-                                    <div onclick="goTo('forumPosts', { forumId: '${f.id}' })" class="bg-gray-50 p-4 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer text-center">
-                                        <div class="text-3xl mb-2">${f.icon}</div>
-                                        <p class="font-bold text-kesher-primary">${f.title}</p>
-                                        <p class="text-xs text-gray-500">${f.description}</p>
-                                    </div>
-                                `).join('')}
-                            </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-xl mt-6">
+                         <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-kesher-secondary"><i class="fa-solid fa-calendar-alt"></i> הפעילויות הקרובות</h3>
+                            <button onclick="goTo('activities')" class="text-kesher-secondary hover:text-teal-700 text-sm font-medium">הצג את כל הפעילויות <i class="fa-solid fa-arrow-right"></i></button>
                         </div>
-                        
-                        <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-xl">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-xl font-bold text-kesher-primary"><i class="fa-solid fa-calendar-check"></i> הפעילויות הקרובות שלי</h3>
-                                <button onclick="goTo('activities')" class="text-kesher-primary hover:text-red-700 text-sm font-medium">הצג הכל <i class="fa-solid fa-arrow-right"></i></button>
-                            </div>
-                            <div class="space-y-3">
-                                ${myActivities.length > 0 ? myActivities.slice(0, 3).map(a => `
-                                    <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-center">
-                                        <div>
-                                            <p class="font-medium">${a.title}</p>
-                                            <p class="text-xs text-gray-500"><i class="fa-solid fa-location-dot"></i> ${new Date(a.date).toLocaleDateString('he-IL')} - ${a.location}</p>
-                                        </div>
-                                        <span class="text-xs font-semibold px-3 py-1 rounded-full bg-kesher-secondary text-white">רשום</span>
-                                    </div>
-                                `).join('') : '<p class="text-gray-500">לא נרשמת לפעילויות קרובות.</p>'}
-                            </div>
+                        <div class="space-y-4">
+                            ${state.activities.length > 0 ? state.activities.slice(0, 3).map(a => `
+                                <div class="p-3 border-b last:border-b-0">
+                                    <h4 class="font-semibold text-gray-800">${a.title}</h4>
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fa-solid fa-calendar-day"></i> ${a.date.toLocaleDateString('he-IL')} 
+                                        <span class="mr-2 ml-2">|</span> 
+                                        <i class="fa-solid fa-map-marker-alt"></i> ${a.location}
+                                    </p>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-center mt-4">אין פעילויות קרובות מתוכננות.</p>'}
                         </div>
                     </div>
                 </div>
             `;
         };
-        
-        const renderUsers = () => {
-             // סינון משתמשים שהושעו או לא פעילים
-             const activeUsers = (state.users || []).filter(u => u.isActive !== false);
 
-             const filteredUsers = activeUsers.filter(u => u.id !== state.user.id)
-                .filter(u => !state.usersFilter.city || u.city === state.usersFilter.city)
-                .filter(u => !state.usersFilter.role || u.role === state.usersFilter.role)
-                .filter(u => !state.usersFilter.hobby || u.hobbies?.includes(state.usersFilter.hobby));
-            
-            const allCities = [...new Set((state.users || []).map(u => u.city).filter(c => c))];
-            const allHobbies = [...new Set((state.users || []).flatMap(u => u.hobbies || []).filter(h => h))];
+        const renderUsers = () => {
+            const allCities = [...new Set(state.users.map(u => u.city))].sort();
+            const allHobbies = [...new Set(state.users.flatMap(u => u.hobbies))].filter(h => h).sort();
+
+            const filteredUsers = state.users.filter(u => {
+                if (state.usersFilter.city && u.city !== state.usersFilter.city) return false;
+                if (state.usersFilter.role && u.role !== state.usersFilter.role) return false;
+                if (state.usersFilter.hobby) {
+                    return u.hobbies?.includes(state.usersFilter.hobby);
+                }
+                return true;
+            });
 
             return `
                 ${getHeader()}
@@ -852,36 +839,41 @@
                             <option value="admin" ${state.usersFilter.role === 'admin' ? 'selected' : ''}>מנהל</option>
                         </select>
 
-                         <select onchange="state.usersFilter.hobby = this.value; render()" class="p-2 border rounded-lg">
+                        <select onchange="state.usersFilter.hobby = this.value; render()" class="p-2 border rounded-lg">
                             <option value="">כל התחביבים</option>
                             ${allHobbies.map(h => `<option value="${h}" ${state.usersFilter.hobby === h ? 'selected' : ''}>${h}</option>`).join('')}
                         </select>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-4" id="usersList">
                         ${filteredUsers.map(u => {
+                            if (u.id === state.user.id) return ''; // אל תציג את המשתמש הנוכחי ברשימה
                             const chatRoomId = getChatRoomId(state.user.id, u.id);
                             const unreadCount = state.unreadCounts[chatRoomId] || 0;
+
                             return `
-                                <div class="bg-white p-6 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition">
-                                    <div class="flex items-start gap-4 mb-4 md:mb-0">
-                                        <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl font-bold text-kesher-primary shrink-0">${u.name[0]}</div>
-                                        <div class="flex-grow">
-                                            <h3 class="text-xl font-bold text-gray-800">${u.name}</h3>
-                                            <p class="text-sm text-gray-600"><i class="fa-solid fa-location-dot"></i> ${u.city} | <span class="font-bold text-kesher-secondary">${u.role === 'admin' ? 'מנהל' : u.role === 'senior' ? 'בכיר' : 'משתמש רגיל'}</span></p>
-                                            <div class="mt-2 text-xs">
-                                                <p class="font-semibold text-kesher-secondary"><i class="fa-solid fa-heart"></i> תחביבים: <span class="font-normal text-gray-700">${u.hobbies?.join(', ') || 'לא צוין'}</span></p>
-                                                <p class="font-semibold text-kesher-primary"><i class="fa-solid fa-handshake"></i> יכול/ה לתרום: <span class="font-normal text-gray-700">${u.contributions?.join(', ') || 'לא צוין'}</span></p>
-                                            </div>
+                                <div class="bg-white p-4 rounded-xl shadow-md flex justify-between items-center hover:bg-gray-50 transition ${u.isActive === false ? 'opacity-50' : ''}">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 ${u.isOnline ? 'bg-kesher-secondary' : 'bg-gray-400'} rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0" title="${u.isOnline ? 'מחובר' : 'מנותק'}">
+                                            ${u.name[0]}
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-gray-800">${u.name} ${u.isActive === false ? '<span class="text-red-500 font-bold">(מושהה)</span>' : ''}</h3>
+                                            <p class="text-sm text-gray-600">
+                                                <i class="fa-solid fa-location-dot"></i> ${u.city} | 
+                                                <i class="fa-solid fa-briefcase"></i> ${u.role === 'admin' ? 'מנהל' : u.role === 'senior' ? 'בכיר' : 'חבר'}
+                                            </p>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                תחביבים: ${u.hobbies?.join(', ') || 'אין'}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div class="flex gap-2 items-center">
-                                        <span class="text-xs font-semibold px-3 py-1 rounded-full ${u.isOnline ? 'bg-kesher-secondary/20 text-kesher-secondary' : 'bg-gray-100 text-gray-500'}">${u.isOnline ? '🟢 מחובר' : '⚪ לא מחובר'}</span>
-                                        <button onclick="openChat({ id: '${u.id}', name: '${u.name}' })" class="relative bg-kesher-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg transition text-sm">
-                                            <i class="fa-solid fa-comment-dots"></i> שלח הודעה
-                                            ${unreadCount > 0 ? `<span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-kesher-primary transform translate-x-1/2 -translate-y-1/2 bg-kesher-accent rounded-full">${unreadCount}</span>` : ''}
+                                    <div class="flex items-center gap-3">
+                                        ${unreadCount > 0 ? `<span class="inline-flex items-center justify-center px-3 py-1 text-sm font-bold leading-none text-white bg-kesher-accent rounded-full">${unreadCount}</span>` : ''}
+                                        
+                                        <button onclick="openChat({ id: '${u.id}', name: '${u.name}' })" class="bg-kesher-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition text-sm">
+                                            <i class="fa-solid fa-paper-plane ml-1"></i> שלח הודעה
                                         </button>
-                                        <button onclick="reportItem('${u.id}', 'user', '${u.id}')" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 rounded-lg transition text-sm"><i class="fa-solid fa-flag"></i> דווח</button>
                                     </div>
                                 </div>
                             `;
@@ -890,67 +882,85 @@
                 </div>
             `;
         };
-
+        
         const renderChat = () => {
-            if (!state.selectedUser) { goTo('users'); return ''; }
+            if (!state.selectedUser) {
+                // קורה אם משתמש נווט ישירות ל-chat
+                goTo('users');
+                return '';
+            }
 
+            const targetUser = state.selectedUser;
+            
             return `
                 ${getHeader()}
-                <div class="max-w-4xl mx-auto px-4 mt-8">
-                    <div class="bg-white rounded-2xl shadow-xl overflow-hidden h-[70vh] flex flex-col">
-                        <div class="bg-kesher-primary text-white p-4 flex justify-between items-center">
-                            <h2 class="text-xl font-bold"><i class="fa-solid fa-comments"></i> צ'אט עם ${state.selectedUser.name}</h2>
-                            <button onclick="goTo('users')" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition text-sm">חזרה לחברים</button>
-                        </div>
-                        <div id="chatBox" class="flex-grow p-4 overflow-y-auto space-y-3">
-                            ${state.chatMessages.map(msg => {
-                                const isMe = msg.senderId === state.user.id;
-                                const time = msg.timestamp && msg.timestamp.toDate ? new Date(msg.timestamp.toDate()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : 'עכשיו';
-                                
-                                // בדיקה אם זו הודעת שגיאה קריטית
-                                const isError = msg.content.includes('שגיאת חיבור!');
-                                
-                                return `
-                                    <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
-                                        <div class="${isError ? 'bg-red-100 border border-red-400 text-red-800' : isMe ? 'bg-kesher-secondary text-white rounded-tr-none' : 'bg-gray-200 text-gray-800 rounded-tl-none'} max-w-xs p-3 rounded-xl shadow-md">
-                                            <p class="text-sm">${msg.content}</p>
-                                            <div class="text-xs mt-1 flex justify-between items-center">
-                                                <span class="${isError ? 'text-red-500' : isMe ? 'text-teal-200' : 'text-gray-500'}">${time} ${isMe && msg.read ? '✅' : isMe ? '...' : ''}</span>
-                                                ${!isMe && !isError ? `<button onclick="reportItem('${msg.id}', 'message', '${msg.senderId}')" class="text-red-400 hover:text-red-600 mr-2"><i class="fa-solid fa-flag"></i> דווח</button>` : ''}
-                                            </div>
+                <div class="max-w-3xl mx-auto px-4 mt-8 flex flex-col h-[calc(100vh-8rem)]">
+                    <div class="bg-white p-4 rounded-xl shadow-lg flex justify-between items-center mb-4 sticky top-16 z-10">
+                        <h2 class="text-2xl font-bold text-kesher-secondary">צ'אט עם ${targetUser.name}</h2>
+                        <button onclick="goTo('users')" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition text-sm text-white">חזרה לחברים</button>
+                    </div>
+
+                    <div id="chatBox" class="flex-grow p-4 overflow-y-auto space-y-3 bg-gray-100 rounded-xl shadow-inner">
+                        ${state.chatMessages.map(msg => {
+                            const isMe = msg.senderId === state.user.id;
+                            
+                            // לוגיקה חזקה יותר להצגת זמן:
+                            let time = 'עכשיו';
+                            let isError = false;
+
+                            if (msg.content.includes('שגיאת חיבור!')) {
+                                isError = true;
+                            } else if (msg.timestamp && typeof msg.timestamp.toDate === 'function') {
+                                try {
+                                    time = new Date(msg.timestamp.toDate()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                                } catch (e) {
+                                    console.error("שגיאה בהמרת זמן:", e);
+                                    time = 'זמן לא תקין';
+                                }
+                            }
+                            
+                            // הוספת סימן קריאה קטן לזמן אם יש שגיאה קריטית
+                            const timeDisplay = isError ? '⚠️' : time; 
+                            
+                            return `
+                                <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
+                                    <div class="${isError ? 'bg-red-100 border border-red-400 text-red-800' : isMe ? 'bg-kesher-secondary text-white rounded-tr-none' : 'bg-gray-200 text-gray-800 rounded-tl-none'} max-w-xs p-3 rounded-xl shadow-md">
+                                        <p class="text-sm">${msg.content}</p>
+                                        <div class="text-xs mt-1 flex justify-between items-center">
+                                            <span class="${isError ? 'text-red-500' : isMe ? 'text-teal-200' : 'text-gray-500'}">${timeDisplay}</span>
+                                            ${!isMe && !isError ? `<button onclick="reportItem('${msg.id}', 'message', '${msg.senderId}')" class="text-red-400 hover:text-red-600 mr-2"><i class="fa-solid fa-flag"></i> דווח</button>` : ''}
                                         </div>
                                     </div>
-                                `;
-                            }).join('')}
-                        </div>
-                        <div class="p-4 border-t flex gap-2">
-                            <input type="text" id="chatInput" placeholder="הקלד הודעה..." class="flex-grow p-3 border-2 rounded-lg" onkeydown="if(event.key === 'Enter') sendMessage()" />
-                            <button onclick="sendMessage()" class="bg-kesher-primary hover:bg-red-700 text-white px-4 py-3 rounded-lg font-bold">שלח</button>
-                        </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="mt-4 flex gap-2 shrink-0">
+                        <input type="text" id="chatInput" placeholder="הקלד הודעה..." class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kesher-secondary" onkeydown="if(event.key === 'Enter') sendMessage()">
+                        <button onclick="sendMessage()" class="bg-kesher-primary hover:bg-red-700 text-white px-5 py-3 rounded-lg font-bold transition">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
                     </div>
                 </div>
             `;
         };
-
-        const renderForums = () => { 
+        
+        const renderForums = () => {
             return `
                 ${getHeader()}
-                <div class="max-w-6xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-kesher-secondary mb-6"><i class="fa-solid fa-comments"></i> פורומי קהילה</h2>
-                    <div class="space-y-4">
+                <div class="max-w-5xl mx-auto px-4 mt-8">
+                    <h2 class="text-3xl font-bold text-kesher-primary mb-6"><i class="fa-solid fa-comments"></i> פורומים ודיונים</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         ${state.forums.map(f => `
-                            <div class="bg-white p-6 rounded-xl shadow-md flex justify-between items-center hover:shadow-lg transition">
-                                <div>
-                                    <h3 class="text-2xl font-bold text-gray-800">${f.icon} ${f.title}</h3>
-                                    <p class="text-gray-600">${f.description}</p>
+                            <div onclick="goTo('forumPosts', { forumId: '${f.id}' })" class="bg-white p-6 rounded-2xl shadow-xl border-r-8 border-kesher-secondary hover:shadow-2xl transition cursor-pointer">
+                                <div class="flex items-center gap-4 mb-3">
+                                    <span class="text-4xl text-kesher-secondary">${f.icon}</span>
+                                    <h3 class="text-2xl font-bold text-gray-800">${f.title}</h3>
                                 </div>
-                                <div class="flex items-center gap-4">
-                                    <button onclick="goTo('forumPosts', { forumId: '${f.id}' })" class="bg-kesher-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition">כנס לפורום</button>
-                                    ${state.user.role === 'admin' || state.user.role === 'senior' ? `
-                                        <div class="flex gap-2 text-sm">
-                                            <button onclick="alert('מחיקת פורום דורשת אישור (למנהלים/בכירים בלבד)')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i> מחק</button>
-                                        </div>
-                                    ` : ''}
+                                <p class="text-gray-600">${f.description}</p>
+                                <div class="mt-4 text-sm text-gray-500">
+                                    ${f.posts.length} פוסטים
                                 </div>
                             </div>
                         `).join('')}
@@ -963,27 +973,31 @@
             const forum = state.forums.find(f => f.id === state.currentForumId);
             if (!forum) { goTo('forums'); return ''; }
 
+            const sortedPosts = (forum.posts || []).sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
+
             return `
                 ${getHeader()}
-                <div class="max-w-6xl mx-auto px-4 mt-8">
+                <div class="max-w-4xl mx-auto px-4 mt-8">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-3xl font-bold text-kesher-secondary">${forum.icon} ${forum.title}</h2>
-                        <button onclick="alert('יצירת פוסט חדש')" class="bg-kesher-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition"><i class="fa-solid fa-pen-to-square"></i> פתח נושא חדש</button>
+                        <button onclick="alert('יצירת פוסט...')" class="bg-kesher-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition"><i class="fa-solid fa-plus"></i> פתח דיון חדש</button>
                     </div>
-                    ${forum.posts?.length > 0 ? `<div class="space-y-4">
-                        ${forum.posts.map(p => `
-                            <div onclick="goTo('postDetails', { postId: '${p.id}' })" class="bg-white p-5 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition flex justify-between items-center">
-                                <div>
-                                    <h3 class="text-xl font-bold text-gray-800">${p.title}</h3>
-                                    <p class="text-sm text-gray-600">נפתח על ידי: ${p.creatorName} | לפני: ${timeSince(p.createdAt.toDate())}</p>
-                                </div>
-                                <div class="flex gap-4 text-gray-500">
-                                    <span><i class="fa-solid fa-heart"></i> ${p.likes?.length || 0}</span>
-                                    <span><i class="fa-solid fa-comment-dots"></i> ${p.replies?.length || 0}</span>
+
+                    <div class="space-y-4">
+                        ${sortedPosts.length > 0 ? sortedPosts.map(p => `
+                            <div onclick="goTo('postDetails', { postId: '${p.id}' })" class="bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer border-r-4 border-kesher-primary">
+                                <h3 class="text-xl font-bold text-gray-800 mb-1">${p.title}</h3>
+                                <p class="text-sm text-gray-600 mb-3">${p.content.substring(0, 100)}...</p>
+                                <div class="flex justify-between items-center text-sm">
+                                    <p class="text-gray-500">על ידי: ${p.creatorName} | לפני: ${timeSince(p.createdAt.toDate())}</p>
+                                    <div class="flex gap-4 text-gray-500">
+                                        <span><i class="fa-solid fa-heart"></i> ${p.likes?.length || 0}</span>
+                                        <span><i class="fa-solid fa-comment-dots"></i> ${p.replies?.length || 0}</span>
+                                    </div>
                                 </div>
                             </div>
                         `).join('')}
-                    </div>` : '<p class="text-center text-gray-500 p-8 bg-white rounded-xl shadow-md">אין פוסטים בפורום זה כרגע. התחל את הדיון הראשון!</p>'}
+                    </div>
                 </div>
             `;
         };
@@ -991,140 +1005,139 @@
         const renderPostDetails = () => {
             const post = state.currentPost;
             if (!post) { goTo('forums'); return ''; }
-            
+            const forum = state.forums.find(f => f.id === state.currentForumId);
+
             const isLiked = post.likes?.includes(state.user.id);
             const likeIcon = isLiked ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
-            const likeColor = isLiked ? 'text-kesher-primary bg-kesher-primary/10' : 'text-gray-600 bg-gray-100';
+            const likeColor = isLiked ? 'text-white bg-kesher-primary hover:bg-red-700' : 'text-kesher-primary bg-white border border-kesher-primary hover:bg-gray-100';
             const canDelete = state.user.role === 'admin' || state.user.role === 'senior' || post.creatorId === state.user.id;
             const canDeleteReply = state.user.role === 'admin' || state.user.role === 'senior';
-
 
             return `
                 ${getHeader()}
                 <div class="max-w-4xl mx-auto px-4 mt-8">
                     <button onclick="goTo('forumPosts', { forumId: state.currentForumId })" class="text-kesher-secondary hover:text-teal-700 font-medium mb-4 flex items-center gap-1">
-                        <i class="fa-solid fa-arrow-right-from-bracket rotate-180"></i> חזרה לפורום
+                        <i class="fa-solid fa-arrow-right-from-bracket rotate-180"></i> חזרה לפורום ${forum.title}
                     </button>
-                    
-                    <div class="bg-white p-6 rounded-2xl shadow-xl mb-6">
-                        <h1 class="text-3xl font-extrabold text-gray-900 mb-2">${post.title}</h1>
-                        <p class="text-sm text-gray-500 mb-4">נפתח על ידי: <span class="font-bold">${post.creatorName}</span> | לפני: ${timeSince(post.createdAt.toDate())}</p>
-                        
-                        <div class="prose max-w-none mb-6">
-                            <p class="text-gray-700 whitespace-pre-wrap">${post.content}</p>
-                        </div>
 
-                        <div class="flex justify-between items-center border-t pt-4">
-                            <div class="flex gap-4 items-center">
-                                <button onclick="toggleLike('${post.id}')" class="flex items-center gap-2 p-2 rounded-full ${likeColor} font-bold transition text-sm">
-                                    ${likeIcon} לייק (${post.likes?.length || 0})
+                    <div class="bg-white p-6 rounded-2xl shadow-xl mb-6">
+                        <h1 class="text-3xl font-extrabold text-gray-800 mb-2">${post.title}</h1>
+                        <p class="text-sm text-gray-500 mb-4">
+                            פורסם על ידי: **${post.creatorName}** | לפני: ${timeSince(post.createdAt.toDate())}
+                        </p>
+                        <hr class="mb-4">
+                        <p class="text-lg text-gray-700 leading-relaxed whitespace-pre-wrap">${post.content}</p>
+
+                        <div class="mt-6 flex justify-between items-center border-t pt-4">
+                            <div class="flex gap-3 items-center">
+                                <button onclick="toggleLike('${post.id}')" class="flex items-center gap-2 px-4 py-2 rounded-full font-semibold transition shadow-md ${likeColor}">
+                                    ${likeIcon} ${post.likes?.length || 0}
                                 </button>
+                                ${canDelete ? `
+                                    <button onclick="deletePost('${post.id}')" class="text-red-500 hover:text-red-700 text-lg ml-3">
+                                        <i class="fa-solid fa-trash-alt"></i> מחק
+                                    </button>
+                                ` : ''}
                             </div>
-                            <div class="flex gap-3 text-sm">
-                                ${canDelete ? `<button onclick="deletePost('${post.id}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i> מחק</button>` : ''}
-                                ${post.creatorId !== state.user.id ? `<button onclick="reportItem('${post.id}', 'post', '${post.creatorId}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-flag"></i> דווח</button>` : ''}
-                            </div>
+                            <button onclick="reportItem('${post.id}', 'post', '${post.creatorId}')" class="text-red-400 hover:text-red-600 text-sm">
+                                <i class="fa-solid fa-flag ml-1"></i> דווח על פוסט
+                            </button>
                         </div>
                     </div>
 
-                    <div class="bg-white p-6 rounded-2xl shadow-xl mb-6">
-                        <h3 class="text-xl font-bold text-kesher-primary mb-3">הוסף תגובה:</h3>
-                        <textarea id="replyContent" placeholder="התגובה שלך..." rows="3" class="w-full p-3 border-2 rounded-lg mb-3"></textarea>
-                        <button onclick="addReply()" class="bg-kesher-secondary hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-bold">שלח תגובה</button>
-                    </div>
-
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4"><i class="fa-solid fa-reply-all"></i> ${state.currentPostReplies.length} תגובות</h3>
-                    <div class="space-y-4">
-                        ${state.currentPostReplies.map(r => `
-                            <div class="bg-white p-4 rounded-xl shadow-md border-r-4 ${r.creatorId === post.creatorId ? 'border-kesher-accent' : 'border-gray-200'}">
-                                <p class="font-medium mb-1">${r.creatorName} ${r.creatorId === post.creatorId ? ' (<i class="fa-solid fa-crown text-kesher-accent"></i> כותב הפוסט)' : ''}</p>
-                                <p class="text-gray-700 whitespace-pre-wrap">${r.content}</p>
-                                <div class="text-xs text-gray-500 mt-2 flex justify-between items-center">
-                                    <span>${new Date(r.createdAt.toDate()).toLocaleString('he-IL')}</span>
-                                    ${canDeleteReply ? 
-                                        `<button onclick="alert('מחיקת תגובה: מנהלים/בכירים יכולים למחוק')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i> מחק</button>` : 
-                                        `<button onclick="reportItem('${r.id}', 'reply', '${r.creatorId}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-flag"></i> דווח</button>`
-                                    }
+                    <h2 class="text-2xl font-bold text-kesher-primary mb-4"><i class="fa-solid fa-comment-dots"></i> תגובות (${state.currentPostReplies.length})</h2>
+                    <div class="bg-white p-4 rounded-xl shadow-md space-y-4 mb-6">
+                        ${state.currentPostReplies.length > 0 ? state.currentPostReplies.map(reply => `
+                            <div class="border-b pb-3 last:border-b-0">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-semibold text-gray-800">${reply.creatorName}</p>
+                                        <p class="text-sm text-gray-600 leading-snug">${reply.content}</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500 shrink-0 mr-4">
+                                        ${timeSince(reply.createdAt.toDate())}
+                                        ${canDeleteReply ? `
+                                            <button onclick="alert('מחק תגובה ${reply.id}')" class="text-red-400 hover:text-red-600 mr-2"><i class="fa-solid fa-trash-alt"></i></button>
+                                        ` : ''}
+                                    </p>
                                 </div>
                             </div>
-                        `).join('')}
+                        `).join('') : '<p class="text-gray-500 text-center py-4">טרם נכתבו תגובות.</p>'}
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl shadow-md">
+                        <h3 class="text-xl font-bold text-kesher-secondary mb-3">הוסף תגובה</h3>
+                        <textarea id="replyInput" class="w-full p-3 border border-gray-300 rounded-lg" rows="3" placeholder="כתוב את התגובה שלך..."></textarea>
+                        <button onclick="addReply()" class="bg-kesher-secondary hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium mt-3 transition">
+                            שלח תגובה
+                        </button>
                     </div>
                 </div>
             `;
         };
-        
-        const renderActivities = () => { 
-             const upcomingActivities = (state.activities || []).sort((a, b) => a.date - b.date).filter(a => a.date >= new Date());
-             const canDeleteActivity = state.user.role === 'admin' || state.user.role === 'senior';
-             
-             return `
+
+        const renderActivities = () => {
+            const upcomingActivities = (state.activities || []).sort((a, b) => a.date - b.date).filter(a => a.date >= new Date());
+            const canDeleteActivity = state.user.role === 'admin' || state.user.role === 'senior';
+            
+            return `
                 ${getHeader()}
                 <div class="max-w-6xl mx-auto px-4 mt-8">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-3xl font-bold text-kesher-primary"><i class="fa-solid fa-calendar-check"></i> פעילויות קהילתיות</h2>
                         ${state.user.role === 'admin' || state.user.role === 'senior' ? `
-                            <button onclick="alert('יצירת פעילות...')" class="bg-kesher-secondary hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium transition"><i class="fa-solid fa-plus"></i> הצע פעילות</button>
+                            <button onclick="createActivity()" class="bg-kesher-secondary hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium transition"><i class="fa-solid fa-plus"></i> הצע פעילות</button>
                         ` : ''}
                     </div>
+
                     <div class="space-y-4">
                         ${upcomingActivities.length > 0 ? upcomingActivities.map(a => {
                             const isRegistered = a.attendees.includes(state.user.id);
-                            const actionButton = isRegistered 
-                                ? `<span class="text-sm font-semibold px-3 py-1 rounded-full bg-kesher-secondary text-white">רשום</span>`
-                                : `<button onclick="registerForActivity('${a.id}')" class="bg-kesher-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg transition text-sm">הרשם</button>`;
+                            const actionButton = isRegistered ? 
+                                `<span class="text-sm font-semibold px-3 py-1 rounded-full bg-kesher-secondary text-white">רשום</span>` : 
+                                `<button onclick="registerForActivity('${a.id}')" class="bg-kesher-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg transition text-sm">הרשם</button>`;
                             
                             return `
                                 <div class="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition flex flex-col md:flex-row justify-between items-start md:items-center">
                                     <div class="mb-4 md:mb-0">
                                         <h3 class="text-2xl font-bold text-gray-800">${a.title}</h3>
-                                        <p class="text-sm text-gray-600 mb-2"><i class="fa-solid fa-location-dot"></i> ${a.location} | מארגן: ${a.creatorName}</p>
-                                        <p class="text-base font-medium text-kesher-secondary"><i class="fa-solid fa-clock"></i> ${new Date(a.date).toLocaleString('he-IL')}</p>
-                                        <p class="mt-2 text-gray-700 whitespace-pre-wrap">${a.description}</p>
+                                        <p class="text-gray-600 mb-2">${a.description}</p>
+                                        <p class="text-sm text-gray-500">
+                                            <i class="fa-solid fa-calendar-day ml-1"></i> **${a.date.toLocaleDateString('he-IL')}** <span class="mr-2 ml-2">|</span> 
+                                            <i class="fa-solid fa-map-marker-alt ml-1"></i> ${a.location}
+                                            <span class="mr-2 ml-2">|</span> 
+                                            <i class="fa-solid fa-user ml-1"></i> ${a.attendees.length} משתתפים
+                                        </p>
                                     </div>
                                     <div class="flex flex-col items-end gap-2 shrink-0">
                                         ${actionButton}
-                                        <p class="text-xs text-gray-500"><i class="fa-solid fa-users"></i> ${a.attendees.length} נרשמו</p>
-                                        ${canDeleteActivity ? `<button onclick="alert('מחיקת פעילות: מנהלים/בכירים יכולים למחוק')" class="text-xs text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i> מחק</button>` : ''}
+                                        ${canDeleteActivity ? `
+                                            <button onclick="alert('מחק פעילות ${a.id}')" class="text-red-400 hover:text-red-600 text-sm">
+                                                <i class="fa-solid fa-trash-alt ml-1"></i> מחק
+                                            </button>
+                                        ` : ''}
                                     </div>
                                 </div>
                             `;
                         }).join('') : '<p class="text-center text-gray-500 p-8 bg-white rounded-xl shadow-md">אין פעילויות קרובות מתוכננות.</p>'}
                     </div>
                 </div>
-             `;
+            `;
         };
-
-
-        /**
-         * ממשק אדמין משודרג (כולל ניהול משתמשים)
-         */
+        
         const renderAdmin = () => {
-            if (state.user.role !== 'admin') { goTo('home'); return ''; }
-
-            const newReports = (state.reports || []).filter(r => r.status === 'חדש');
+            if (state.user.role !== 'admin') {
+                goTo('home');
+                return '';
+            }
 
             return `
                 ${getHeader()}
-                <div class="max-w-6xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-red-600 mb-6"><i class="fa-solid fa-shield-halved"></i> לוח בקרה למנהל</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                        <div class="bg-white p-5 rounded-xl shadow-lg border-r-4 border-kesher-primary">
-                            <p class="text-xs text-gray-500">סה"כ משתמשים</p>
-                            <p class="text-3xl font-bold text-kesher-primary">${(state.users || []).length}</p>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-lg border-r-4 border-kesher-secondary">
-                            <p class="text-xs text-gray-500">פעילויות קרובות</p>
-                            <p class="text-3xl font-bold text-kesher-secondary">${(state.activities || []).filter(a => a.date >= new Date()).length}</p>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-lg border-r-4 border-red-500">
-                            <p class="text-xs text-gray-500">דיווחים חדשים</p>
-                            <p class="text-3xl font-bold text-red-500">${newReports.length}</p>
-                        </div>
-                    </div>
+                <div class="max-w-7xl mx-auto px-4 mt-8">
+                    <h2 class="text-3xl font-bold text-red-600 mb-8"><i class="fa-solid fa-shield-halved"></i> לוח בקרה למנהלים</h2>
 
                     <div class="bg-white p-6 rounded-2xl shadow-xl mb-8">
-                        <h3 class="text-2xl font-bold text-kesher-primary mb-4"><i class="fa-solid fa-users-gear"></i> ניהול משתמשים</h3>
+                        <h3 class="text-2xl font-bold text-kesher-primary mb-4">ניהול משתמשים</h3>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -1140,31 +1153,30 @@
                                     ${(state.users || []).map(u => `
                                         <tr>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                ${u.name} 
-                                                ${u.id === state.user.id ? '(אני)' : ''}
-                                                ${u.isActive === false ? ' <span class="text-red-500 font-bold">(מושהה)</span>' : ''}
+                                                ${u.name} ${u.id === state.user.id ? '(אני)' : ''} ${u.isActive === false ? ' <span class="text-red-500 font-bold">(מושהה)</span>' : ''}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${u.city}</td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                                                 <span class="${u.role === 'admin' ? 'text-red-600' : u.role === 'senior' ? 'text-kesher-secondary' : 'text-gray-500'}">${u.role}</span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <select onchange="updateUserRole('${u.id}', this.value)" class="p-1 border rounded-lg text-sm" ${u.id === state.user.id ? 'disabled' : ''}>
-                                                    <option value="user" ${u.role === 'user' ? 'selected' : ''}>משתמש רגיל</option>
-                                                    <option value="senior" ${u.role === 'senior' ? 'selected' : ''}>משתמש בכיר</option>
-                                                    <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>אדמין</option>
-                                                </select>
+                                                ${u.id === state.user.id ? 'אין שינוי' : `
+                                                    <select onchange="updateUserRole('${u.id}', this.value)" class="p-1 border rounded-lg">
+                                                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+                                                        <option value="senior" ${u.role === 'senior' ? 'selected' : ''}>Senior</option>
+                                                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                                    </select>
+                                                `}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2 space-x-reverse">
-                                                <button 
-                                                    onclick="toggleUserActive('${u.id}', '${u.name}', ${u.isActive !== false})" 
-                                                    class="p-1 rounded text-xs ${u.isActive !== false ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-kesher-secondary hover:bg-teal-600 text-white'}"
-                                                    ${u.id === state.user.id ? 'disabled' : ''}>
-                                                    ${u.isActive !== false ? '<i class="fa-solid fa-pause"></i> השהה' : '<i class="fa-solid fa-play"></i> הפעל מחדש'}
-                                                </button>
-                                                <button onclick="deleteUser('${u.id}', '${u.name}')" class="p-1 rounded text-xs bg-red-500 hover:bg-red-600 text-white" ${u.id === state.user.id ? 'disabled' : ''}>
-                                                    <i class="fa-solid fa-trash"></i> מחק
-                                                </button>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex gap-2">
+                                                ${u.id === state.user.id ? '' : `
+                                                    <button onclick="toggleUserActive('${u.id}', '${u.name}', ${u.isActive})" class="${u.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-kesher-secondary hover:text-teal-700'}">
+                                                        ${u.isActive ? '<i class="fa-solid fa-pause ml-1"></i> השהה' : '<i class="fa-solid fa-check-circle ml-1"></i> הפעל'}
+                                                    </button>
+                                                    <button onclick="deleteUser('${u.id}', '${u.name}')" class="text-red-500 hover:text-red-700 mr-2">
+                                                        <i class="fa-solid fa-user-times ml-1"></i> מחק
+                                                    </button>
+                                                `}
                                             </td>
                                         </tr>
                                     `).join('')}
@@ -1174,45 +1186,42 @@
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-xl">
-                        <h3 class="text-2xl font-bold text-red-600 mb-4"><i class="fa-solid fa-flag"></i> ניהול דיווחים (${(state.reports || []).length})</h3>
+                        <h3 class="text-2xl font-bold text-kesher-primary mb-4">דיווחים ( ${state.reports.length} )</h3>
                         <div class="space-y-4">
-                            ${(state.reports || []).map(r => {
-                                const statusColor = r.status === 'חדש' ? 'bg-red-100 text-red-800' : 
-                                                    r.status === 'בטיפול' ? 'bg-kesher-accent/20 text-kesher-accent' : 'bg-kesher-secondary/20 text-kesher-secondary';
-                                return `
-                                    <div class="border p-4 rounded-lg flex justify-between items-center">
-                                        <div>
-                                            <p class="font-bold">דווח על: ${r.itemType} (ID: ${r.itemId.substring(0, 8)}...)</p>
-                                            <p class="text-sm text-gray-600">סיבה: ${r.reason}</p>
-                                            <p class="text-xs text-gray-500">מדווח: ${r.reporterName} | משתמש מדווח ID: ${r.reportedUserId.substring(0, 8)}...</p>
-                                        </div>
-                                        <div class="flex flex-col gap-2 items-end">
-                                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColor}">${r.status}</span>
-                                            <select onchange="updateReportStatus('${r.id}', this.value)" class="p-1 border rounded-lg text-sm">
-                                                <option value="חדש" ${r.status === 'חדש' ? 'selected' : ''}>חדש</option>
-                                                <option value="בטיפול" ${r.status === 'בטיפול' ? 'selected' : ''}>בטיפול</option>
-                                                <option value="טופל" ${r.status === 'טופל' ? 'selected' : ''}>טופל</option>
-                                            </select>
-                                        </div>
+                            ${state.reports.length > 0 ? state.reports.map(r => `
+                                <div class="p-4 border-r-4 ${r.status === 'חדש' ? 'border-red-500' : 'border-gray-400'} bg-gray-50 rounded-lg flex justify-between items-center">
+                                    <div>
+                                        <p class="font-semibold text-gray-800">פריט: ${r.itemType} (ID: ${r.itemId})</p>
+                                        <p class="text-sm text-gray-600">סיבה: ${r.reason} | דווח על ידי: ${r.reporterName}</p>
+                                        <p class="text-xs text-gray-500 mt-1">סטטוס נוכחי: **${r.status}**</p>
                                     </div>
-                                `;
-                            }).join('')}
+                                    <div class="flex gap-2 items-center">
+                                        <select onchange="updateReportStatus('${r.id}', this.value)" class="p-1 border rounded-lg text-sm">
+                                            <option value="חדש" ${r.status === 'חדש' ? 'selected' : ''}>חדש</option>
+                                            <option value="בטיפול" ${r.status === 'בטיפול' ? 'selected' : ''}>בטיפול</option>
+                                            <option value="טופל" ${r.status === 'טופל' ? 'selected' : ''}>טופל</option>
+                                            <option value="נדחה" ${r.status === 'נדחה' ? 'selected' : ''}>נדחה</option>
+                                        </select>
+                                        <button onclick="alert('בדיקת פריט ${r.itemId}')" class="text-kesher-secondary hover:text-teal-700">
+                                            <i class="fa-solid fa-search"></i> בדוק
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-center py-4">אין דיווחים פתוחים.</p>'}
                         </div>
                     </div>
+
                 </div>
             `;
         };
 
-
-        // --- 5. מנוע רינדור וטעינה ראשונית ---
+        // --- 6. מנוע רינדור וטעינה ראשונית ---
 
         function render() {
             let content = '';
-            
             if (!state.user && state.screen !== 'register') {
                 state.screen = 'login';
             }
-
             switch (state.screen) {
                 case 'loading': content = renderLoading(); break; // מסך טעינה
                 case 'login': content = renderLogin(); break;
@@ -1222,53 +1231,48 @@
                 case 'chat': content = renderChat(); break;
                 case 'forums': content = renderForums(); break;
                 case 'forumPosts': content = renderForumPosts(); break;
-                case 'newPost': content = '<h1>יצירת פוסט חדש - לא ממומש</h1>'; break; 
+                case 'newPost': content = '<h1>יצירת פוסט חדש - לא ממומש</h1>'; break;
                 case 'postDetails': content = renderPostDetails(); break;
                 case 'activities': content = renderActivities(); break;
                 case 'newActivity': content = '<h1>יצירת פעילות חדשה - לא ממומש</h1>'; break;
                 case 'admin': content = renderAdmin(); break;
-                default: 
-                    // ברירת מחדל בטוחה
-                    content = `<h1>שגיאת ניתוב</h1><button onclick="goTo('home')">חזור הביתה</button>`;
-                    console.error("שגיאת ניתוב: מסך לא מוכר:", state.screen);
+                default: content = renderHome(); break;
             }
-            
             document.getElementById('root').innerHTML = content;
         }
 
+        /**
+         * פונקציה ראשית לאתחול (נקראת פעם אחת)
+         */
         async function initializeApp() {
-            // **שלב 1: טעינה מהירה של מבנה נתונים ריק כדי למנוע קריסה מוקדמת**
-            loadFakeForumData(false); 
-            
-            // **שלב 2: האזנה למצב ההתחברות**
+            render(); // הצג מסך טעינה
+
+            // האזנה לשינוי סטטוס התחברות
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
+                    // **המשתמש מחובר**
                     try {
-                        // 1. אחזור נתוני משתמש
                         const userDoc = await db.collection('users').doc(user.uid).get();
-                        
                         if (userDoc.exists) {
                             const userData = userDoc.data();
                             
-                            // בדיקת סטטוס השעיה (isActive: false)
+                            // בדיקת סטטוס השעיה
                             if (userData.isActive === false) {
-                                console.log("המשתמש מושהה. יציאה.");
-                                auth.signOut();
+                                auth.signOut(); // נתק משתמש מושהה
                                 return;
                             }
-
+                            
                             state.user = { 
                                 id: user.uid, 
                                 email: user.email, 
-                                name: userData.name || 'משתמש', 
+                                name: userData.name, 
                                 role: userData.role || 'user', 
                                 points: userData.points || 0,
                                 hobbies: userData.hobbies || [], 
                                 contributions: userData.contributions || [],
-                                isActive: userData.isActive !== false // ברירת מחדל: פעיל
+                                isActive: userData.isActive !== false
                             };
                             
-                            // 2. טעינת נתונים כלליים (משתמשים, פעילויות, מוני צ'אט)
                             await fetchInitialData(); 
                             
                             // 3. ניתוב למסך הבית רק אם לא היתה שגיאה קריטית
