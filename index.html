@@ -178,6 +178,7 @@
             selectedForumId: null, // ה-ID של הפורום הנבחר
             selectedPostId: null,  // ה-ID של הפוסט הנבחר
             selectedChatId: null,  // ה-ID של הצ'אט הנבחר
+            selectedActivityId: null, // ה-ID של הפעילות הנבחרת
             
             // נתונים לצ'אט
             chats: [],           // רשימת חדרי הצ'אט של המשתמש
@@ -394,7 +395,7 @@
                     ${topForums.map(forum => `
                         <div class="card cursor-pointer hover:bg-gray-50" onclick="goTo('posts', '${forum.id}')">
                             <div class="flex items-center space-x-4 space-x-reverse">
-                                <div class="w-12 h-12 rounded-full bg-kesher-primary/10 text-kesher-primary flex items-center justify-center text-xl">
+                                <div class="w-14 h-14 rounded-full bg-kesher-primary/10 text-kesher-primary flex items-center justify-center text-xl">
                                     <i class="${forum.icon}"></i>
                                 </div>
                                 <div>
@@ -844,7 +845,7 @@
                 <div id="messages-container" class="space-y-4 max-h-main overflow-y-auto hide-scrollbar">
                     </div>
                 
-                <div class="fixed bottom-20 w-full max-w-xl p-4 bg-white border-t nav-shadow">
+                <div class="fixed bottom-0 w-full max-w-xl p-4 bg-white border-t nav-shadow">
                     <div class="flex space-x-2 space-x-reverse">
                         <textarea id="message-input" placeholder="כתוב הודעה..." class="input-field flex-grow resize-none overflow-hidden h-12" rows="1" oninput="autoExpandTextarea(this)"></textarea>
                         <button onclick="sendMessage()" class="bg-kesher-primary text-white w-12 h-12 rounded-full flex items-center justify-center hover:bg-red-500 transition duration-200">
@@ -1381,12 +1382,19 @@
             const footerElement = document.getElementById('app-footer');
             const backButton = document.getElementById('back-button');
             const chatButton = document.getElementById('chat-button');
+            const mainContentArea = document.querySelector('main');
             
-            if (!container) return; // לוודא שה-DOM טעון
+            if (!container || !mainContentArea) return; // לוודא שה-DOM טעון
 
-            // הסתרת כל האלמנטים הראשיים כברירת מחדל
+            // ----------------------------------------------------
+            // 🚨 טיפול ראשוני ב-Header וב-Footer 
+            // ----------------------------------------------------
+            
+            // הגדרת ברירת מחדל: גלויים והריפוד הרגיל
             headerElement.classList.remove('hidden');
             footerElement.classList.remove('hidden');
+            mainContentArea.classList.remove('pt-0'); // ניקוי ה-pt-0
+            mainContentArea.classList.add('pt-16'); // החזרת הריפוד של Header
             backButton.classList.add('hidden');
             chatButton.classList.add('hidden');
             
@@ -1398,29 +1406,36 @@
             let isPublicScreen = false;
             let currentScreenName = '';
 
-            if (!state.user && state.screen !== 'login' && state.screen !== 'register') {
+            if (!state.user && state.screen !== 'login' && state.screen !== 'register' && state.screen !== 'loading') {
                 goTo('login');
                 return;
             }
-
+            
+            // ----------------------------------------------------
             // ניתוב המסכים
+            // ----------------------------------------------------
             switch (state.screen) {
                 case 'loading':
                     contentHtml = document.getElementById('loading-screen').outerHTML;
                     headerElement.classList.add('hidden');
                     footerElement.classList.add('hidden');
                     isPublicScreen = true;
+                    mainContentArea.classList.remove('pt-16');
                     break;
                 case 'login':
                     contentHtml = renderLoginPage();
-                    headerElement.classList.add('hidden');
+                    headerElement.classList.add('hidden'); 
                     footerElement.classList.add('hidden');
+                    mainContentArea.classList.add('pt-0'); // דרוש כדי שהמסך יתפוס 100% מהגובה
+                    mainContentArea.classList.remove('pt-16');
                     isPublicScreen = true;
                     break;
                 case 'register':
                     contentHtml = renderRegisterPage();
-                    headerElement.classList.add('hidden');
+                    headerElement.classList.add('hidden'); 
                     footerElement.classList.add('hidden');
+                    mainContentArea.classList.add('pt-0');
+                    mainContentArea.classList.remove('pt-16');
                     isPublicScreen = true;
                     break;
                 case 'home':
@@ -1499,6 +1514,11 @@
                     return;
             }
 
+            // ----------------------------------------------------
+            // 🚨 טיפול בסיום הרינדור
+            // ----------------------------------------------------
+            
+            
             // עדכון הכותרת
             headerTitle.innerText = currentScreenName || "קהילת קשר";
             
@@ -1535,7 +1555,6 @@
          */
         async function fetchInitialData() {
             // **שלב 1: טעינת נתונים פיקטיביים קודם (כברירת מחדל)**
-            // זה מבטיח שיש נתונים לרנדור גם אם יש שגיאת הרשאה
             loadFakeForumData(false); 
             
             // 2.1. אחזור רשימת משתמשים - עטוף ב-try/catch ספציפי
@@ -1584,4 +1603,185 @@
                         .where('participants', 'array-contains', state.user.id)
                         .get();
                     
-                    state.chats = myChatsSnapshot.docs.map(
+                    state.chats = myChatsSnapshot.docs.map(doc => {
+                         const data = doc.data();
+                         // מציאת ה-ID של המשתמש השני
+                         const otherUserId = data.participants.find(id => id !== state.user.id);
+                         const otherUser = findUserById(otherUserId);
+                         
+                         return {
+                             id: doc.id,
+                             otherUser: otherUser,
+                             lastMessageText: data.lastMessageText || 'התחילו שיחה חדשה',
+                             lastMessageAt: data.lastMessageAt?.toDate() || new Date(0),
+                             unreadCount: data[`unread_${state.user.id}`] || 0
+                         };
+                    });
+                    
+                    state.unreadCounts = {};
+                    for (const chatDoc of myChatsSnapshot.docs) {
+                        const unreadCountForMe = chatDoc.data()[`unread_${state.user.id}`] || 0;
+                        if (unreadCountForMe > 0) {
+                            state.unreadCounts[chatDoc.id] = unreadCountForMe;
+                        }
+                    }
+                     console.log("✓ מונה הודעות צ'אט נטען בהצלחה.");
+                } catch (error) {
+                     console.warn("⚠️ שגיאה באחזור מוני הודעות צ'אט (בדוק Rules!):", error.message);
+                     state.unreadCounts = {};
+                     state.chats = []; // אפס רשימת צ'אטים
+                }
+            }
+            
+            // 2.4. אחזור פורומים - הוסף גם את זה ליתר ביטחון
+            try {
+                const forumsSnapshot = await db.collection('forums').get();
+                 if (!forumsSnapshot.empty) {
+                    state.forums = forumsSnapshot.docs.map(doc => ({ 
+                        id: doc.id, 
+                        ...doc.data(), 
+                        lastActivity: doc.data().lastActivity?.toDate() || new Date(0)
+                    }));
+                    console.log(`✓ נטענו ${state.forums.length} פורומים מ-Firestore.`);
+                }
+            } catch (error) {
+                console.warn("⚠️ שגיאה באחזור פורומים (בדוק Rules!):", error.message);
+            }
+        }
+
+
+        /**
+         * פונקציות Firebase Authentication (התחברות / הרשמה / יציאה)
+         */
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!email || !password) {
+                alert('אנא מלא את כל השדות.');
+                return;
+            }
+
+            try {
+                // נסה להתחבר
+                await auth.signInWithEmailAndPassword(email, password);
+                // ה-onAuthStateChanged יטפל בשאר הלוגיקה
+            } catch (error) {
+                console.error("שגיאת התחברות:", error);
+                alert('שגיאת התחברות: ' + error.message);
+            }
+        }
+
+        async function register() {
+            const name = document.getElementById('register-name').value.trim();
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            
+            if (!name || !email || !password) {
+                alert('אנא מלא את כל השדות.');
+                return;
+            }
+
+            try {
+                // 1. יצירת המשתמש ב-Firebase Auth
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // 2. עדכון שם התצוגה (displayName) ב-Auth
+                await user.updateProfile({
+                    displayName: name
+                });
+                
+                // 3. יצירת מסמך משתמש ב-Firestore
+                await db.collection('users').doc(user.uid).set({
+                    displayName: name,
+                    email: email,
+                    role: 'user', // ברירת מחדל: user
+                    isOnline: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('ההרשמה הצליחה! אתה מחובר כעת.');
+                // ה-onAuthStateChanged יטפל בשאר הלוגיקה (ניתוב ל-home)
+                
+            } catch (error) {
+                console.error("שגיאת הרשמה:", error);
+                alert('שגיאת הרשמה: ' + error.message);
+            }
+        }
+
+        function logout() {
+            auth.signOut();
+            // הלוגיקה עוברת ל-onAuthStateChanged
+        }
+
+
+        /**
+         * פונקציית האתחול הראשי - מאזינה למצב המשתמש
+         */
+        function initializeApp() {
+            // מאזין למצב ההתחברות של המשתמש
+            auth.onAuthStateChanged(async (firebaseUser) => {
+                if (firebaseUser) {
+                    // **המשתמש מחובר**
+                    try {
+                        // 1. אחזור מסמך המשתמש מ-Firestore
+                        const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+
+                        if (userDoc.exists) {
+                            // 2. שמירת נתוני המשתמש ב-state
+                            state.user = { 
+                                id: firebaseUser.uid, 
+                                email: firebaseUser.email,
+                                displayName: firebaseUser.displayName || userDoc.data().displayName,
+                                ...userDoc.data() 
+                            };
+                            
+                            // עדכון סטטוס אונליין (אופציונלי)
+                            await db.collection('users').doc(state.user.id).update({ isOnline: true });
+                            
+                            // 3. אחזור נתונים ראשוני (כל הפורומים, משתמשים וכו')
+                            await fetchInitialData(); 
+                            
+                            // 4. ניתוב למסך הבית רק אם לא היתה שגיאה קריטית
+                            if (state.screen === 'loading' || state.screen === 'login' || state.screen === 'register') {
+                                goTo('home');
+                            } else {
+                                render(); // אם המשתמש כבר במסך כלשהו (כמו פורום), רנדר מחדש
+                            }
+                        } else {
+                            // המשתמש מחובר ב-Auth אבל לא קיים במסמך users (כנראה נמחק)
+                            auth.signOut();
+                        }
+                    } catch (error) {
+                        console.error("שגיאה קריטית באחזור פרופיל משתמש או נתונים (Firebase/Config):", error);
+                         // אם יש שגיאה בחיבור ל-Firebase, אנו חוזרים ללוגין
+                        state.user = null;
+                        state.screen = 'login';
+                        render();
+                        alert("שגיאה בחיבור לשרת או באחזור נתונים. נסה להתחבר שוב.");
+                    }
+                } else {
+                    // **המשתמש לא מחובר או יצא**
+                    if (state.user) {
+                        // אם המשתמש היה מחובר, נעדכן סטטוס לאופליין
+                        try {
+                           await db.collection('users').doc(state.user.id).update({ isOnline: false });
+                        } catch(e) { /* התעלם משגיאות עדכון סטטוס לאחר יציאה */ }
+                    }
+                    
+                    state.user = null;
+                    if (state.screen !== 'register') {
+                        goTo('login');
+                    } else {
+                        render();
+                    }
+                }
+            });
+        }
+
+        // הפעלת האפליקציה
+        initializeApp(); 
+    </script>
+</body>
+</html>
