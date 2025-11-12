@@ -482,14 +482,15 @@
             }
         }
 
-        // ------------------ לוגיקת צ'אט ------------------
+        // ------------------ לוגיקת צ'אט (מתוקן) ------------------
 
         function getChatId(otherUserId) {
             // יצירת ID צ'אט קבוע על ידי שילוב שני ה-UIDs בסדר אלפביתי
             const ids = [state.user.id, otherUserId].sort();
             return ids.join('_');
         }
-async function openChat(otherUserId) {
+
+        async function openChat(otherUserId) {
             if (state.chatListener) {
                 state.chatListener(); // ביטול המאזין הקודם
             }
@@ -502,14 +503,13 @@ async function openChat(otherUserId) {
             const messagesRef = chatRef.collection('messages'); // הפניה לתת-אוסף ההודעות
 
             try {
-                // שלב 1: ודא שמסמך הצ'אט הראשי קיים. אם לא, צור אותו.
+                // שלב 1: ודא שמסמך הצ'אט הראשי קיים (באמצעות טרנזקציה לטיפול בצ'אט ראשוני)
                 await db.runTransaction(async (transaction) => {
                     const doc = await transaction.get(chatRef);
                     if (!doc.exists) {
                         transaction.set(chatRef, {
                             participants: [state.user.id, otherUserId],
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            // ניתן להוסיף כאן lastMessage ו-lastMessageTimestamp כ-null/ריק
                         });
                         console.log("נוצר מסמך צ'אט חדש:", chatId);
                     }
@@ -521,7 +521,6 @@ async function openChat(otherUserId) {
                         const chatData = docSnapshot.data();
                         
                         // טוען גם את הודעות הצ'אט (שהן תת-אוסף)
-                        // **שינוי:** משתמש ב-messagesRef שנוצר קודם
                         messagesRef.orderBy('timestamp').get().then(messagesSnapshot => {
                             const messages = messagesSnapshot.docs.map(msgDoc => ({ id: msgDoc.id, ...msgDoc.data() }));
                             chatData.messages = messages; // מוסיף את ההודעות לאובייקט ה-chatData
@@ -531,7 +530,7 @@ async function openChat(otherUserId) {
                             renderChatScreen({ participants: [state.user.id, otherUserId], messages: null, error: "שגיאה בטעינת הודעות." }); 
                         });
                     } else {
-                        // הצ'אט עדיין לא נוצר (אמור לקרות רק לרגע קצר אם הטרנזקציה לא הסתיימה)
+                        // הצ'אט עדיין לא נוצר או נמחק
                         renderChatScreen({ participants: [state.user.id, otherUserId], messages: [] });
                     }
                 }, error => {
@@ -544,38 +543,10 @@ async function openChat(otherUserId) {
                 console.error("שגיאה קריטית בפתיחת צ'אט:", error);
                 alert("אירעה שגיאה קריטית בפתיחת הצ'אט.");
             }
-        }  
-            
+        } // סוגר את openChat
 
-            // התחלת האזנה לשינויים בזמן אמת בנתוני הצ'אט
-            state.chatListener = chatRef.onSnapshot(docSnapshot => {
-                if (docSnapshot.exists) {
-                    const chatData = docSnapshot.data();
-                    
-                    // טוען גם את הודעות הצ'אט (שהן תת-אוסף)
-                    db.collection('chats').doc(chatId).collection('messages').orderBy('timestamp').get().then(messagesSnapshot => {
-                        const messages = messagesSnapshot.docs.map(msgDoc => ({ id: msgDoc.id, ...msgDoc.data() }));
-                        chatData.messages = messages; // מוסיף את ההודעות לאובייקט ה-chatData
-                        renderChatScreen(chatData);
-                    }).catch(error => {
-                        console.error("שגיאה בטעינת הודעות:", error);
-                        // מציג מסך צ'אט עם הודעת שגיאה
-                        renderChatScreen({ participants: [state.user.id, otherUserId], messages: null, error: "שגיאה בטעינת הודעות." }); 
-                    });
-                } else {
-                    // הצ'אט עדיין לא נוצר (אמור לקרות רק לרגע קצר)
-                    renderChatScreen({ participants: [state.user.id, otherUserId], messages: null });
-                }
-            }, error => {
-                console.error("שגיאת חיבור בזמן אמת לצ'אט:", error);
-                // הצג הודעת שגיאה למשתמש 
-                const chatScreen = document.getElementById('chat-screen');
-                chatScreen.innerHTML = `<div class="p-6 text-center text-red-500 font-semibold">שגיאת חיבור לצ'אט! (בדוק את ה-Firebase Rules שלך).</div>`;
-            });
-        }
-
-// **************** הפונקציה renderChatScreen המתוקנת ****************
-        // התיקון הקריטי הוא בבדיקה של msg.timestamp
+        // **************** הפונקציה renderChatScreen המתוקנת ****************
+        // כוללת תיקון לטיפול ב-timestamp חסר או לא תקין, ובדיקה למערך messages ריק
         function renderChatScreen(chatData) {
             const chatScreen = document.getElementById('chat-screen');
             if (!chatScreen) return;
@@ -594,24 +565,32 @@ async function openChat(otherUserId) {
                 </div>
             `;
             
-            // התיקון: (chatData.messages || []) כדי לטפל בצ'אט חדש, כפי שתוקן קודם.
             const messagesHTML = (chatData.messages || []).map(msg => {
                 
-                // **התיקון החדש לבעיית ה-timestamp:**
-                let timestamp;
-                if (msg.timestamp && msg.timestamp.seconds) {
-                    // אובייקט תקין של Firebase Timestamp
-                    timestamp = new Date(msg.timestamp.seconds * 1000);
-                } else if (msg.timestamp instanceof firebase.firestore.Timestamp) {
-                    // אובייקט Firebase Timestamp שנשלף בצורה מעט שונה
-                    timestamp = msg.timestamp.toDate();
-                } 
-                else {
-                    // ברירת מחדל אם ה-timestamp חסר/לא תקין (הודעות ישנות)
-                    timestamp = new Date();
+                // **לוגיקת טיפול מחוזקת ב-timestamp כדי למנוע קריסה:**
+                let dateObject;
+                
+                if (msg.timestamp) {
+                    // 1. אם זה אובייקט Firebase Timestamp (עם מתודת toDate)
+                    if (typeof msg.timestamp.toDate === 'function') {
+                        dateObject = msg.timestamp.toDate();
+                    } 
+                    // 2. אם זה אובייקט ישן עם seconds (כפי ש-Firestore לפעמים מחזיר)
+                    else if (msg.timestamp.seconds) {
+                        dateObject = new Date(msg.timestamp.seconds * 1000);
+                    } 
+                    // 3. אם זה כבר Date object (מקרים נדירים)
+                    else if (msg.timestamp instanceof Date) {
+                        dateObject = msg.timestamp;
+                    }
+                }
+                
+                // 4. ברירת מחדל אם ה-timestamp חסר/לא תקין (כדי למנוע קריסה)
+                if (!dateObject) {
+                    dateObject = new Date();
                 }
 
-                const timeString = timestamp.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                const timeString = dateObject.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
                 const isMe = msg.senderId === state.user.id;
                 return `
@@ -647,7 +626,7 @@ async function openChat(otherUserId) {
             if (messagesContainer) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
-        }
+        } // סוגר את renderChatScreen
         // **************************************************
 
         async function sendMessage() {
