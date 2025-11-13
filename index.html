@@ -577,8 +577,7 @@
         const renderChat = () => {
             const partner = state.selectedUser;
             
-            // 🛑 התיקון הקריטי: בדיקות יציאה בטוחות למניעת קריסה (שורה 536)
-            // מונע את השגיאה Cannot read properties of undefined (reading 'messages')
+            // 🛑 התיקון הקריטי: בדיקות יציאה בטוחות למניעת קריסה (שגיאת הצ'אט)
             if (!partner || !Array.isArray(state.chatMessages)) {
                  // במקרה זה, נחזיר מסך טעינה ידידותי עד שהליסנר יסיים לעבוד
                 return `
@@ -599,7 +598,7 @@
                 ? '<div class="text-center text-gray-500 mt-10">אין עדיין הודעות. התחל שיחה!</div>'
                 : state.chatMessages.map(msg => { 
                     const isMe = msg.senderId === state.user.id;
-                    // 🛑 בדיקת בטיחות נוספת ל-timestamp (כמו שבוצע ב-renderUsers)
+                    // 🛑 בדיקת בטיחות ל-timestamp (תיקון שגיאת toDate)
                     const time = msg.timestamp && typeof msg.timestamp.toDate === 'function' ? new Date(msg.timestamp.toDate()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : 'עכשיו';
                     const isError = msg.content.includes('שגיאת חיבור!');
 
