@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>קהילת קשר</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
@@ -116,10 +118,10 @@
                 { id: 'r2', content: 'אולי כדאי ליצור דף נחיתה ייעודי?', creatorId: 'user1', creatorName: 'אורית לוי', createdAt: now },
             ];
             state.forums = [
-                { id: 'f1', title: 'התנדבות וקהילה', description: 'דיונים על יוזמות חברתיות חדשות.', icon: '??', posts: [
+                { id: 'f1', title: 'התנדבות וקהילה', description: 'דיונים על יוזמות חברתיות חדשות.', icon: '<i class="fa-solid fa-users"></i>', posts: [
                     { id: 'p1', title: 'איך מגייסים מתנדבים חדשים?', content: 'אני מנהל קבוצה קטנה ומחפש דרכים יצירתיות לגייס עוד חברים פעילים.', creatorId: 'user1', creatorName: 'אורית לוי', createdAt: now, likes: ['user2', 'user3'], replies: post1Replies },
                 ]},
-                { id: 'f2', title: 'טיולים וטבע', description: 'מסלולים מומלצים וציוד קמפינג.', icon: '??', posts: [] },
+                { id: 'f2', title: 'טיולים וטבע', description: 'מסלולים מומלצים וציוד קמפינג.', icon: '<i class="fa-solid fa-mountain-sun"></i>', posts: [] },
             ];
             // אם אין משתמשים מ-Firestore (או נכשל) נשתמש בפיקטיביים
             if (forceUserFakes || state.users.length === 0) {
@@ -536,16 +538,26 @@
                                 <span class="text-2xl font-bold">קהילת קשר</span>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="goTo('home')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('home')}">🏠 בית</button>
-                                <button onclick="goTo('users')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('users')}">? חברים</button>
-                                <button onclick="goTo('forums')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('forums') || isCurrent('forumPosts') || isCurrent('newPost') || isCurrent('postDetails')}">?? פורומים</button>
-                                <button onclick="goTo('activities')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('activities') || isCurrent('newActivity')}">?? פעילויות</button>
+                                <button onclick="goTo('home')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('home')}">
+                                    <i class="fa-solid fa-house"></i> בית
+                                </button>
+                                <button onclick="goTo('users')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('users')}">
+                                    <i class="fa-solid fa-user-group"></i> חברים
+                                </button>
+                                <button onclick="goTo('forums')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('forums') || isCurrent('forumPosts') || isCurrent('newPost') || isCurrent('postDetails')}">
+                                    <i class="fa-solid fa-comments"></i> פורומים
+                                </button>
+                                <button onclick="goTo('activities')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('activities') || isCurrent('newActivity')}">
+                                    <i class="fa-solid fa-calendar-check"></i> פעילויות
+                                </button>
                                 ${state.user.role === 'admin' ? `
-                                    <button onclick="goTo('admin')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('admin')} bg-red-600 hover:bg-red-700">?? ניהול</button>
+                                    <button onclick="goTo('admin')" class="px-3 py-2 rounded-lg font-medium transition ${isCurrent('admin')} bg-red-600 hover:bg-red-700">
+                                        <i class="fa-solid fa-shield-halved"></i> ניהול
+                                    </button>
                                 ` : ''}
                             </div>
                             <div class="flex items-center gap-4">
-                                <span class="text-sm font-medium">? ${state.user.name}</span>
+                                <span class="text-sm font-medium"><i class="fa-solid fa-user"></i> ${state.user.name}</span>
                                 <button onclick="doLogout()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full transition text-sm">יציאה</button>
                             </div>
                         </div>
@@ -644,19 +656,19 @@
             return `
                 ${getHeader()}
                 <div class="max-w-6xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-8">ברוך הבא, ${state.user.name}! 👋</h2>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8">ברוך הבא, ${state.user.name}! <i class="fa-solid fa-hand"></i></h2>
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         
                         <div class="bg-kesher-green text-white p-6 rounded-2xl shadow-xl lg:col-span-1 flex flex-col justify-between">
-                            <h3 class="text-2xl font-bold mb-2">⭐ הניקוד שלי</h3>
+                            <h3 class="text-2xl font-bold mb-2"><i class="fa-solid fa-star"></i> הניקוד שלי</h3>
                             <p class="text-5xl font-extrabold mb-4">${state.user.points || 0}</p>
                             <p class="text-sm">צבור נקודות על ידי תגובות ועזרה לאחרים.</p>
                         </div>
 
                         <div class="bg-white p-6 rounded-2xl shadow-xl lg:col-span-2">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-xl font-bold text-kesher-blue">? חברים מחוברים ( ${onlineUsers.length} )</h3>
-                                <button onclick="goTo('users')" class="text-kesher-blue hover:text-blue-700 text-sm font-medium">הצג את כל החברים »</button>
+                                <h3 class="text-xl font-bold text-kesher-blue"><i class="fa-solid fa-user-group"></i> חברים מחוברים ( ${onlineUsers.length} )</h3>
+                                <button onclick="goTo('users')" class="text-kesher-blue hover:text-blue-700 text-sm font-medium">הצג את כל החברים <i class="fa-solid fa-arrow-right"></i></button>
                             </div>
                             <div class="space-y-3 max-h-48 overflow-y-auto">
                                 ${onlineUsers.length > 0 ? onlineUsers.slice(0, 5).map(u => `
@@ -670,8 +682,8 @@
 
                         <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-xl">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-xl font-bold text-kesher-blue">?? פורומים פופולריים</h3>
-                                <button onclick="goTo('forums')" class="text-kesher-blue hover:text-blue-700 text-sm font-medium">הכל »</button>
+                                <h3 class="text-xl font-bold text-kesher-blue"><i class="fa-solid fa-comments"></i> פורומים פופולריים</h3>
+                                <button onclick="goTo('forums')" class="text-kesher-blue hover:text-blue-700 text-sm font-medium">הכל <i class="fa-solid fa-arrow-right"></i></button>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                 ${state.forums.slice(0, 4).map(f => `
@@ -686,15 +698,15 @@
                         
                         <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-xl">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-xl font-bold text-kesher-green">?? הפעילויות הקרובות שלי</h3>
-                                <button onclick="goTo('activities')" class="text-kesher-green hover:text-green-700 text-sm font-medium">הצג הכל »</button>
+                                <h3 class="text-xl font-bold text-kesher-green"><i class="fa-solid fa-calendar-check"></i> הפעילויות הקרובות שלי</h3>
+                                <button onclick="goTo('activities')" class="text-kesher-green hover:text-green-700 text-sm font-medium">הצג הכל <i class="fa-solid fa-arrow-right"></i></button>
                             </div>
                             <div class="space-y-3">
                                 ${myActivities.length > 0 ? myActivities.slice(0, 3).map(a => `
                                     <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-center">
                                         <div>
                                             <p class="font-medium">${a.title}</p>
-                                            <p class="text-xs text-gray-500">${new Date(a.date).toLocaleDateString('he-IL')} - ${a.location}</p>
+                                            <p class="text-xs text-gray-500"><i class="fa-solid fa-location-dot"></i> ${new Date(a.date).toLocaleDateString('he-IL')} - ${a.location}</p>
                                         </div>
                                         <span class="text-xs font-semibold px-3 py-1 rounded-full bg-kesher-blue text-white">רשום</span>
                                     </div>
@@ -718,7 +730,7 @@
             return `
                 ${getHeader()}
                 <div class="max-w-6xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-kesher-blue mb-6">? חברים בקהילה (${filteredUsers.length} נמצאו)</h2>
+                    <h2 class="text-3xl font-bold text-kesher-blue mb-6"><i class="fa-solid fa-user-group"></i> חברים בקהילה (${filteredUsers.length} נמצאו)</h2>
                     
                     <div class="bg-white p-4 rounded-xl shadow-md mb-6 flex flex-wrap gap-4 items-center">
                         <span class="font-medium text-gray-700">סינון:</span>
@@ -747,17 +759,17 @@
                                     <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl font-bold text-kesher-blue shrink-0">${u.name[0]}</div>
                                     <div class="flex-grow">
                                         <h3 class="text-xl font-bold text-gray-800">${u.name}</h3>
-                                        <p class="text-sm text-gray-600">${u.city} | ⭐ ${u.points || 0} נקודות</p>
+                                        <p class="text-sm text-gray-600"><i class="fa-solid fa-location-dot"></i> ${u.city} | <i class="fa-solid fa-star"></i> ${u.points || 0} נקודות</p>
                                         <div class="mt-2 text-xs">
-                                            <p class="font-semibold text-kesher-green">תחביבים: <span class="font-normal text-gray-700">${u.hobbies?.join(', ') || 'לא צוין'}</span></p>
-                                            <p class="font-semibold text-kesher-blue">יכול/ה לתרום: <span class="font-normal text-gray-700">${u.contributions?.join(', ') || 'לא צוין'}</span></p>
+                                            <p class="font-semibold text-kesher-green"><i class="fa-solid fa-heart"></i> תחביבים: <span class="font-normal text-gray-700">${u.hobbies?.join(', ') || 'לא צוין'}</span></p>
+                                            <p class="font-semibold text-kesher-blue"><i class="fa-solid fa-handshake"></i> יכול/ה לתרום: <span class="font-normal text-gray-700">${u.contributions?.join(', ') || 'לא צוין'}</span></p>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="flex gap-2 items-center">
                                     <span class="text-xs font-semibold px-3 py-1 rounded-full ${u.isOnline ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}">${u.isOnline ? '🟢 מחובר' : '⚪ לא מחובר'}</span>
-                                    <button onclick="openChat({ id: '${u.id}', name: '${u.name}' })" class="bg-kesher-blue hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm">שלח הודעה</button>
-                                    <button onclick="reportItem('${u.id}', 'user', '${u.id}')" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 rounded-lg transition text-sm">דווח ⚠️</button>
+                                    <button onclick="openChat({ id: '${u.id}', name: '${u.name}' })" class="bg-kesher-blue hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"><i class="fa-solid fa-comment-dots"></i> שלח הודעה</button>
+                                    <button onclick="reportItem('${u.id}', 'user', '${u.id}')" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 rounded-lg transition text-sm"><i class="fa-solid fa-flag"></i> דווח</button>
                                 </div>
                             </div>
                         `).join('')}
@@ -774,7 +786,7 @@
                 <div class="max-w-4xl mx-auto px-4 mt-8">
                     <div class="bg-white rounded-2xl shadow-xl overflow-hidden h-[70vh] flex flex-col">
                         <div class="bg-kesher-blue text-white p-4 flex justify-between items-center">
-                            <h2 class="text-xl font-bold">💬 צ'אט עם ${state.selectedUser.name}</h2>
+                            <h2 class="text-xl font-bold"><i class="fa-solid fa-comments"></i> צ'אט עם ${state.selectedUser.name}</h2>
                             <button onclick="goTo('users')" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition text-sm">חזרה לחברים</button>
                         </div>
                         <div id="chatBox" class="flex-grow p-4 overflow-y-auto space-y-3">
@@ -787,7 +799,7 @@
                                             <p class="text-sm">${msg.content}</p>
                                             <div class="text-xs mt-1 flex justify-between items-center">
                                                 <span class="${isMe ? 'text-green-200' : 'text-gray-500'}">${time}</span>
-                                                ${!isMe ? `<button onclick="reportItem('${msg.id}', 'message', '${msg.senderId}')" class="text-red-400 hover:text-red-600 mr-2">דווח ⚠️</button>` : ''}
+                                                ${!isMe ? `<button onclick="reportItem('${msg.id}', 'message', '${msg.senderId}')" class="text-red-400 hover:text-red-600 mr-2"><i class="fa-solid fa-flag"></i> דווח</button>` : ''}
                                             </div>
                                         </div>
                                     </div>
@@ -807,7 +819,7 @@
             return `
                 ${getHeader()}
                 <div class="max-w-6xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-kesher-green mb-6">?? פורומי קהילה</h2>
+                    <h2 class="text-3xl font-bold text-kesher-green mb-6"><i class="fa-solid fa-comments"></i> פורומי קהילה</h2>
                     <div class="space-y-4">
                         ${state.forums.map(f => `
                             <div class="bg-white p-6 rounded-xl shadow-md flex justify-between items-center hover:shadow-lg transition">
@@ -840,7 +852,7 @@
                 <div class="max-w-6xl mx-auto px-4 mt-8">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-3xl font-bold text-kesher-green">${forum.icon} ${forum.title}</h2>
-                        <button onclick="goTo('newPost')" class="bg-kesher-blue hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition">✍️ פתח נושא חדש</button>
+                        <button onclick="goTo('newPost')" class="bg-kesher-blue hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition"><i class="fa-solid fa-pen-to-square"></i> פתח נושא חדש</button>
                     </div>
                     ${forum.posts?.length > 0 ? `<div class="space-y-4">
                         ${forum.posts.map(p => `
@@ -850,8 +862,8 @@
                                     <p class="text-sm text-gray-600">נפתח על ידי: ${p.creatorName} | לפני: ${timeSince(p.createdAt.toDate())}</p>
                                 </div>
                                 <div class="flex gap-4 text-gray-500">
-                                    <span>❤️ ${p.likes?.length || 0}</span>
-                                    <span>💬 ${p.replies?.length || 0}</span>
+                                    <span><i class="fa-solid fa-heart"></i> ${p.likes?.length || 0}</span>
+                                    <span><i class="fa-solid fa-comment-dots"></i> ${p.replies?.length || 0}</span>
                                 </div>
                             </div>
                         `).join('')}
@@ -867,7 +879,7 @@
             return `
                 ${getHeader()}
                 <div class="max-w-4xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-kesher-green mb-6">✍️ פתיחת נושא חדש בפורום ${forum.title}</h2>
+                    <h2 class="text-3xl font-bold text-kesher-green mb-6"><i class="fa-solid fa-pen-to-square"></i> פתיחת נושא חדש בפורום ${forum.title}</h2>
                     <div class="bg-white p-6 rounded-2xl shadow-xl space-y-4">
                         <input id="postTitle" type="text" placeholder="כותרת הנושא" class="w-full p-3 border-2 rounded-lg text-lg font-medium" />
                         <textarea id="postContent" placeholder="תוכן הפוסט המלא..." rows="8" class="w-full p-3 border-2 rounded-lg"></textarea>
@@ -885,14 +897,14 @@
             if (!post) { goTo('forums'); return ''; }
             
             const isLiked = post.likes?.includes(state.user.id);
-            const likeText = isLiked ? '❤️ ביטול לייק' : '🤍 לייק';
+            const likeIcon = isLiked ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
             const likeColor = isLiked ? 'text-red-600 bg-red-100' : 'text-gray-600 bg-gray-100';
 
             return `
                 ${getHeader()}
                 <div class="max-w-4xl mx-auto px-4 mt-8">
                     <button onclick="goTo('forumPosts', { forumId: state.currentForumId })" class="text-kesher-blue hover:text-blue-700 font-medium mb-4 flex items-center gap-1">
-                        <span class="text-xl">⬅️</span> חזרה לפורום
+                        <i class="fa-solid fa-arrow-right-from-bracket rotate-180"></i> חזרה לפורום
                     </button>
                     
                     <div class="bg-white p-6 rounded-2xl shadow-xl mb-6">
@@ -906,13 +918,13 @@
                         <div class="flex justify-between items-center border-t pt-4">
                             <div class="flex gap-4 items-center">
                                 <button onclick="toggleLike('${post.id}')" class="flex items-center gap-2 p-2 rounded-full ${likeColor} font-bold transition text-sm">
-                                    ${likeText} (${post.likes?.length || 0})
+                                    ${likeIcon} לייק (${post.likes?.length || 0})
                                 </button>
                             </div>
                             <div class="flex gap-3 text-sm">
-                                ${post.creatorId === state.user.id || state.user.role === 'admin' ? `<button onclick="alert('פונקציית עריכה לא מומשה')" class="text-blue-500 hover:text-blue-700">ערוך</button>` : ''}
-                                ${post.creatorId === state.user.id || state.user.role === 'admin' ? `<button onclick="alert('פונקציית מחיקה לא מומשה')" class="text-red-500 hover:text-red-700">מחק</button>` : ''}
-                                ${post.creatorId !== state.user.id ? `<button onclick="reportItem('${post.id}', 'post', '${post.creatorId}')" class="text-red-400 hover:text-red-600">דווח ⚠️</button>` : ''}
+                                ${post.creatorId === state.user.id || state.user.role === 'admin' ? `<button onclick="alert('פונקציית עריכה לא מומשה')" class="text-blue-500 hover:text-blue-700"><i class="fa-solid fa-pen"></i> ערוך</button>` : ''}
+                                ${post.creatorId === state.user.id || state.user.role === 'admin' ? `<button onclick="alert('פונקציית מחיקה לא מומשה')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i> מחק</button>` : ''}
+                                ${post.creatorId !== state.user.id ? `<button onclick="reportItem('${post.id}', 'post', '${post.creatorId}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-flag"></i> דווח</button>` : ''}
                             </div>
                         </div>
                     </div>
@@ -923,17 +935,17 @@
                         <button onclick="addReply()" class="bg-kesher-green hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold">שלח תגובה</button>
                     </div>
 
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4">${state.currentPostReplies.length} תגובות</h3>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4"><i class="fa-solid fa-reply-all"></i> ${state.currentPostReplies.length} תגובות</h3>
                     <div class="space-y-4">
                         ${state.currentPostReplies.map(r => `
                             <div class="bg-white p-4 rounded-xl shadow-md border-r-4 ${r.creatorId === post.creatorId ? 'border-amber-400' : 'border-gray-200'}">
-                                <p class="font-medium mb-1">${r.creatorName} ${r.creatorId === post.creatorId ? ' (כותב הפוסט)' : ''}</p>
+                                <p class="font-medium mb-1">${r.creatorName} ${r.creatorId === post.creatorId ? ' (<i class="fa-solid fa-crown text-amber-500"></i> כותב הפוסט)' : ''}</p>
                                 <p class="text-gray-700 whitespace-pre-wrap">${r.content}</p>
                                 <div class="text-xs text-gray-500 mt-2 flex justify-between items-center">
                                     <span>${new Date(r.createdAt.toDate()).toLocaleString('he-IL')}</span>
                                     ${r.creatorId === state.user.id || state.user.role === 'admin' ? 
-                                        `<button onclick="alert('פונקציית מחיקה לא מומשה')" class="text-red-500 hover:text-red-700">מחק</button>` : 
-                                        `<button onclick="reportItem('${r.id}', 'reply', '${r.creatorId}')" class="text-red-400 hover:text-red-600">דווח ⚠️</button>`
+                                        `<button onclick="alert('פונקציית מחיקה לא מומשה')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i> מחק</button>` : 
+                                        `<button onclick="reportItem('${r.id}', 'reply', '${r.creatorId}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-flag"></i> דווח</button>`
                                     }
                                 </div>
                             </div>
@@ -950,8 +962,8 @@
                 ${getHeader()}
                 <div class="max-w-6xl mx-auto px-4 mt-8">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-bold text-kesher-blue">?? פעילויות קהילתיות</h2>
-                        <button onclick="goTo('newActivity')" class="bg-kesher-green hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition">➕ הצע פעילות</button>
+                        <h2 class="text-3xl font-bold text-kesher-blue"><i class="fa-solid fa-calendar-check"></i> פעילויות קהילתיות</h2>
+                        <button onclick="goTo('newActivity')" class="bg-kesher-green hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition"><i class="fa-solid fa-plus"></i> הצע פעילות</button>
                     </div>
                     <div class="space-y-4">
                         ${upcomingActivities.length > 0 ? upcomingActivities.map(a => {
@@ -964,13 +976,13 @@
                                 <div class="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition flex flex-col md:flex-row justify-between items-start md:items-center">
                                     <div class="mb-4 md:mb-0">
                                         <h3 class="text-2xl font-bold text-gray-800">${a.title}</h3>
-                                        <p class="text-sm text-gray-600 mb-2">📍 ${a.location} | מארגן: ${a.creatorName}</p>
-                                        <p class="text-base font-medium text-kesher-blue">${new Date(a.date).toLocaleString('he-IL')}</p>
+                                        <p class="text-sm text-gray-600 mb-2"><i class="fa-solid fa-location-dot"></i> ${a.location} | מארגן: ${a.creatorName}</p>
+                                        <p class="text-base font-medium text-kesher-blue"><i class="fa-solid fa-clock"></i> ${new Date(a.date).toLocaleString('he-IL')}</p>
                                         <p class="mt-2 text-gray-700 whitespace-pre-wrap">${a.description}</p>
                                     </div>
                                     <div class="flex flex-col items-end gap-2 shrink-0">
                                         ${actionButton}
-                                        <p class="text-xs text-gray-500">${a.attendees.length} נרשמו</p>
+                                        <p class="text-xs text-gray-500"><i class="fa-solid fa-users"></i> ${a.attendees.length} נרשמו</p>
                                     </div>
                                 </div>
                             `;
@@ -984,7 +996,7 @@
             return `
                 ${getHeader()}
                 <div class="max-w-4xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-kesher-green mb-6">➕ הצעת פעילות קהילתית</h2>
+                    <h2 class="text-3xl font-bold text-kesher-green mb-6"><i class="fa-solid fa-plus"></i> הצעת פעילות קהילתית</h2>
                     <div class="bg-white p-6 rounded-2xl shadow-xl space-y-4">
                         <input id="activityTitle" type="text" placeholder="כותרת הפעילות (לדוגמה: טיול יום בשביל ישראל)" class="w-full p-3 border-2 rounded-lg text-lg font-medium" />
                         <textarea id="activityDescription" placeholder="תיאור מלא של הפעילות, דרישות, וציוד נדרש..." rows="5" class="w-full p-3 border-2 rounded-lg"></textarea>
@@ -1016,7 +1028,7 @@
             return `
                 ${getHeader()}
                 <div class="max-w-6xl mx-auto px-4 mt-8">
-                    <h2 class="text-3xl font-bold text-red-600 mb-6">⚠️ לוח בקרה למנהל</h2>
+                    <h2 class="text-3xl font-bold text-red-600 mb-6"><i class="fa-solid fa-shield-halved"></i> לוח בקרה למנהל</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                         <div class="bg-white p-5 rounded-xl shadow-lg border-r-4 border-kesher-blue">
                             <p class="text-xs text-gray-500">סה"כ משתמשים</p>
@@ -1033,7 +1045,7 @@
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-xl">
-                        <h3 class="text-2xl font-bold text-red-600 mb-4">?? ניהול דיווחים (${(state.reports || []).length})</h3>
+                        <h3 class="text-2xl font-bold text-red-600 mb-4"><i class="fa-solid fa-flag"></i> ניהול דיווחים (${(state.reports || []).length})</h3>
                         <div class="space-y-4">
                             ${(state.reports || []).map(r => {
                                 const statusColor = r.status === 'חדש' ? 'bg-red-100 text-red-800' : 
