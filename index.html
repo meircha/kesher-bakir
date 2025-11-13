@@ -488,6 +488,7 @@
         // --- 6. רכיבי UI ---
 
         const getHeader = () => {
+             // 🛑 תיקון: אם המשתמש לא מחובר, אל תנסה לקרוא את state.user
             if (!state.user) return '';
 
             // ניווט לאדמין רק למנהלים
