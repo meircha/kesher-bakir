@@ -577,8 +577,8 @@
         const renderChat = () => {
             const partner = state.selectedUser;
             
-            // 🛑 התיקון הקריטי: בדיקות יציאה בטוחות למניעת קריסה
-            // אם אין משתמש יעד (selectedUser) או שההודעות לא נטענו, נציג מסך טעינה זמני או נחזיר
+            // 🛑 התיקון הקריטי: בדיקות יציאה בטוחות למניעת קריסה (שורה 536)
+            // מונע את השגיאה Cannot read properties of undefined (reading 'messages')
             if (!partner || !Array.isArray(state.chatMessages)) {
                  // במקרה זה, נחזיר מסך טעינה ידידותי עד שהליסנר יסיים לעבוד
                 return `
@@ -599,7 +599,8 @@
                 ? '<div class="text-center text-gray-500 mt-10">אין עדיין הודעות. התחל שיחה!</div>'
                 : state.chatMessages.map(msg => { 
                     const isMe = msg.senderId === state.user.id;
-                    const time = msg.timestamp && msg.timestamp.toDate ? new Date(msg.timestamp.toDate()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : 'עכשיו';
+                    // 🛑 בדיקת בטיחות נוספת ל-timestamp (כמו שבוצע ב-renderUsers)
+                    const time = msg.timestamp && typeof msg.timestamp.toDate === 'function' ? new Date(msg.timestamp.toDate()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : 'עכשיו';
                     const isError = msg.content.includes('שגיאת חיבור!');
 
                     return `
@@ -651,7 +652,8 @@
                 .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', 'he'));
 
             const renderUserCard = (u) => {
-                const lastSeen = u.lastSeen && u.lastSeen.toDate 
+                // 🛑 התיקון השני: בדיקת בטיחות ל-lastSeen למניעת שגיאת toDate()
+                const lastSeen = u.lastSeen && typeof u.lastSeen.toDate === 'function' 
                     ? `נראה לאחרונה: ${new Date(u.lastSeen.toDate()).toLocaleString('he-IL')}`
                     : '';
                 
@@ -750,7 +752,7 @@
                                 <p class="text-gray-700 mt-1 line-clamp-2">${post.content}</p>
                                 <div class="text-sm text-gray-500 mt-2 flex justify-between">
                                     <span>נכתב ע"י: ${post.createdBy} | תגובות: ${post.commentCount || 0}</span>
-                                    <span>${new Date(post.createdAt.toDate()).toLocaleDateString('he-IL')}</span>
+                                    <span>${post.createdAt && typeof post.createdAt.toDate === 'function' ? new Date(post.createdAt.toDate()).toLocaleDateString('he-IL') : 'אין תאריך'}</span>
                                 </div>
                             </div>
                         `).join('') : '<p class="text-gray-500 text-center p-8 bg-white rounded-xl">אין עדיין פוסטים בפורום זה.</p>'}
@@ -776,7 +778,7 @@
                     <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
                         <h1 class="text-3xl font-extrabold text-kesher-primary">${post.title}</h1>
                         <div class="text-sm text-gray-500 mt-2 mb-4 border-b pb-2">
-                            נכתב ע"י: ${post.createdBy} | ${new Date(post.createdAt.toDate()).toLocaleDateString('he-IL')}
+                            נכתב ע"י: ${post.createdBy} | ${post.createdAt && typeof post.createdAt.toDate === 'function' ? new Date(post.createdAt.toDate()).toLocaleDateString('he-IL') : 'אין תאריך'}
                         </div>
                         <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${post.content}</p>
                         <button onclick="reportItem('${post.id}', 'post', '${post.createdByUid}')" class="text-red-400 hover:text-red-600 mt-4 text-sm float-left">
@@ -788,7 +790,7 @@
                     <div id="commentBox" class="space-y-4 max-h-96 overflow-y-auto pr-2">
                         ${post.comments && post.comments.length > 0 ? post.comments.map(comment => `
                             <div class="bg-white p-4 rounded-xl shadow-md border-r-4 border-kesher-secondary relative">
-                                <p class="font-semibold text-kesher-text">${comment.createdBy} <span class="text-xs text-gray-500 ml-2">${new Date(comment.createdAt.toDate()).toLocaleString('he-IL')}</span></p>
+                                <p class="font-semibold text-kesher-text">${comment.createdBy} <span class="text-xs text-gray-500 ml-2">${comment.createdAt && typeof comment.createdAt.toDate === 'function' ? new Date(comment.createdAt.toDate()).toLocaleString('he-IL') : 'אין תאריך'}</span></p>
                                 <p class="text-gray-700 mt-1">${comment.content}</p>
                                 <button onclick="reportItem('${comment.id}', 'comment', '${comment.createdByUid}')" class="text-red-400 hover:text-red-600 absolute top-4 left-4 text-sm">
                                     <i class="fa-solid fa-flag"></i>
