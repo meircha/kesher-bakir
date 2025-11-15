@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>קהילת קשר — קהילה תומכת 60+</title>
 
-  <!-- Tailwind CDN (לנוחות; אפשר להחליף בעת פרודקשן) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -32,7 +31,6 @@
 </head>
 <body>
 
-<!-- Service Worker registration for FCM (ensure firebase-messaging-sw.js is at repo root) -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/kesher-bakir/firebase-messaging-sw.js')
@@ -41,7 +39,6 @@
   }
 </script>
 
-<!-- Header -->
 <header class="bg-white shadow sticky top-0 z-50">
   <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
@@ -74,30 +71,27 @@
   </div>
 </header>
 
-<!-- Root -->
 <main class="max-w-6xl mx-auto px-4 py-6" id="root"></main>
 
-<!-- Floating quick chat -->
 <button class="fab btn-primary card clickable" title="צ'אט מהיר" onclick="goTo('chat')" aria-label="צ'אט מהיר">
   <i class="fa-solid fa-comments" style="font-size:20px;"></i>
 </button>
 
-<!-- Firebase (v8) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
 
 <script>
-/* ================== CONFIG - חשוב להחליף לערכים שלך ================== */
+/* ================== CONFIG - הוחלף בערכים הנכונים שלך ================== */
 const firebaseConfig = {
-  apiKey: "REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "REPLACE_WITH_AUTH_DOMAIN",
-  projectId: "REPLACE_WITH_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_SENDER_ID",
-  appId: "REPLACE_WITH_APP_ID",
-  measurementId: ""
+    apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM", 
+    authDomain: "kesher-bakir.firebaseapp.com",
+    projectId: "kesher-bakir",
+    storageBucket: "kesher-bakir.firebasestorage.app",
+    messagingSenderId: "671996189455",
+    appId: "1:671996189455:web:dbe089d69a85a2ab38fc7a",
+    measurementId: "G-42EWSKFXW" 
 };
 /* ===================================================================== */
 
@@ -371,7 +365,6 @@ function renderActivities(){
 
       <div id="activitiesFullList"></div>
 
-      <!-- create activity modal -->
       <div id="createActivityModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-50">
         <div class="bg-white p-6 rounded w-full max-w-lg card">
           <h4 class="font-semibold mb-2">הוספת פעילות</h4>
@@ -406,7 +399,6 @@ function renderHelpCenter(){
 
       <div id="helpRequestsList"></div>
 
-      <!-- help modal -->
       <div id="helpModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-50">
         <div class="bg-white p-6 rounded w-full max-w-lg card">
           <h4 class="font-semibold mb-2">שגר בקשה לעזרה</h4>
@@ -977,7 +969,6 @@ window.addEventListener('load', ()=>{
 
 </script>
 
-<!-- Terms modal (simple) -->
 <div id="rulesModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-60">
   <div class="bg-white p-6 rounded w-full max-w-2xl card">
     <h3 class="font-semibold mb-2">תקנון השימוש וקוד התנהגות בקהילה</h3>
