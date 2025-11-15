@@ -22,1133 +22,1461 @@
     .card{ background:var(--card); border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
     .btn-primary{ background:var(--accent); color:white; }
     .btn-sec{ background:var(--primary); color:white; }
-    .pill{ padding:.5rem .9rem; border-radius:9999px; font-size:.8rem; font-weight:600; }
-    .link-subtle { color: var(--primary); text-decoration: none; border-bottom: 1px dashed var(--primary); cursor: pointer; }
-    .link-subtle:hover { border-bottom: 1px solid var(--primary); }
-    .input-field { padding: 0.75rem; border: 1px solid #E2E8F0; border-radius: 8px; width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem; color: var(--muted); }
-    .chat-bubble { max-width: 80%; padding: 0.75rem 1rem; border-radius: 18px; margin-bottom: 0.5rem; word-wrap: break-word; }
-    .chat-self { background-color: var(--primary); color: white; border-bottom-left-radius: 2px; }
-    .chat-other { background-color: #E2E8F0; color: #333; border-bottom-right-radius: 2px; }
-    /* מותאם לכפתורים עגולים (כפתור הוספת פוסט) */
-    .btn-floating { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .pill{ padding:.5rem .9rem; border-radius:9999px; font-size:.875rem; font-weight:600; }
+    .small-muted{ font-size:0.875rem; color:var(--muted); }
+    .active-nav{ border-bottom:3px solid var(--accent); color:var(--accent); }
+    .post-card{ transition:transform 0.2s; }
+    .post-card:hover{ transform:translateY(-2px); box-shadow:0 8px 25px rgba(0,0,0,0.1); }
+    /* מודל עלייה */
+    .modal-enter { transform: translateY(20px); opacity: 0; }
+    .modal-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
+    .modal-exit { transform: translateY(0); opacity: 1; }
+    .modal-exit-active { transform: translateY(20px); opacity: 0; transition: all 0.3s ease-in; }
+    
+    /* קרוסלת תמונות מותאמת אישית */
+    .image-carousel img {
+        height: 150px; /* גובה קבוע לתצוגה מקדימה */
+        object-fit: cover;
+    }
   </style>
+
+  <!-- Firebase v8 CDN -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
-<body class="flex flex-col min-h-screen">
 
-  <main id="app-container" class="flex-grow">
-    <!-- תוכן האפליקציה יושתל כאן -->
-  </main>
-
-  <div id="modal-container">
-    <!-- Modal content will be rendered here -->
+<body class="h-full">
+  <!-- A central container for the application -->
+  <div id="app" class="min-h-full flex flex-col items-center">
+    <!-- Loader Screen -->
+    <div id="loading" class="fixed inset-0 bg-gray-50 flex flex-col items-center justify-center transition-opacity duration-300 z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-accent"></div>
+        <p class="mt-4 text-lg text-gray-600">טוען נתונים...</p>
+    </div>
   </div>
 
-<script type="module">
-    // ==========================================================
-    // --- 1. הגדרות וייבוא Firebase (ES Modules) ---
-    // ==========================================================
-
-    import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut, updateProfile, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc, updateDoc, deleteDoc, arrayRemove, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    setLogLevel('debug'); // הגדרת רמת לוגים לצורך דיבאג
-
-    // משתנים גלובליים המסופקים על ידי המערכת (חובה)
+  <script>
+    // הגדרות גלובליות ומשתני מצב
+    let app, auth, db;
+    let userId = null;
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
     
-    // אתחול Firebase ושמירה במשתני Window גלובליים
-    window.app = initializeApp(firebaseConfig);
-    window.db = getFirestore(window.app);
-    window.auth = getAuth(window.app);
-
-    // ==========================================================
-    // --- 2. ניהול מצב גלובלי (State Management) ---
-    // ==========================================================
-
+    // הגדרת רמת לוגים של Firebase
+    firebase.firestore.setLogLevel('debug');
+    
+    // מודל נתונים גלובלי (State Management)
     const state = {
-        screen: 'loading', // 'loading', 'login', 'register', 'home', 'forum', 'chat'
-        user: null, // אובייקט המשתמש הנוכחי מ-Firestore
-        profile: null, // פרופיל המשתמש
-        posts: [], // פוסטים בפורום
-        currentPost: null, // הפוסט שנבחר לצ'אט
-        postMessages: [], // הודעות הצ'אט של הפוסט הנוכחי
-        usersOnline: {}, // מילון של משתמשים מחוברים
-        searchTerm: '' // מונח חיפוש עבור הפורום
+      screen: 'loading', // 'loading', 'login', 'register', 'home', 'forum', 'newPost', 'profile', 'postDetail'
+      user: null, // האובייקט המשתמש הנוכחי
+      users: {}, // מפה של {userId: {displayName, avatar}}
+      forumPosts: [], // רשימת הפוסטים בפורום
+      selectedPost: null, // פוסט שנבחר לצפייה בפירוט
+      newPost: {
+        title: '',
+        content: '',
+        category: 'general',
+        images: [] // תמונות שנוספו לפוסט חדש (בסיס 64)
+      },
+      currentPostFilter: 'all', // 'all', 'mine', 'favorites'
+      isTermsModalOpen: false,
+      isEditPostModalOpen: false,
+      editPostData: null,
+      isNewCommentModalOpen: false,
+      isProfileEditModalOpen: false,
+      profileEditData: {
+        displayName: '',
+        about: '',
+        city: '',
+        interests: [],
+        avatarUrl: '',
+      }
     };
-
-    const listeners = []; // רשימת פונקציות ה-onSnapshot לניקוי
-
-    /**
-     * פונקציה כללית לשינוי מצב המסך ולרנדור מחדש.
-     * @param {string} newScreen - שם המסך החדש.
-     */
-    function goTo(newScreen) {
-        state.screen = newScreen;
-        render();
-    }
-
-    // ==========================================================
-    // --- 3. פונקציות עזר ל-Firestore ---
-    // ==========================================================
-
-    /**
-     * יצירת הנתיב למסמך פרטי של משתמש (תחת /artifacts/{appId}/users/{userId}/...).
-     * @param {string} collectionName - שם האוסף (לדוגמה: 'profile').
-     * @returns {string} הנתיב המלא.
-     */
-    function getUserDocPath(collectionName) {
-        const userId = window.auth.currentUser?.uid || 'anonymous';
-        return `artifacts/${appId}/users/${userId}/${collectionName}/main`;
-    }
-
-    /**
-     * יצירת הנתיב לאוסף ציבורי (תחת /artifacts/{appId}/public/data/{collectionName}).
-     * @param {string} collectionName - שם האוסף (לדוגמה: 'posts').
-     * @returns {string} הנתיב המלא.
-     */
-    function getPublicCollectionPath(collectionName) {
-        return `artifacts/${appId}/public/data/${collectionName}`;
-    }
-
-    /**
-     * ניקוי כל המאזינים הפעילים ל-Firestore.
-     */
-    function cleanupListeners() {
-        listeners.forEach(unsubscribe => unsubscribe());
-        listeners.length = 0; // מנקה את המערך
-    }
-
-
-    /**
-     * קריאת המשתמש הנוכחי מ-Firestore.
-     * @returns {Promise<object|null>} נתוני הפרופיל.
-     */
-    async function fetchUserProfile() {
-        const userId = window.auth.currentUser?.uid;
-        if (!userId) return null;
-
-        const profilePath = getUserDocPath('profile');
-        const profileRef = doc(window.db, profilePath);
-        
-        try {
-            const docSnap = await getDoc(profileRef);
-            if (docSnap.exists()) {
-                return { id: docSnap.id, ...docSnap.data(), uid: userId };
-            }
-            return null; // פרופיל לא קיים
-        } catch (error) {
-            console.error("שגיאה באחזור פרופיל משתמש:", error);
-            return null;
-        }
-    }
     
-    /**
-     * הפעלת מאזינים לנתונים הציבוריים לאחר אתחול מוצלח.
-     */
-    function setupPublicListeners() {
-        cleanupListeners(); // ודא שאין מאזינים קודמים
+    // =================================================================
+    // 1. פונקציות עזר כלליות
+    // =================================================================
+    
+    // ניתוב בין מסכים
+    function goTo(screen, payload = null) {
+      if (state.user === null && screen !== 'login' && screen !== 'register') {
+        state.screen = 'login';
+      } else {
+        state.screen = screen;
+      }
+      
+      // איפוס נתונים רלוונטיים לפני מעבר
+      if (screen === 'home' || screen === 'forum') {
+        state.selectedPost = null;
+      }
+      if (screen === 'newPost') {
+        state.newPost = { title: '', content: '', category: 'general', images: [] };
+      }
+      if (screen === 'postDetail' && payload) {
+        state.selectedPost = state.forumPosts.find(p => p.id === payload.postId) || null;
+      }
 
-        // --- מאזין לפוסטים בפורום ---
-        const postsCollection = collection(window.db, getPublicCollectionPath('posts'));
-        const qPosts = query(postsCollection, where('isDeleted', '==', false)); // רק פוסטים שאינם מחוקים
-
-        const unsubscribePosts = onSnapshot(qPosts, (snapshot) => {
-            const posts = snapshot.docs.map(doc => ({ 
-                id: doc.id, 
-                ...doc.data(),
-                // המרת Timestamp לאובייקט Date
-                timestamp: doc.data().timestamp?.toDate ? doc.data().timestamp.toDate() : new Date(doc.data().timestamp)
-            }));
-            
-            // מיון: הכי חדש למעלה
-            posts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-            state.posts = posts;
-            
-            // עדכון הפוסט הנוכחי אם קיים, כדי לשקף שינויים (כגון מחיקה)
-            if (state.currentPost && !posts.some(p => p.id === state.currentPost.id)) {
-                // הפוסט הנוכחי נמחק, חוזרים לפורום
-                state.currentPost = null;
-                goTo('forum');
-            } else if (state.screen === 'forum' || (state.screen === 'chat' && state.currentPost)) {
-                render();
-            }
-        }, (error) => {
-            console.error("שגיאה במאזין פוסטים:", error);
-        });
-        listeners.push(unsubscribePosts);
-
-        // --- מאזין להודעות צ'אט (אם יש פוסט פתוח) ---
-        if (state.currentPost) {
-            const messagesCollection = collection(window.db, getPublicCollectionPath(`posts/${state.currentPost.id}/messages`));
-            const qMessages = query(messagesCollection); // אין צורך ב-where
-
-            const unsubscribeMessages = onSnapshot(qMessages, (snapshot) => {
-                const messages = snapshot.docs.map(doc => ({ 
-                    id: doc.id, 
-                    ...doc.data(),
-                    // המרת Timestamp לאובייקט Date
-                    timestamp: doc.data().timestamp?.toDate ? doc.data().timestamp.toDate() : new Date(doc.data().timestamp)
-                }));
-                
-                // מיון: הכי ישן למעלה
-                messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-                state.postMessages = messages;
-                if (state.screen === 'chat') render();
-            }, (error) => {
-                console.error("שגיאה במאזין הודעות:", error);
-            });
-            listeners.push(unsubscribeMessages);
-        }
+      render();
     }
 
-
-    // ==========================================================
-    // --- 4. לוגיקת רינדור (Rendering Logic) ---
-    // ==========================================================
-    
-    /**
-     * מרנדר את התוכן של המסך הנוכחי.
-     */
+    // רנדור מחדש
     function render() {
-        const container = document.getElementById('app-container');
-        if (!container) return;
-
-        let content = '';
-        switch (state.screen) {
-            case 'loading':
-                content = renderLoading();
-                break;
-            case 'login':
-                content = renderLogin();
-                break;
-            case 'register':
-                content = renderRegister();
-                break;
-            case 'home':
-                content = renderHome();
-                break;
-            case 'forum':
-                content = renderForum();
-                break;
-            case 'chat':
-                content = renderChat();
-                break;
-            default:
-                content = `<div class="p-8 text-center text-red-500">שגיאה: מסך לא ידוע (${state.screen})</div>`;
-        }
-
-        container.innerHTML = renderLayout(content);
-        
-        // ודא שכל ה-Event Listeners מחוברים מחדש לאחר הרנדור
-        attachEventListeners();
-
-        // גלילה אוטומטית למטה בצ'אט
-        if (state.screen === 'chat') {
-            const chatBox = document.getElementById('chat-messages');
-            if (chatBox) {
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        }
-    }
-
-    /**
-     * עוטף את תוכן המסך בראש עמוד (Header) ופוטר (Footer) אם נדרש.
-     * @param {string} content - תוכן המסך.
-     * @returns {string} ה-HTML המלא.
-     */
-    function renderLayout(content) {
-        if (['login', 'register'].includes(state.screen)) {
-            return content;
-        }
-
-        const navLinks = [
-            { id: 'home', icon: 'fa-home', label: 'בית', screen: 'home' },
-            { id: 'forum', icon: 'fa-comments', label: 'פורום', screen: 'forum' },
-            { id: 'profile', icon: 'fa-user', label: state.profile?.name || 'אורח', screen: 'profile' } // 'profile' screen is not implemented yet
-        ];
-
-        return `
-            ${renderHeader(navLinks)}
-            <div class="flex-grow p-4 md:p-8 pt-20 max-w-7xl mx-auto w-full">
-                ${content}
-            </div>
-            ${renderFooter(navLinks)}
-        `;
-    }
-
-    /**
-     * רנדור כותרת עליונה (Header).
-     * @param {Array<object>} navLinks - קישורי הניווט.
-     * @returns {string} HTML של הכותרת.
-     */
-    function renderHeader(navLinks) {
-        const currentScreen = state.screen === 'chat' ? 'forum' : state.screen; // בצ'אט, מדגישים את 'פורום'
-        
-        return `
-            <header class="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-                    <div class="flex items-center space-x-4 space-x-reverse">
-                        <h1 class="text-xl font-bold text-gray-800">קהילת קשר</h1>
-                    </div>
-                    <nav class="hidden md:flex space-x-6 space-x-reverse">
-                        ${navLinks.map(link => `
-                            <button data-action="goTo" data-screen="${link.screen}"
-                                class="text-sm font-medium transition duration-150 ease-in-out 
-                                ${currentScreen === link.screen ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-600'}">
-                                <i class="fa ${link.icon} ml-1"></i> ${link.label}
-                            </button>
-                        `).join('')}
-                    </nav>
-                    <div class="flex items-center space-x-4 space-x-reverse">
-                        <button data-action="showRules" class="text-gray-500 hover:text-blue-600 text-sm">
-                            <i class="fa fa-book-open ml-1"></i> תקנון
-                        </button>
-                        <button data-action="logout" class="text-red-500 hover:text-red-700 text-sm">
-                            <i class="fa fa-sign-out-alt ml-1"></i> יציאה
-                        </button>
-                    </div>
-                </div>
-            </header>
-        `;
-    }
-
-    /**
-     * רנדור סרגל ניווט תחתון (Footer) למובייל.
-     * @param {Array<object>} navLinks - קישורי הניווט.
-     * @returns {string} HTML של הפוטר.
-     */
-    function renderFooter(navLinks) {
-        const currentScreen = state.screen === 'chat' ? 'forum' : state.screen;
-
-        return `
-            <footer class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 shadow-lg">
-                <nav class="flex justify-around items-center h-14">
-                    ${navLinks.map(link => `
-                        <button data-action="goTo" data-screen="${link.screen}"
-                            class="flex flex-col items-center justify-center w-full h-full text-xs font-medium transition duration-150 ease-in-out 
-                            ${currentScreen === link.screen ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}">
-                            <i class="fa ${link.icon} text-lg mb-1"></i>
-                            ${link.label}
-                        </button>
-                    `).join('')}
-                </nav>
-            </footer>
-        `;
-    }
-
-
-    // ==========================================================
-    // --- 5. רנדור מסכים ספציפיים ---
-    // ==========================================================
-
-    /**
-     * רנדור מסך טעינה.
-     */
-    function renderLoading() {
-        return `
-            <div class="flex items-center justify-center h-screen bg-white">
-                <div class="text-center">
-                    <i class="fa fa-spinner fa-spin text-4xl text-blue-500"></i>
-                    <p class="mt-4 text-gray-600">טוען את קהילת קשר...</p>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * רנדור מסך כניסה (Login).
-     */
-    function renderLogin() {
-        // ... (התוכן של renderLogin)
-        return `
-            <div class="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-                <div class="w-full max-w-md card p-8">
-                    <div class="text-center mb-6">
-                        <h2 class="text-3xl font-bold text-gray-900 mb-2">ברוך שובך לקהילת קשר</h2>
-                        <p class="text-sm text-gray-600">מקום חם לשיתוף וקבלת עזרה</p>
-                    </div>
-                    <form id="loginForm">
-                        <div class="form-group mb-4">
-                            <label for="loginEmail">דוא"ל</label>
-                            <input type="email" id="loginEmail" name="email" placeholder="הכנס אימייל" class="input-field" required>
-                        </div>
-                        <div class="form-group mb-6">
-                            <label for="loginPassword">סיסמה</label>
-                            <input type="password" id="loginPassword" name="password" placeholder="הכנס סיסמה" class="input-field" required>
-                        </div>
-                        <button type="submit" class="w-full py-3 btn-sec font-semibold rounded-lg shadow-md hover:opacity-90 transition duration-150">
-                            כניסה
-                        </button>
-                    </form>
-                    <div class="mt-6 text-center text-sm">
-                        <p class="text-gray-600">עדיין לא חבר?</p>
-                        <button data-action="goTo" data-screen="register" class="link-subtle mt-1">
-                            הרשמה מהירה!
-                        </button>
-                        <p id="loginError" class="text-red-500 mt-3 hidden text-sm font-medium">שגיאה: פרטי כניסה שגויים או משתמש לא קיים.</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * רנדור מסך הרשמה (Register).
-     */
-    function renderRegister() {
-        // ... (התוכן של renderRegister)
-        return `
-            <div class="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-                <div class="w-full max-w-md card p-8">
-                    <div class="text-center mb-6">
-                        <h2 class="text-3xl font-bold text-gray-900 mb-2">הרשמה לקהילת קשר</h2>
-                        <p class="text-sm text-gray-600">בואו נכיר אתכם קצת יותר</p>
-                    </div>
-                    <form id="registerForm">
-                        <div class="form-group mb-4">
-                            <label for="registerName">שם פרטי (יופיע בקהילה)</label>
-                            <input type="text" id="registerName" name="name" placeholder="הכנס שם" class="input-field" required>
-                        </div>
-                        <div class="form-group mb-4">
-                            <label for="registerEmail">דוא"ל</label>
-                            <input type="email" id="registerEmail" name="email" placeholder="הכנס אימייל" class="input-field" required>
-                        </div>
-                        <div class="form-group mb-6">
-                            <label for="registerPassword">סיסמה (לפחות 6 תווים)</label>
-                            <input type="password" id="registerPassword" name="password" placeholder="הכנס סיסמה" class="input-field" required minlength="6">
-                        </div>
-                        
-                        <div class="mb-4">
-                            <input type="checkbox" id="agreeRules" required class="ml-2">
-                            <label for="agreeRules" class="text-sm text-gray-600">
-                                אני מאשר/ת את <button type="button" data-action="showRules" class="link-subtle">תקנון הקהילה</button>
-                            </label>
-                        </div>
-
-                        <button type="submit" class="w-full py-3 btn-primary font-semibold rounded-lg shadow-md hover:opacity-90 transition duration-150">
-                            הרשמה ואישור
-                        </button>
-                    </form>
-                    <div class="mt-6 text-center text-sm">
-                        <p class="text-gray-600">יש לך כבר חשבון?</p>
-                        <button data-action="goTo" data-screen="login" class="link-subtle mt-1">
-                            חזרה לכניסה
-                        </button>
-                        <p id="registerError" class="text-red-500 mt-3 hidden text-sm font-medium">שגיאה: האימייל כבר בשימוש או בעיה אחרת.</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * רנדור מסך הבית (Home) - מסך פתיחה פשוט.
-     */
-    function renderHome() {
-        // ... (התוכן של renderHome)
-        const name = state.profile?.name || 'חבר קהילה';
-        return `
-            <div class="max-w-4xl mx-auto py-8">
-                <div class="card p-6 mb-8 text-center bg-white border-b-4 border-accent">
-                    <h2 class="text-3xl font-extrabold text-gray-800">שלום, ${name}!</h2>
-                    <p class="text-gray-600 mt-2">כאן מתחיל החיבור. בחר נושא לדיון או הצטרף לשיחה קיימת בפורום.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- קארד 1: פורום הקהילה -->
-                    <div class="card p-6 flex flex-col items-center text-center hover:shadow-xl transition duration-300 cursor-pointer" data-action="goTo" data-screen="forum">
-                        <i class="fa fa-comments text-4xl text-accent mb-4"></i>
-                        <h3 class="text-xl font-semibold mb-2">פורום תמיכה פעיל</h3>
-                        <p class="text-sm text-gray-500">הצטרף לדיונים, שאל שאלות וקבל עזרה מקהילת החברים.</p>
-                        <div class="mt-4 py-2 px-4 btn-primary rounded-full text-xs font-bold">כניסה לפורום</div>
-                    </div>
-
-                    <!-- קארד 2: מרכז עזרה והדרכה (פוטנציאלי) -->
-                    <div class="card p-6 flex flex-col items-center text-center opacity-70">
-                        <i class="fa fa-lightbulb text-4xl text-blue-400 mb-4"></i>
-                        <h3 class="text-xl font-semibold mb-2">טיפים ומידע</h3>
-                        <p class="text-sm text-gray-500">טיפים לחיים, בריאות וטכנולוגיה (בקרוב!)</p>
-                        <div class="mt-4 py-2 px-4 bg-gray-300 text-gray-700 rounded-full text-xs font-bold">בקרוב</div>
-                    </div>
-
-                    <!-- קארד 3: שיתוף רגעים (פוטנציאלי) -->
-                    <div class="card p-6 flex flex-col items-center text-center opacity-70">
-                        <i class="fa fa-camera-retro text-4xl text-red-400 mb-4"></i>
-                        <h3 class="text-xl font-semibold mb-2">אלבום קהילתי</h3>
-                        <p class="text-sm text-gray-500">שתף רגעים יפים מהחיים עם חברי הקהילה (בקרוב!)</p>
-                        <div class="mt-4 py-2 px-4 bg-gray-300 text-gray-700 rounded-full text-xs font-bold">בקרוב</div>
-                    </div>
-                </div>
-                
-                <div class="mt-8 text-center text-sm text-gray-500">
-                    <p>מזהה משתמש: ${state.profile?.uid}</p>
-                    <p>השתמש במזהה זה כדי שאחרים יוכלו לאתר אותך.</p>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * רנדור מסך הפורום (Forum).
-     */
-    function renderForum() {
-        // ... (התוכן של renderForum)
-        const posts = state.posts.filter(post => 
-            !state.searchTerm || post.title.toLowerCase().includes(state.searchTerm.toLowerCase()) || post.content.toLowerCase().includes(state.searchTerm.toLowerCase())
-        );
-
-        return `
-            <div class="max-w-4xl mx-auto">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4 md:mb-0">פורום הקהילה: שיתוף, ייעוץ ותמיכה</h2>
-                    <div class="flex w-full md:w-auto space-x-2 space-x-reverse">
-                        <input type="text" id="forumSearch" placeholder="חיפוש נושאים..." class="input-field w-full md:w-64" value="${state.searchTerm}">
-                        <button data-action="showNewPostModal" class="flex-shrink-0 py-2 px-4 btn-primary rounded-lg shadow-md hover:opacity-90 transition duration-150">
-                            <i class="fa fa-plus ml-1"></i> פוסט חדש
-                        </button>
-                    </div>
-                </div>
-
-                <div id="postsList">
-                    ${posts.length > 0 ? posts.map(post => `
-                        <div class="card p-4 mb-4 hover:shadow-lg transition duration-300 cursor-pointer" data-post-id="${post.id}" data-action="openPostChat">
-                            <div class="flex justify-between items-start">
-                                <h3 class="text-xl font-bold text-primary mb-1">${post.title}</h3>
-                                ${post.authorId === state.profile.uid ? `
-                                    <button data-action="showEditPostModal" data-post-id="${post.id}" class="text-gray-400 hover:text-accent p-1 text-sm">
-                                        <i class="fa fa-edit"></i>
-                                    </button>
-                                ` : ''}
-                            </div>
-                            <p class="text-gray-700 text-sm mb-2">${post.content.substring(0, 150)}${post.content.length > 150 ? '...' : ''}</p>
-                            <div class="flex justify-between items-end text-xs text-gray-500 mt-2">
-                                <p>נפתח על ידי: 
-                                    <span class="font-semibold text-primary">${post.authorName}</span>
-                                    ${post.authorId === state.profile.uid ? '<span class="pill bg-yellow-100 text-yellow-800 mr-2">אני</span>' : ''}
-                                </p>
-                                <p>נפתח בתאריך: ${new Date(post.timestamp).toLocaleDateString('he-IL')}</p>
-                            </div>
-                        </div>
-                    `).join('') : `
-                        <div class="card p-8 text-center text-gray-500">
-                            <i class="fa fa-search text-3xl mb-3"></i>
-                            <p class="text-lg">לא נמצאו פוסטים תואמים לחיפוש.</p>
-                            <p class="text-sm mt-1">נסה מונח אחר או פתח פוסט חדש!</p>
-                        </div>
-                    `}
-                </div>
-            </div>
-            ${renderModal('newPostModal', renderNewPostModalContent())}
-            ${renderModal('editPostModal', renderEditPostModalContent())}
-        `;
-    }
-
-    /**
-     * רנדור מסך הצ'אט (Chat).
-     */
-    function renderChat() {
-        // ... (התוכן של renderChat)
-        if (!state.currentPost) {
-            return `<div class="p-8 text-center text-red-500">שגיאה: פוסט לא נבחר.</div>`;
-        }
-        
-        const post = state.currentPost;
-
-        return `
-            <div class="max-w-4xl mx-auto flex flex-col h-full md:h-[calc(100vh-100px)]">
-                <!-- כותרת הפוסט -->
-                <div class="card p-4 mb-4 flex justify-between items-center border-b-4 border-accent">
-                    <div>
-                        <button data-action="goTo" data-screen="forum" class="text-primary hover:text-blue-700 text-sm mr-2">
-                            <i class="fa fa-arrow-right ml-2"></i> חזרה לפורום
-                        </button>
-                        <h2 class="text-xl font-bold text-gray-800">${post.title}</h2>
-                        <p class="text-sm text-gray-500 mt-1">נפתח ע"י ${post.authorName} | UID: ${post.authorId}</p>
-                    </div>
-                    ${post.authorId === state.profile.uid ? `
-                        <button data-action="confirmDeletePost" data-post-id="${post.id}" class="text-red-500 hover:text-red-700 p-1 text-sm">
-                            <i class="fa fa-trash-alt ml-1"></i> מחק פוסט
-                        </button>
-                    ` : ''}
-                </div>
-
-                <!-- חלון הודעות -->
-                <div id="chat-messages" class="flex-grow overflow-y-auto p-4 mb-4 space-y-3 card">
-                    ${state.postMessages.length > 0 ? state.postMessages.map(msg => {
-                        const isSelf = msg.authorId === state.profile.uid;
-                        return `
-                            <div class="flex ${isSelf ? 'justify-end' : 'justify-start'}">
-                                <div class="chat-bubble ${isSelf ? 'chat-self' : 'chat-other'} shadow-sm">
-                                    <p class="text-xs font-semibold ${isSelf ? 'text-white' : 'text-primary'} mb-1">${isSelf ? 'את/ה' : msg.authorName}</p>
-                                    <p class="text-sm">${msg.text}</p>
-                                    <p class="text-xs mt-1 opacity-70 ${isSelf ? 'text-white' : 'text-gray-600'} text-left">${new Date(msg.timestamp).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</p>
-                                </div>
-                            </div>
-                        `;
-                    }).join('') : `
-                        <div class="text-center text-gray-500 py-10">
-                            <i class="fa fa-comment-dots text-4xl mb-3"></i>
-                            <p class="text-lg">הדיון פתוח! שלח/י את ההודעה הראשונה.</p>
-                        </div>
-                    `}
-                </div>
-
-                <!-- טופס שליחת הודעה -->
-                <form id="chatForm" class="flex p-4 card shadow-inner">
-                    <input type="text" id="chatInput" placeholder="כתוב הודעה..." class="input-field flex-grow ml-3" required>
-                    <button type="submit" class="py-2 px-6 btn-sec font-semibold rounded-lg shadow-md hover:opacity-90 transition duration-150">
-                        <i class="fa fa-paper-plane"></i>
-                    </button>
-                </form>
-            </div>
-            ${renderModal('confirmDeletePostModal', renderConfirmDeletePostModalContent())}
-        `;
-    }
-
-    // ==========================================================
-    // --- 6. רנדור קומפוננטות (Modal, Forms) ---
-    // ==========================================================
-
-    /**
-     * פונקציה כללית לרנדור מודאל.
-     * @param {string} id - ה-ID של המודאל.
-     * @param {string} content - תוכן ה-HTML של המודאל.
-     * @returns {string} HTML של המודאל.
-     */
-    function renderModal(id, content) {
-        return `
-            <div id="${id}" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-60" data-modal-id="${id}">
-                <div class="bg-white p-6 rounded w-full max-w-lg card" onclick="event.stopPropagation()">
-                    ${content}
-                    <div class="mt-6 text-left">
-                        <button data-action="closeModal" data-modal-id="${id}" class="text-gray-500 hover:text-gray-700">סגור</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function renderNewPostModalContent() {
-        return `
-            <h3 class="text-2xl font-bold mb-4">פתיחת נושא חדש</h3>
-            <form id="newPostForm">
-                <div class="form-group mb-4">
-                    <label for="newPostTitle">כותרת הנושא</label>
-                    <input type="text" id="newPostTitle" name="title" placeholder="כותרת קצרה וממוקדת" class="input-field" required maxlength="100">
-                </div>
-                <div class="form-group mb-4">
-                    <label for="newPostContent">תוכן הבקשה/שאלה</label>
-                    <textarea id="newPostContent" name="content" placeholder="פרט את שאלתך או את מה שתרצה לשתף" class="input-field h-32" required></textarea>
-                </div>
-                <button type="submit" class="w-full py-3 btn-primary font-semibold rounded-lg shadow-md hover:opacity-90 transition duration-150">
-                    <i class="fa fa-paper-plane ml-2"></i> פרסם פוסט
-                </button>
-            </form>
-            <p id="newPostError" class="text-red-500 mt-3 hidden text-sm font-medium">שגיאה ביצירת הפוסט.</p>
-        `;
-    }
-
-    function renderEditPostModalContent() {
-        const post = state.currentPost; // יש להגדיר את currentPost לפני פתיחת המודאל
-        if (!post) return '';
-
-        return `
-            <h3 class="text-2xl font-bold mb-4">עריכת פוסט</h3>
-            <form id="editPostForm" data-post-id="${post.id}">
-                <div class="form-group mb-4">
-                    <label for="editPostTitle">כותרת הנושא</label>
-                    <input type="text" id="editPostTitle" name="title" value="${post.title}" placeholder="כותרת קצרה וממוקדת" class="input-field" required maxlength="100">
-                </div>
-                <div class="form-group mb-4">
-                    <label for="editPostContent">תוכן הבקשה/שאלה</label>
-                    <textarea id="editPostContent" name="content" placeholder="פרט את שאלתך או את מה שתרצה לשתף" class="input-field h-32" required>${post.content}</textarea>
-                </div>
-                <button type="submit" class="w-full py-3 btn-primary font-semibold rounded-lg shadow-md hover:opacity-90 transition duration-150">
-                    <i class="fa fa-save ml-2"></i> שמור שינויים
-                </button>
-            </form>
-            <p id="editPostError" class="text-red-500 mt-3 hidden text-sm font-medium">שגיאה בעדכון הפוסט.</p>
-        `;
-    }
-
-    function renderConfirmDeletePostModalContent() {
-        return `
-            <h3 class="text-2xl font-bold mb-4 text-red-600">אישור מחיקה</h3>
-            <p class="text-gray-700 mb-6">האם אתה בטוח שברצונך למחוק את הפוסט הזה? פעולה זו אינה הפיכה.</p>
-            <div class="flex justify-end space-x-3 space-x-reverse">
-                <button data-action="closeModal" data-modal-id="confirmDeletePostModal" class="py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
-                    ביטול
-                </button>
-                <button data-action="deletePostConfirmed" class="py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold">
-                    מחק לצמיתות
-                </button>
-            </div>
-            <p id="deletePostError" class="text-red-500 mt-3 hidden text-sm font-medium">שגיאה במחיקת הפוסט.</p>
-        `;
-    }
-
-
-    // ==========================================================
-    // --- 7. לוגיקת אירועים (Event Handling) ---
-    // ==========================================================
-    
-    /**
-     * מחבר את כל מאזיני האירועים ל-DOM.
-     */
-    function attachEventListeners() {
-        // --- מאזינים כלליים (עבור כפתורי goTo, מודאלים) ---
-        document.querySelectorAll('[data-action]').forEach(element => {
-            // הסר מאזין קודם כדי למנוע כפילויות
-            element.removeEventListener('click', handleGlobalClick);
-            element.addEventListener('click', handleGlobalClick);
-        });
-
-        // --- מאזינים לטפסים (Login, Register, New Post, Chat) ---
-        // Login
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.removeEventListener('submit', handleLogin);
-            loginForm.addEventListener('submit', handleLogin);
-        }
-
-        // Register
-        const registerForm = document.getElementById('registerForm');
-        if (registerForm) {
-            registerForm.removeEventListener('submit', handleRegister);
-            registerForm.addEventListener('submit', handleRegister);
-        }
-        
-        // New Post
-        const newPostForm = document.getElementById('newPostForm');
-        if (newPostForm) {
-            newPostForm.removeEventListener('submit', handleNewPost);
-            newPostForm.addEventListener('submit', handleNewPost);
-        }
-
-        // Edit Post
-        const editPostForm = document.getElementById('editPostForm');
-        if (editPostForm) {
-            editPostForm.removeEventListener('submit', handleEditPost);
-            editPostForm.addEventListener('submit', handleEditPost);
-        }
-
-        // Chat
-        const chatForm = document.getElementById('chatForm');
-        if (chatForm) {
-            chatForm.removeEventListener('submit', handleChatSubmit);
-            chatForm.addEventListener('submit', handleChatSubmit);
-        }
-
-        // Search
-        const forumSearch = document.getElementById('forumSearch');
-        if (forumSearch) {
-            forumSearch.removeEventListener('input', handleSearchInput);
-            forumSearch.addEventListener('input', handleSearchInput);
-        }
-        
-        // Modal Backdrop closing
-        document.querySelectorAll('.fixed.inset-0[data-modal-id]').forEach(modal => {
-            modal.removeEventListener('click', handleBackdropClick);
-            modal.addEventListener('click', handleBackdropClick);
-        });
-    }
-
-    /**
-     * מטפל בלחיצות גלובליות על אלמנטים עם data-action.
-     */
-    function handleGlobalClick(event) {
-        const action = event.currentTarget.getAttribute('data-action');
-        const screen = event.currentTarget.getAttribute('data-screen');
-        const postId = event.currentTarget.getAttribute('data-post-id');
-        const modalId = event.currentTarget.getAttribute('data-modal-id');
-
-        switch (action) {
-            case 'goTo':
-                if (screen) {
-                    goTo(screen);
-                }
-                break;
-            case 'logout':
-                handleLogout();
-                break;
-            case 'showRules':
-                showModal('rulesModal');
-                break;
-            case 'showNewPostModal':
-                showModal('newPostModal');
-                break;
-            case 'showEditPostModal':
-                // לפני פתיחת העריכה, נמצא את הפוסט ושמור אותו ב-state.currentPost
-                const postToEdit = state.posts.find(p => p.id === postId);
-                if (postToEdit) {
-                    state.currentPost = postToEdit;
-                    // מרנדרים מחדש רק את המודאל כדי שיוצג עם התוכן המעודכן
-                    const modalContainer = document.getElementById('modal-container');
-                    modalContainer.innerHTML = modalContainer.innerHTML + renderModal('editPostModal', renderEditPostModalContent());
-                    attachEventListeners(); // חבר מאזינים מחדש
-                    showModal('editPostModal');
-                }
-                break;
-            case 'openPostChat':
-                const postToOpen = state.posts.find(p => p.id === postId);
-                if (postToOpen) {
-                    state.currentPost = postToOpen;
-                    setupPublicListeners(); // התחל להאזין להודעות של הפוסט החדש
-                    goTo('chat');
-                }
-                break;
-            case 'confirmDeletePost':
-                showModal('confirmDeletePostModal');
-                break;
-            case 'deletePostConfirmed':
-                handleDeletePost();
-                break;
-            case 'closeModal':
-                if (modalId) {
-                    hideModal(modalId);
-                }
-                break;
-            default:
-                console.warn('Action not handled:', action);
-        }
-    }
-
-    /**
-     * מטפל בלחיצה על רקע המודאל לסגירה.
-     */
-    function handleBackdropClick(event) {
-        if (event.target.classList.contains('fixed') && event.target.getAttribute('data-modal-id')) {
-            hideModal(event.target.getAttribute('data-modal-id'));
-        }
+      const appDiv = document.getElementById('app');
+      appDiv.innerHTML = getScreenContent(state.screen);
+      setupEventListeners();
+      
+      // הסתרת מסך הטעינה רק לאחר שהמסך הראשי נטען
+      const loadingScreen = document.getElementById('loading');
+      if (state.screen !== 'loading') {
+          loadingScreen.classList.add('opacity-0');
+          setTimeout(() => loadingScreen.classList.add('hidden'), 300);
+      }
     }
     
-    /**
-     * מטפל בשינויים בתיבת החיפוש.
-     */
-    function handleSearchInput(event) {
-        state.searchTerm = event.target.value;
-        // רנדור מחדש כדי לסנן את הפוסטים (לא משנה מסך, רק מעדכן את הרשימה)
-        render(); 
-    }
+    // =================================================================
+    // 2. פונקציות Firebase
+    // =================================================================
 
-    /**
-     * מציג מודאל.
-     */
-    function showModal(id) {
-        const modal = document.getElementById(id);
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            // רנדור מחדש של תוכן המודאל לעריכה אם זה מודאל עריכה
-            if (id === 'editPostModal') {
-                const modalContent = modal.querySelector('.w-full.max-w-lg');
-                modalContent.innerHTML = renderEditPostModalContent() + 
-                                         `<div class="mt-6 text-left"><button data-action="closeModal" data-modal-id="${id}" class="text-gray-500 hover:text-gray-700">סגור</button></div>`;
-                attachEventListeners(); // חבר מאזינים מחדש
-            }
+    // בניית נתיבים לאוספים
+    function getCollectionPath(collectionName, isPublic = true) {
+        if (isPublic) {
+            return `artifacts/${appId}/public/data/${collectionName}`;
         }
+        // נתיב לאוסף פרטי (לא בשימוש באפליקציה זו, כל הנתונים ציבוריים)
+        // return `artifacts/${appId}/users/${userId}/${collectionName}`; 
     }
 
-    /**
-     * מסתיר מודאל.
-     */
-    function hideModal(id) {
-        const modal = document.getElementById(id);
-        if (modal) {
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-        }
+    // אחזור נתוני משתמשים (כולל האזנה לשינויים)
+    function listenToUsers() {
+      const usersRef = firebase.firestore().collection(getCollectionPath('users'));
+      firebase.firestore().onSnapshot(usersRef, (snapshot) => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'added' || change.type === 'modified') {
+            state.users[change.doc.id] = change.doc.data();
+          } else if (change.type === 'removed') {
+            delete state.users[change.doc.id];
+          }
+        });
+        render(); // רנדור מחדש לאחר עדכון המשתמשים
+      }, (error) => {
+        console.error("שגיאה בהאזנה לאוסף משתמשים:", error);
+      });
     }
 
-    // ==========================================================
-    // --- 8. לוגיקת אוטנטיקציה ו-Firestore ---
-    // ==========================================================
-
-    /**
-     * מטפל בהתחברות באמצעות דוא"ל וסיסמה.
-     */
-    async function handleLogin(event) {
-        event.preventDefault();
-        const email = event.target.elements.loginEmail.value;
-        const password = event.target.elements.loginPassword.value;
-        const errorEl = document.getElementById('loginError');
-        errorEl.classList.add('hidden');
-
-        try {
-            await signInWithEmailAndPassword(window.auth, email, password);
-            // onAuthStateChanged יטפל במעבר למסך הבית
-        } catch (error) {
-            console.error("שגיאה בהתחברות:", error);
-            errorEl.textContent = 'שגיאה: שם משתמש או סיסמה שגויים.';
-            errorEl.classList.remove('hidden');
-        }
-    }
-
-    /**
-     * מטפל בהרשמה באמצעות דוא"ל, סיסמה ושם.
-     */
-    async function handleRegister(event) {
-        event.preventDefault();
-        const name = event.target.elements.registerName.value;
-        const email = event.target.elements.registerEmail.value;
-        const password = event.target.elements.registerPassword.value;
-        const errorEl = document.getElementById('registerError');
-        errorEl.classList.add('hidden');
-
-        try {
-            const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
-            
-            // עדכון השם ב-Firebase Auth
-            await updateProfile(userCredential.user, { displayName: name });
-
-            // יצירת מסמך פרופיל ב-Firestore
-            const userId = userCredential.user.uid;
-            const profileRef = doc(window.db, getUserDocPath('profile'));
-            await setDoc(profileRef, {
-                name: name,
-                email: email,
-                uid: userId,
-                joinedAt: serverTimestamp()
-            });
-
-            // onAuthStateChanged יטפל במעבר למסך הבית
-        } catch (error) {
-            console.error("שגיאה בהרשמה:", error);
-            if (error.code === 'auth/email-already-in-use') {
-                errorEl.textContent = 'שגיאה: האימייל הזה כבר רשום במערכת.';
-            } else if (error.code === 'auth/weak-password') {
-                errorEl.textContent = 'שגיאה: הסיסמה חלשה מדי (לפחות 6 תווים).';
+    // אחזור נתוני פוסטים (כולל האזנה לשינויים)
+    function listenToForumPosts() {
+      const postsRef = firebase.firestore().collection(getCollectionPath('forum_posts')).orderBy('createdAt', 'desc');
+      firebase.firestore().onSnapshot(postsRef, (snapshot) => {
+        const newPosts = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          newPosts.push({
+            id: doc.id,
+            ...data,
+            // המרה של Timestamp לאובייקט Date
+            createdAt: data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date(),
+            comments: data.comments || [],
+            likes: data.likes || [],
+            favorites: data.favorites || [],
+            images: data.images || [],
+          });
+        });
+        
+        state.forumPosts = newPosts;
+        
+        // אם היינו בפירוט פוסט, ודא שהנתונים מעודכנים
+        if (state.screen === 'postDetail' && state.selectedPost) {
+            const updatedPost = newPosts.find(p => p.id === state.selectedPost.id);
+            if (updatedPost) {
+                state.selectedPost = updatedPost;
             } else {
-                 errorEl.textContent = 'שגיאה: בעיה בהרשמה. אנא נסה שוב מאוחר יותר.';
+                // אם הפוסט נמחק, חוזרים לפורום
+                goTo('forum');
             }
-            errorEl.classList.remove('hidden');
         }
+
+        render();
+      }, (error) => {
+        console.error("שגיאה בהאזנה לאוסף פוסטים:", error);
+      });
     }
 
-    /**
-     * מטפל ביציאה מהמערכת.
-     */
-    async function handleLogout() {
+    // פונקציית אחזור נתונים ראשונית (לאחר אימות)
+    async function fetchInitialData() {
+        listenToUsers();
+        listenToForumPosts();
+    }
+    
+    // עדכון פרופיל המשתמש ב-Firestore
+    async function updateUserProfile(updates) {
+        if (!state.user || !userId) return;
+
+        const userRef = firebase.firestore().collection(getCollectionPath('users')).doc(userId);
         try {
-            cleanupListeners();
-            await signOut(window.auth);
-            state.user = null;
-            state.profile = null;
-            goTo('login');
+            await userRef.update(updates);
+            
+            // עדכון אובייקט המשתמש במצב
+            state.user = { ...state.user, ...updates };
+            // עדכון האובייקט גם ב-users dictionary (אם כי זה יעודכן אוטומטית ע"י listenToUsers)
+            state.users[userId] = state.user; 
+            
+            goTo('profile');
         } catch (error) {
-            console.error("שגיאה ביציאה:", error);
+            console.error("שגיאה בעדכון פרופיל:", error);
+            // לא משתמשים ב-alert, אלא במודל או הודעה בתוך המסך
         }
     }
-
-    /**
-     * יוצר פוסט חדש בפורום.
-     */
-    async function handleNewPost(event) {
-        event.preventDefault();
-        const title = event.target.elements.newPostTitle.value;
-        const content = event.target.elements.newPostContent.value;
-        const errorEl = document.getElementById('newPostError');
-        errorEl.classList.add('hidden');
-
-        if (!state.profile) {
-            errorEl.textContent = 'שגיאה: אינך מחובר כרגע.';
-            errorEl.classList.remove('hidden');
-            return;
-        }
+    
+    // פונקציית יצירת פוסט חדש
+    async function createNewPost(postData) {
+        if (!state.user) return;
+        
+        const postsRef = firebase.firestore().collection(getCollectionPath('forum_posts'));
+        
+        const newPost = {
+            userId: userId,
+            title: postData.title,
+            content: postData.content,
+            category: postData.category,
+            images: postData.images, // תמונות ב-base64
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            displayName: state.user.displayName,
+            avatarUrl: state.user.avatarUrl,
+            comments: [],
+            likes: [],
+            favorites: [],
+        };
 
         try {
-            const postsCollectionRef = collection(window.db, getPublicCollectionPath('posts'));
-            await addDoc(postsCollectionRef, {
-                title: title,
-                content: content,
-                authorId: state.profile.uid,
-                authorName: state.profile.name,
-                timestamp: serverTimestamp(),
-                isDeleted: false,
-                chatCount: 0
-            });
-
-            hideModal('newPostModal');
-            event.target.reset(); // ניקוי הטופס
-            // ה-onSnapshot יעדכן את רשימת הפוסטים ויגרום לרנדור מחדש
+            await postsRef.add(newPost);
+            goTo('forum');
         } catch (error) {
             console.error("שגיאה ביצירת פוסט:", error);
-            errorEl.textContent = 'שגיאה: לא ניתן ליצור את הפוסט כרגע.';
-            errorEl.classList.remove('hidden');
+            // הצגת הודעת שגיאה בתוך האפליקציה
         }
     }
-
-    /**
-     * מעדכן פוסט קיים.
-     */
-    async function handleEditPost(event) {
-        event.preventDefault();
-        const postId = event.target.getAttribute('data-post-id');
-        const title = event.target.elements.editPostTitle.value;
-        const content = event.target.elements.editPostContent.value;
-        const errorEl = document.getElementById('editPostError');
-        errorEl.classList.add('hidden');
-
-        if (!state.profile || !postId) {
-            errorEl.textContent = 'שגיאה: נתונים חסרים.';
-            errorEl.classList.remove('hidden');
-            return;
-        }
-        
-        const postRef = doc(window.db, getPublicCollectionPath('posts'), postId);
+    
+    // פונקציית עדכון פוסט קיים
+    async function updatePost(postId, updates) {
+        if (!state.user) return;
+        const postRef = firebase.firestore().collection(getCollectionPath('forum_posts')).doc(postId);
         
         try {
-            await updateDoc(postRef, {
-                title: title,
-                content: content,
-                lastEdited: serverTimestamp()
-            });
-
-            hideModal('editPostModal');
-            // ה-onSnapshot יעדכן את רשימת הפוסטים ויגרום לרנדור מחדש
+            await postRef.update(updates);
+            // אם הפוסט הנבחר עבר עדכון, ה-listener יעדכן את state.selectedPost
+            state.isEditPostModalOpen = false;
+            render();
         } catch (error) {
             console.error("שגיאה בעדכון פוסט:", error);
-            errorEl.textContent = 'שגיאה: לא ניתן לעדכן את הפוסט.';
-            errorEl.classList.remove('hidden');
         }
     }
-
-    /**
-     * מסמן פוסט כמחוק.
-     */
-    async function handleDeletePost() {
-        const postId = state.currentPost?.id;
-        const errorEl = document.getElementById('deletePostError');
-        errorEl.classList.add('hidden');
-        
-        if (!postId || state.currentPost.authorId !== state.profile.uid) {
-            errorEl.textContent = 'שגיאה: אין לך הרשאה למחוק פוסט זה.';
-            errorEl.classList.remove('hidden');
-            return;
-        }
+    
+    // פונקציית מחיקת פוסט
+    async function deletePost(postId) {
+        if (!state.user) return;
+        const postRef = firebase.firestore().collection(getCollectionPath('forum_posts')).doc(postId);
         
         try {
-            const postRef = doc(window.db, getPublicCollectionPath('posts'), postId);
-            await updateDoc(postRef, {
-                isDeleted: true,
-                deletedAt: serverTimestamp()
-            });
-
-            hideModal('confirmDeletePostModal');
-            // ה-onSnapshot יטפל במעבר למסך הפורום
+            await postRef.delete();
+            // ה-listener כבר יסיר את הפוסט מהמערך וינווט אם צריך
         } catch (error) {
             console.error("שגיאה במחיקת פוסט:", error);
-            errorEl.textContent = 'שגיאה: לא ניתן למחוק את הפוסט.';
-            errorEl.classList.remove('hidden');
         }
     }
-
-    /**
-     * מטפל בשליחת הודעה בצ'אט.
-     */
-    async function handleChatSubmit(event) {
-        event.preventDefault();
-        const inputEl = document.getElementById('chatInput');
-        const text = inputEl.value.trim();
-
-        if (!text || !state.currentPost || !state.profile) return;
-
+    
+    // פונקציית הוספת תגובה
+    async function addComment(postId, commentText) {
+        if (!state.user) return;
+        const postRef = firebase.firestore().collection(getCollectionPath('forum_posts')).doc(postId);
+        
+        const newComment = {
+            userId: userId,
+            displayName: state.user.displayName,
+            avatarUrl: state.user.avatarUrl,
+            content: commentText,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        
         try {
-            const messagesCollectionRef = collection(window.db, getPublicCollectionPath(`posts/${state.currentPost.id}/messages`));
-            await addDoc(messagesCollectionRef, {
-                text: text,
-                authorId: state.profile.uid,
-                authorName: state.profile.name,
-                timestamp: serverTimestamp()
+            await postRef.update({
+                comments: firebase.firestore.FieldValue.arrayUnion(newComment)
             });
-
-            inputEl.value = ''; // ניקוי השדה
-            // ה-onSnapshot יעדכן את רשימת ההודעות ויגרום לגלילה
+            state.isNewCommentModalOpen = false;
+            render();
         } catch (error) {
-            console.error("שגיאה בשליחת הודעה:", error);
-            // אין צורך בהודעת שגיאה על המסך, רק ב-console
+            console.error("שגיאה בהוספת תגובה:", error);
         }
     }
     
-    // ==========================================================
-    // --- 9. פונקציית אתחול ראשית (Start App) ---
-    // ==========================================================
-    
-    /**
-     * **(שם הפונקציה שונה כדי למנוע קונפליקט עם Firebase.initializeApp)**
-     * פונקציית אתחול ראשית של האפליקציה.
-     */
-    async function startApp() {
-        // 1. נסה להתחבר עם טוקן מותאם אישית אם קיים
-        if (initialAuthToken) {
-            try {
-                await signInWithCustomToken(window.auth, initialAuthToken);
-            } catch (error) {
-                console.error("שגיאה בהתחברות עם Custom Token, עובר לאנונימי:", error);
-                await signInAnonymously(window.auth);
-            }
+    // פונקציית לייק/ביטול לייק
+    async function toggleLike(postId) {
+        if (!state.user) return;
+        const postRef = firebase.firestore().collection(getCollectionPath('forum_posts')).doc(postId);
+        const post = state.forumPosts.find(p => p.id === postId);
+        if (!post) return;
+        
+        if (post.likes.includes(userId)) {
+            // ביטול לייק
+            await postRef.update({
+                likes: firebase.firestore.FieldValue.arrayRemove(userId)
+            });
         } else {
-            // אם אין טוקן מותאם אישית, התחבר כאנונימי
-            await signInAnonymously(window.auth);
+            // הוספת לייק
+            await postRef.update({
+                likes: firebase.firestore.FieldValue.arrayUnion(userId)
+            });
+        }
+    }
+    
+    // פונקציית מועדפים/ביטול מועדפים
+    async function toggleFavorite(postId) {
+        if (!state.user) return;
+        const postRef = firebase.firestore().collection(getCollectionPath('forum_posts')).doc(postId);
+        const post = state.forumPosts.find(p => p.id === postId);
+        if (!post) return;
+        
+        if (post.favorites.includes(userId)) {
+            // ביטול מועדף
+            await postRef.update({
+                favorites: firebase.firestore.FieldValue.arrayRemove(userId)
+            });
+        } else {
+            // הוספת מועדף
+            await postRef.update({
+                favorites: firebase.firestore.FieldValue.arrayUnion(userId)
+            });
+        }
+    }
+
+    // פונקציית הרשמה
+    async function registerUser(email, password, displayName) {
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+            
+            // יצירת מסמך משתמש חדש
+            const userRef = firebase.firestore().collection(getCollectionPath('users')).doc(user.uid);
+            const newUserDoc = {
+                displayName: displayName,
+                email: email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                about: 'משתמש חדש בקהילה',
+                city: '',
+                interests: [],
+                avatarUrl: 'https://placehold.co/100x100/38B2AC/ffffff?text=U', // אווטאר ברירת מחדל
+            };
+            await userRef.set(newUserDoc);
+            
+            goTo('home');
+        } catch (error) {
+            console.error("שגיאת הרשמה:", error.message);
+            // הצגת שגיאה בתוך האפליקציה (כמו alert, אבל מותאם אישית)
+            alert(error.message); 
+        }
+    }
+
+    // פונקציית התחברות
+    async function loginUser(email, password) {
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+            // ה-onAuthStateChanged יטפל בניווט
+        } catch (error) {
+            console.error("שגיאת התחברות:", error.message);
+            alert(error.message); 
+        }
+    }
+
+    // פונקציית יציאה
+    function logoutUser() {
+        auth.signOut();
+        goTo('login');
+    }
+
+    // =================================================================
+    // 3. יצירת רכיבי HTML
+    // =================================================================
+    
+    // רכיב ניווט עליון
+    function renderNavBar() {
+      if (!state.user) return '';
+
+      const items = [
+        { name: 'בית', screen: 'home', icon: 'fa-house-user' },
+        { name: 'פורום', screen: 'forum', icon: 'fa-users' },
+        { name: 'פרופיל', screen: 'profile', icon: 'fa-user' }
+      ];
+
+      return `
+        <nav class="w-full bg-white card fixed top-0 z-40">
+          <div class="max-w-4xl mx-auto flex justify-between items-center p-3">
+            <h1 class="text-xl font-bold text-primary">קהילת קשר <i class="fas fa-heart text-accent"></i></h1>
+            
+            <div class="flex space-x-4 space-x-reverse">
+              ${items.map(item => `
+                <button class="flex flex-col items-center p-1 text-sm font-semibold transition-colors duration-200 
+                  ${state.screen === item.screen ? 'active-nav text-accent' : 'text-muted hover:text-primary'}" 
+                  data-action="goTo" data-screen="${item.screen}">
+                  <i class="fas ${item.icon} text-lg mb-0.5"></i>
+                  ${item.name}
+                </button>
+              `).join('')}
+            </div>
+
+            <button class="text-sm text-red-500 hover:text-red-700 font-semibold transition-colors"
+                data-action="logout">
+                יציאה
+            </button>
+          </div>
+        </nav>
+      `;
+    }
+    
+    // פונקציה לבניית כרטיס פוסט
+    function renderPostCard(post) {
+        const user = state.users[post.userId] || { displayName: 'משתמש לא ידוע', avatarUrl: 'https://placehold.co/100x100/cccccc/ffffff?text=?' };
+        const isLiked = post.likes.includes(userId);
+        const isFavorite = post.favorites.includes(userId);
+        const isOwner = post.userId === userId;
+        
+        const timeString = post.createdAt.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
+        return `
+            <div class="post-card card p-4 mb-4 cursor-pointer flex flex-col transition-all duration-300" 
+                 data-action="goTo" data-screen="postDetail" data-post-id="${post.id}">
+                
+                <!-- כותרת ופרטים -->
+                <div class="flex items-start justify-between mb-3">
+                    <h2 class="text-xl font-bold text-primary truncate max-w-[80%]">${post.title}</h2>
+                    <div class="flex items-center space-x-1 space-x-reverse text-xs text-muted">
+                        <i class="fas fa-tag"></i>
+                        <span class="pill bg-accent/10 text-accent">${getCategoryName(post.category)}</span>
+                    </div>
+                </div>
+
+                <!-- פרטי משתמש -->
+                <div class="flex items-center small-muted mb-3">
+                    <img src="${user.avatarUrl}" alt="אווטאר" class="w-8 h-8 rounded-full ml-2 object-cover">
+                    <span class="font-semibold">${post.displayName}</span>
+                    <span class="mx-2">•</span>
+                    <span>${timeString}</span>
+                </div>
+
+                <!-- תוכן מקוצר -->
+                <p class="small-muted mb-4 line-clamp-2 leading-relaxed">${post.content}</p>
+                
+                <!-- תמונה ראשית (אם קיימת) -->
+                ${post.images && post.images.length > 0 ? `
+                    <div class="mt-2 mb-4">
+                        <img src="${post.images[0]}" alt="תמונה לפוסט" class="w-full h-40 object-cover rounded-lg shadow-md">
+                    </div>
+                ` : ''}
+
+                <!-- סטטיסטיקות ופעולות -->
+                <div class="flex justify-between items-center text-sm mt-auto border-t pt-3">
+                    
+                    <!-- סטטיסטיקות -->
+                    <div class="flex space-x-4 space-x-reverse text-muted">
+                        <div class="flex items-center">
+                            <i class="fas fa-heart text-red-500 ml-1"></i>
+                            <span>${post.likes.length}</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-comment-dots ml-1"></i>
+                            <span>${post.comments.length}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- פעולות מהירות -->
+                    <div class="flex space-x-3 space-x-reverse">
+                        <button class="action-btn ${isLiked ? 'text-red-500' : 'text-muted hover:text-red-500'}" 
+                                data-action="toggleLike" data-post-id="${post.id}" onclick="event.stopPropagation();">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                        <button class="action-btn ${isFavorite ? 'text-yellow-500' : 'text-muted hover:text-yellow-500'}" 
+                                data-action="toggleFavorite" data-post-id="${post.id}" onclick="event.stopPropagation();">
+                            <i class="fas fa-bookmark"></i>
+                        </button>
+                        ${isOwner ? `
+                        <button class="action-btn text-muted hover:text-blue-500" 
+                                data-action="openEditPostModal" data-post-id="${post.id}" onclick="event.stopPropagation();">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // =================================================================
+    // 4. מסכים (Screens)
+    // =================================================================
+
+    // מסך בית
+    function renderHome() {
+      return `
+        <div class="w-full max-w-4xl pt-20 p-4">
+            <div class="card p-6 mb-8 text-center bg-accent/20">
+                <h2 class="text-3xl font-bold text-primary mb-2">ברוך הבא, ${state.user.displayName}!</h2>
+                <p class="text-lg text-muted">אנחנו כאן בשבילך. בוא נתחיל עם שיח בקהילה.</p>
+                <button class="mt-4 btn-sec p-2 px-4 rounded font-semibold transition-transform duration-200 hover:scale-[1.02]"
+                        data-action="goTo" data-screen="forum">
+                    לפורום הקהילתי <i class="fas fa-arrow-left mr-1"></i>
+                </button>
+            </div>
+            
+            <!-- סקשן אחרון שפורסם -->
+            <h3 class="text-2xl font-bold text-primary mb-4 border-b pb-2">הפוסטים החמים <i class="fas fa-fire text-red-500"></i></h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${state.forumPosts.slice(0, 4).map(renderPostCard).join('')}
+            </div>
+
+            <div class="text-center mt-6">
+                <button class="btn-primary p-3 px-6 rounded font-semibold"
+                        data-action="goTo" data-screen="forum">
+                    לכל הפוסטים...
+                </button>
+            </div>
+        </div>
+      `;
+    }
+
+    // מסך פורום
+    function renderForum() {
+      const filters = [
+        { key: 'all', name: 'הכל' },
+        { key: 'mine', name: 'הפוסטים שלי' },
+        { key: 'favorites', name: 'המועדפים שלי' }
+      ];
+      
+      let filteredPosts = state.forumPosts;
+      if (state.currentPostFilter === 'mine') {
+          filteredPosts = state.forumPosts.filter(p => p.userId === userId);
+      } else if (state.currentPostFilter === 'favorites') {
+          filteredPosts = state.forumPosts.filter(p => p.favorites.includes(userId));
+      }
+
+      return `
+        <div class="w-full max-w-4xl pt-20 p-4">
+            <!-- כפתור יצירת פוסט חדש -->
+            <button class="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 btn-primary p-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                    data-action="goTo" data-screen="newPost">
+                <i class="fas fa-plus ml-2"></i> פוסט חדש
+            </button>
+            
+            <h2 class="text-3xl font-bold text-primary mb-4">הפורום הקהילתי <i class="fas fa-comments text-accent"></i></h2>
+            
+            <!-- פילטרים -->
+            <div class="flex space-x-3 space-x-reverse mb-6 border-b pb-2">
+                ${filters.map(filter => `
+                    <button class="pill transition-colors duration-200 
+                      ${state.currentPostFilter === filter.key ? 'bg-primary/90 text-white' : 'bg-gray-200 text-muted hover:bg-gray-300'}"
+                      data-action="setPostFilter" data-filter="${filter.key}">
+                        ${filter.name}
+                    </button>
+                `).join('')}
+            </div>
+
+            <!-- רשימת פוסטים -->
+            <div>
+                ${filteredPosts.length > 0 
+                    ? filteredPosts.map(renderPostCard).join('')
+                    : `<div class="card p-6 text-center small-muted mt-10">אין פוסטים להצגה בפילטר הנוכחי.</div>`}
+            </div>
+            
+            <!-- Modal components go here (edit, comment) -->
+            ${renderEditPostModal()}
+        </div>
+      `;
+    }
+
+    // מסך יצירת פוסט חדש
+    function renderNewPost() {
+        const categories = [
+            { key: 'general', name: 'כללי' },
+            { key: 'health', name: 'בריאות' },
+            { key: 'legal', name: 'משפטי/פיננסי' },
+            { key: 'leisure', name: 'פנאי ותחביבים' },
+        ];
+        
+        const { title, content, category, images } = state.newPost;
+
+        return `
+            <div class="w-full max-w-3xl pt-20 p-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-primary">פרסום פוסט חדש</h2>
+                    <button class="text-muted hover:text-red-500 transition-colors" data-action="goTo" data-screen="forum">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                
+                <div class="card p-6">
+                    <form id="newPostForm">
+                        <!-- כותרת -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">כותרת הפוסט</label>
+                            <input type="text" id="postTitle" value="${title}" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent" required maxlength="100">
+                        </div>
+
+                        <!-- קטגוריה -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">קטגוריה</label>
+                            <select id="postCategory" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent">
+                                ${categories.map(cat => `
+                                    <option value="${cat.key}" ${category === cat.key ? 'selected' : ''}>${cat.name}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+
+                        <!-- תוכן -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">תוכן הפוסט</label>
+                            <textarea id="postContent" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent h-40" required>${content}</textarea>
+                        </div>
+                        
+                        <!-- העלאת תמונות -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">הוספת תמונה (עד 3)</label>
+                            <input type="file" id="postImageUpload" accept="image/*" multiple data-action="handleImageUpload" class="w-full p-2 border rounded-lg" ${images.length >= 3 ? 'disabled' : ''}>
+                        </div>
+                        
+                        <!-- תצוגה מקדימה של תמונות -->
+                        ${images.length > 0 ? `
+                            <div class="mb-4 flex space-x-3 space-x-reverse image-carousel overflow-x-auto">
+                                ${images.map((imgBase64, index) => `
+                                    <div class="relative flex-shrink-0 w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200">
+                                        <img src="${imgBase64}" alt="תמונה ${index + 1}" class="w-full h-full object-cover">
+                                        <button class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-80 hover:opacity-100 transition-opacity"
+                                                data-action="removeImage" data-index="${index}">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <!-- כפתור פרסום -->
+                        <button type="submit" class="btn-primary w-full p-3 mt-4 rounded-lg font-bold transition-all duration-300 hover:opacity-90">
+                            פרסם לקהילה
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+
+    // מסך פירוט פוסט
+    function renderPostDetail() {
+        const post = state.selectedPost;
+        if (!post) {
+            goTo('forum');
+            return '';
         }
         
-        // 2. הירשם למצב האימות
-        // קריאה חוזרת זו מתבצעת פעם אחת בעת עליית האפליקציה, ואז שוב כל פעם שמצב ה-Auth משתנה (התחברות/יציאה)
-        // **הערה חשובה:** אין לבצע קריאות ל-Firestore לפני שהפונקציה הזו רצה והגדירה את state.user
-        onAuthStateChanged(window.auth, async (user) => {
+        const postUser = state.users[post.userId] || { displayName: 'משתמש לא ידוע', avatarUrl: 'https://placehold.co/100x100/cccccc/ffffff?text=?' };
+        const isLiked = post.likes.includes(userId);
+        const isOwner = post.userId === userId;
+        const timeString = post.createdAt.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
+        return `
+            <div class="w-full max-w-4xl pt-20 p-4">
+                <button class="text-muted hover:text-primary mb-4 flex items-center small-muted" data-action="goTo" data-screen="forum">
+                    <i class="fas fa-arrow-right ml-2"></i> חזרה לפורום
+                </button>
+
+                <!-- כרטיס הפוסט הראשי -->
+                <div class="card p-6 mb-6">
+                    <div class="flex justify-between items-start mb-4 border-b pb-4">
+                        <h2 class="text-3xl font-bold text-primary">${post.title}</h2>
+                        
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <span class="pill bg-accent/10 text-accent">${getCategoryName(post.category)}</span>
+                            ${isOwner ? `
+                                <button class="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-gray-100" 
+                                        data-action="openEditPostModal" data-post-id="${post.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-gray-100" 
+                                        data-action="openDeleteConfirmModal" data-post-id="${post.id}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center small-muted mb-4">
+                        <img src="${postUser.avatarUrl}" alt="אווטאר" class="w-10 h-10 rounded-full ml-2 object-cover">
+                        <span class="font-semibold">${post.displayName}</span>
+                        <span class="mx-2">•</span>
+                        <span>${timeString}</span>
+                    </div>
+
+                    <div class="mb-6 leading-relaxed">
+                        ${post.content.split('\n').map(p => `<p class="mb-2">${p}</p>`).join('')}
+                    </div>
+                    
+                    <!-- גלריית תמונות -->
+                    ${post.images && post.images.length > 0 ? `
+                        <div class="mb-6 flex space-x-3 space-x-reverse overflow-x-auto p-2">
+                            ${post.images.map(imgBase64 => `
+                                <img src="${imgBase64}" alt="תמונה לפוסט" class="flex-shrink-0 w-64 h-48 object-cover rounded-lg shadow-md border-2 border-gray-100">
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    <!-- שורת פעולות תחתונה -->
+                    <div class="flex items-center justify-between border-t pt-4">
+                        <div class="flex space-x-3 space-x-reverse text-sm">
+                            <button class="flex items-center text-muted hover:text-red-500 transition-colors ${isLiked ? 'text-red-500' : ''}" 
+                                    data-action="toggleLike" data-post-id="${post.id}">
+                                <i class="fas fa-heart ml-1"></i>
+                                <span>אהבתי (${post.likes.length})</span>
+                            </button>
+                            <button class="flex items-center text-muted hover:text-blue-500 transition-colors"
+                                    data-action="openNewCommentModal">
+                                <i class="fas fa-comment-dots ml-1"></i>
+                                <span>הגב (${post.comments.length})</span>
+                            </button>
+                        </div>
+                        <button class="text-muted hover:text-yellow-500 transition-colors ${post.favorites.includes(userId) ? 'text-yellow-500' : ''}"
+                                data-action="toggleFavorite" data-post-id="${post.id}">
+                            <i class="fas fa-bookmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- תגובות -->
+                <h3 class="text-2xl font-bold text-primary mb-4 border-b pb-2">תגובות (${post.comments.length})</h3>
+                <div id="commentsList">
+                    ${post.comments.length > 0 
+                        ? post.comments.slice().reverse().map(comment => renderComment(comment)).join('') // תגובות מהחדשה לישנה
+                        : `<div class="card p-4 text-center small-muted">היה הראשון להגיב!</div>`}
+                </div>
+                
+                ${renderNewCommentModal()}
+                ${renderEditPostModal()}
+                ${renderDeleteConfirmModal(post.id, post.title)}
+            </div>
+        `;
+    }
+
+    // רכיב תגובה
+    function renderComment(comment) {
+        const user = state.users[comment.userId] || { displayName: 'משתמש לא ידוע', avatarUrl: 'https://placehold.co/100x100/cccccc/ffffff?text=?' };
+        const time = comment.createdAt ? new Date(comment.createdAt.seconds * 1000) : new Date();
+        const timeString = time.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+        return `
+            <div class="card p-4 mb-3 border-r-4 border-accent bg-white">
+                <div class="flex items-center mb-2 small-muted">
+                    <img src="${user.avatarUrl}" alt="אווטאר" class="w-7 h-7 rounded-full ml-2 object-cover">
+                    <span class="font-semibold text-primary">${comment.displayName}</span>
+                    <span class="mx-2">•</span>
+                    <span class="text-xs">${timeString}</span>
+                </div>
+                <p class="text-sm leading-relaxed">${comment.content}</p>
+            </div>
+        `;
+    }
+
+    // מסך פרופיל משתמש
+    function renderProfile() {
+        if (!state.user) return '';
+        const { displayName, email, about, city, interests, avatarUrl } = state.user;
+        
+        return `
+            <div class="w-full max-w-xl pt-20 p-4">
+                <div class="card p-6 text-center mb-6">
+                    <div class="relative inline-block mb-4">
+                        <img src="${avatarUrl}" alt="תמונת פרופיל" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-accent shadow-md">
+                        <span class="absolute bottom-0 right-0 bg-green-500 w-4 h-4 rounded-full border-2 border-white"></span>
+                    </div>
+
+                    <h2 class="text-3xl font-bold text-primary mb-1">${displayName}</h2>
+                    <p class="small-muted mb-4">${email}</p>
+                    <p class="small-muted mb-4 text-xs">UID: ${userId}</p>
+
+                    <button class="btn-primary p-2 px-4 rounded-lg font-semibold transition-colors"
+                            data-action="openProfileEditModal">
+                        <i class="fas fa-user-edit ml-2"></i> ערוך פרופיל
+                    </button>
+                </div>
+                
+                <div class="card p-6 mb-6">
+                    <h3 class="text-xl font-bold text-primary mb-3 border-b pb-2">קצת עליי</h3>
+                    <p class="small-muted mb-3">${about || 'עדיין לא הוספת תיאור...'}</p>
+
+                    <h3 class="text-xl font-bold text-primary mb-3 border-b pb-2 mt-4">פרטים נוספים</h3>
+                    <div class="flex flex-col space-y-2 small-muted">
+                        <p><i class="fas fa-map-marker-alt text-accent ml-2"></i> עיר: ${city || 'לא צוין'}</p>
+                        <p><i class="fas fa-hand-holding-heart text-accent ml-2"></i> תחומי עניין: ${interests && interests.length > 0 ? interests.join(', ') : 'אין'}</p>
+                    </div>
+                </div>
+            </div>
+            ${renderProfileEditModal()}
+        `;
+    }
+
+    // מסך לוגין
+    function renderLogin() {
+        return `
+            <div class="flex items-center justify-center min-h-screen p-4 w-full">
+                <div class="card p-8 w-full max-w-md text-center">
+                    <h1 class="text-4xl font-extrabold text-primary mb-2">ברוך שובך!</h1>
+                    <p class="small-muted mb-6">התחבר/י לקהילת קשר</p>
+                    
+                    <form id="loginForm">
+                        <div class="mb-4">
+                            <input type="email" id="loginEmail" class="w-full p-3 border rounded-lg focus:ring-primary focus:border-primary" placeholder="אימייל" required>
+                        </div>
+                        <div class="mb-6">
+                            <input type="password" id="loginPassword" class="w-full p-3 border rounded-lg focus:ring-primary focus:border-primary" placeholder="סיסמה" required>
+                        </div>
+                        
+                        <button type="submit" class="btn-sec w-full p-3 rounded-lg font-bold transition-all duration-300 hover:opacity-90">
+                            התחבר <i class="fas fa-sign-in-alt mr-1"></i>
+                        </button>
+                    </form>
+
+                    <div class="mt-6 text-sm">
+                        <p class="small-muted">
+                            אין לך חשבון? 
+                            <button class="text-accent font-semibold hover:underline" data-action="goTo" data-screen="register">
+                                הירשם עכשיו
+                            </button>
+                        </p>
+                    </div>
+                    
+                    <button class="text-xs mt-4 text-muted hover:underline" data-action="openTermsModal">
+                        תקנון השימוש וקוד התנהגות בקהילה
+                    </button>
+                </div>
+            </div>
+            ${renderTermsModal()}
+        `;
+    }
+
+    // מסך הרשמה
+    function renderRegister() {
+        return `
+            <div class="flex items-center justify-center min-h-screen p-4 w-full">
+                <div class="card p-8 w-full max-w-md text-center">
+                    <h1 class="text-4xl font-extrabold text-accent mb-2">הרשמה חדשה</h1>
+                    <p class="small-muted mb-6">הצטרף/י לקהילה התומכת שלנו</p>
+                    
+                    <form id="registerForm">
+                        <div class="mb-4">
+                            <input type="text" id="registerName" class="w-full p-3 border rounded-lg focus:ring-primary focus:border-primary" placeholder="שם לתצוגה" required maxlength="50">
+                        </div>
+                        <div class="mb-4">
+                            <input type="email" id="registerEmail" class="w-full p-3 border rounded-lg focus:ring-primary focus:border-primary" placeholder="אימייל" required>
+                        </div>
+                        <div class="mb-6">
+                            <input type="password" id="registerPassword" class="w-full p-3 border rounded-lg focus:ring-primary focus:border-primary" placeholder="סיסמה (6 תווים ומעלה)" required minlength="6">
+                        </div>
+                        
+                        <div class="mb-6 flex items-start">
+                            <input type="checkbox" id="termsAccepted" class="w-4 h-4 text-accent border-gray-300 rounded focus:ring-accent ml-2" required>
+                            <label for="termsAccepted" class="text-sm text-muted">
+                                אני מאשר/ת את 
+                                <button type="button" class="text-accent font-semibold hover:underline" data-action="openTermsModal">
+                                    תקנון השימוש
+                                </button>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary w-full p-3 rounded-lg font-bold transition-all duration-300 hover:opacity-90">
+                            הירשם לקהילה <i class="fas fa-user-plus mr-1"></i>
+                        </button>
+                    </form>
+
+                    <div class="mt-6 text-sm">
+                        <p class="small-muted">
+                            כבר יש לך חשבון? 
+                            <button class="text-primary font-semibold hover:underline" data-action="goTo" data-screen="login">
+                                התחבר
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            ${renderTermsModal()}
+        `;
+    }
+
+    // =================================================================
+    // 5. רכיבי מודל (Modal Components)
+    // =================================================================
+
+    // מודל תקנון
+    function renderTermsModal() {
+        if (!state.isTermsModalOpen) return '';
+        return `
+            <div id="rulesModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-60 transition-opacity duration-300">
+                <div class="card p-6 w-full max-w-2xl transform modal-enter-active" onclick="event.stopPropagation();">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="font-bold text-xl text-primary">תקנון השימוש וקוד התנהגות בקהילה</h3>
+                        <button class="text-muted hover:text-red-500" data-action="closeTermsModal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="small-muted mb-4 overflow-y-auto max-h-96">
+                        <strong>הערה חשובה:</strong> מרכז העזרה מועבר על בסיס קהילתי בלבד. בעלי האתר אינם מספקים ייעוץ מקצועי ואינם אחראים על התכנים או התוצאות. פניות בתחום משפטי, רפואי או פיננסי מהוות המלצה בלבד ואין לראות בהן תחליף לייעוץ מקצועי.<br><br>
+                        <ol class="text-sm list-decimal mr-6">
+                          <li>כבדו פרטיות של חברים — אין לפרסם מידע אישי ללא הסכמה ברורה.</li>
+                          <li>אסור לשתף תכנים פוגעניים, גזעניים או קיצוניים.</li>
+                          <li>הימנעו מהצעות רפואיות או פיננסיות מוחלטות שאינן מבוססות על ידע מקצועי ואישי.</li>
+                          <li>הקפידו על שפה מכבדת ומעודדת.</li>
+                          <li>כל התכנים המוצגים משקפים את דעות המשתמשים בלבד.</li>
+                        </ol>
+                    </div>
+                    <button class="btn-sec w-full p-2 rounded-lg font-semibold mt-4" data-action="closeTermsModal">
+                        סגור
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    // מודל עריכת פוסט
+    function renderEditPostModal() {
+        if (!state.isEditPostModalOpen || !state.editPostData) return '';
+        
+        const { id, title, content, category, images } = state.editPostData;
+        const categories = [
+            { key: 'general', name: 'כללי' },
+            { key: 'health', name: 'בריאות' },
+            { key: 'legal', name: 'משפטי/פיננסי' },
+            { key: 'leisure', name: 'פנאי ותחביבים' },
+        ];
+        
+        return `
+            <div class="modal fixed inset-0 bg-black/50 flex items-center justify-center z-50 transition-opacity duration-300">
+                <div class="card p-6 w-full max-w-xl transform modal-enter-active" onclick="event.stopPropagation();">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="font-bold text-xl text-primary">עריכת פוסט</h3>
+                        <button class="text-muted hover:text-red-500" data-action="closeEditPostModal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <form id="editPostForm" data-post-id="${id}">
+                        <!-- כותרת -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">כותרת הפוסט</label>
+                            <input type="text" id="editPostTitle" value="${title}" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent" required maxlength="100">
+                        </div>
+
+                        <!-- קטגוריה -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">קטגוריה</label>
+                            <select id="editPostCategory" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent">
+                                ${categories.map(cat => `
+                                    <option value="${cat.key}" ${category === cat.key ? 'selected' : ''}>${cat.name}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+
+                        <!-- תוכן -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">תוכן הפוסט</label>
+                            <textarea id="editPostContent" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent h-32" required>${content}</textarea>
+                        </div>
+                        
+                        <!-- הערה: מונע עריכת תמונות במודל עריכה לשמירה על פשטות -->
+                        <div class="small-muted mb-4 p-2 bg-gray-100 rounded">
+                            <i class="fas fa-info-circle ml-1"></i> עריכת תמונות אינה זמינה כרגע בעריכת פוסט.
+                        </div>
+
+                        <!-- כפתור שמירה -->
+                        <button type="submit" class="btn-primary w-full p-3 mt-4 rounded-lg font-bold transition-all duration-300 hover:opacity-90">
+                            שמור שינויים
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+    
+    // מודל מחיקת פוסט
+    function renderDeleteConfirmModal(postId, postTitle) {
+        if (!state.isDeleteConfirmModalOpen) return '';
+        return `
+            <div class="modal fixed inset-0 bg-black/50 flex items-center justify-center z-50 transition-opacity duration-300">
+                <div class="card p-6 w-full max-w-sm text-center transform modal-enter-active" onclick="event.stopPropagation();">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                    <h3 class="font-bold text-xl text-primary mb-2">אישור מחיקה</h3>
+                    <p class="small-muted mb-4">האם אתה בטוח שברצונך למחוק את הפוסט "<span class="font-semibold">${postTitle}</span>"? פעולה זו אינה ניתנת לביטול.</p>
+                    
+                    <div class="flex justify-center space-x-3 space-x-reverse mt-4">
+                        <button class="bg-gray-200 text-muted p-2 px-4 rounded-lg font-semibold hover:bg-gray-300" 
+                                data-action="closeDeleteConfirmModal">
+                            בטל
+                        </button>
+                        <button class="bg-red-500 text-white p-2 px-4 rounded-lg font-semibold hover:bg-red-600" 
+                                data-action="confirmDeletePost" data-post-id="${postId}">
+                            מחק לצמיתות
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // מודל הוספת תגובה חדשה
+    function renderNewCommentModal() {
+        if (!state.isNewCommentModalOpen) return '';
+        
+        return `
+            <div class="modal fixed inset-0 bg-black/50 flex items-center justify-center z-50 transition-opacity duration-300">
+                <div class="card p-6 w-full max-w-lg transform modal-enter-active" onclick="event.stopPropagation();">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="font-bold text-xl text-primary">הוספת תגובה חדשה</h3>
+                        <button class="text-muted hover:text-red-500" data-action="closeNewCommentModal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <form id="newCommentForm">
+                        <div class="mb-4">
+                            <textarea id="commentText" class="w-full p-3 border rounded-lg focus:ring-accent focus:border-accent h-32" placeholder="כתוב את תגובתך כאן..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary w-full p-3 rounded-lg font-bold transition-all duration-300 hover:opacity-90">
+                            שלח תגובה
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+    
+    // מודל עריכת פרופיל
+    function renderProfileEditModal() {
+        if (!state.isProfileEditModalOpen || !state.user) return '';
+
+        const { displayName, about, city, interests } = state.user;
+        const interestString = (interests || []).join(', ');
+
+        return `
+            <div class="modal fixed inset-0 bg-black/50 flex items-center justify-center z-50 transition-opacity duration-300">
+                <div class="card p-6 w-full max-w-xl transform modal-enter-active" onclick="event.stopPropagation();">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="font-bold text-xl text-primary">עריכת פרטי פרופיל</h3>
+                        <button class="text-muted hover:text-red-500" data-action="closeProfileEditModal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <form id="profileEditForm">
+                        <!-- שם לתצוגה -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">שם לתצוגה</label>
+                            <input type="text" id="editDisplayName" value="${displayName}" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent" required maxlength="50">
+                        </div>
+
+                        <!-- עיר -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">עיר מגורים</label>
+                            <input type="text" id="editCity" value="${city || ''}" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent">
+                        </div>
+                        
+                        <!-- תחומי עניין -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">תחומי עניין (מופרדים בפסיקים)</label>
+                            <input type="text" id="editInterests" value="${interestString}" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent" placeholder="טיולים, קריאה, גינון">
+                        </div>
+
+                        <!-- אודות -->
+                        <div class="mb-4">
+                            <label class="block font-semibold mb-1 text-primary">קצת עליי</label>
+                            <textarea id="editAbout" class="w-full p-2 border rounded-lg focus:ring-accent focus:border-accent h-32">${about || ''}</textarea>
+                        </div>
+                        
+                        <!-- שינוי תמונת פרופיל (פשוט: העלאה ל-Base64) -->
+                        <div class="mb-6">
+                            <label class="block font-semibold mb-1 text-primary">שינוי תמונת פרופיל</label>
+                            <input type="file" id="editAvatarUpload" accept="image/*" data-action="handleAvatarUpload" class="w-full p-2 border rounded-lg">
+                            <p class="text-xs text-muted mt-1">אזהרה: התמונה תישמר בבסיס הנתונים.</p>
+                        </div>
+
+                        <!-- כפתור שמירה -->
+                        <button type="submit" class="btn-primary w-full p-3 mt-4 rounded-lg font-bold transition-all duration-300 hover:opacity-90">
+                            שמור שינויים בפרופיל
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+
+    // =================================================================
+    // 6. פונקציית רנדור ראשית
+    // =================================================================
+
+    function getScreenContent(screen) {
+      // אם המשתמש לא מחובר, מציג רק מסך לוגין/הרשמה
+      if (!state.user && screen !== 'login' && screen !== 'register') {
+          return renderLogin();
+      }
+      
+      let content = '';
+      switch (screen) {
+        case 'loading':
+            return ''; // מטופל ע"י DIV נפרד
+        case 'login':
+            content = renderLogin();
+            break;
+        case 'register':
+            content = renderRegister();
+            break;
+        case 'home':
+            content = renderHome();
+            break;
+        case 'forum':
+            content = renderForum();
+            break;
+        case 'newPost':
+            content = renderNewPost();
+            break;
+        case 'postDetail':
+            content = renderPostDetail();
+            break;
+        case 'profile':
+            content = renderProfile();
+            break;
+        default:
+            content = renderHome();
+      }
+
+      // הוספת סרגל ניווט לכל מסך מחובר
+      if (state.user && screen !== 'loading') {
+          return renderNavBar() + content;
+      }
+      return content;
+    }
+
+    // =================================================================
+    // 7. Event Listeners
+    // =================================================================
+    
+    function setupEventListeners() {
+      // 1. האזנה לכל כפתורי הפעולה
+      document.querySelectorAll('[data-action]').forEach(element => {
+        element.onclick = (e) => {
+          const action = e.currentTarget.dataset.action;
+          const postId = e.currentTarget.dataset.postId;
+          const screen = e.currentTarget.dataset.screen;
+          const filter = e.currentTarget.dataset.filter;
+          const index = e.currentTarget.dataset.index;
+          
+          switch (action) {
+            case 'goTo':
+              goTo(screen, { postId });
+              break;
+            case 'logout':
+              logoutUser();
+              break;
+            case 'openTermsModal':
+                state.isTermsModalOpen = true;
+                render();
+                break;
+            case 'closeTermsModal':
+                state.isTermsModalOpen = false;
+                render();
+                break;
+            case 'setPostFilter':
+                state.currentPostFilter = filter;
+                render();
+                break;
+            case 'toggleLike':
+                toggleLike(postId);
+                break;
+            case 'toggleFavorite':
+                toggleFavorite(postId);
+                break;
+            case 'openEditPostModal':
+                e.stopPropagation(); // מניעת מעבר לדף פירוט
+                const postToEdit = state.forumPosts.find(p => p.id === postId);
+                if (postToEdit) {
+                    state.editPostData = { ...postToEdit };
+                    state.isEditPostModalOpen = true;
+                    render();
+                }
+                break;
+            case 'closeEditPostModal':
+                state.isEditPostModalOpen = false;
+                state.editPostData = null;
+                render();
+                break;
+            case 'openDeleteConfirmModal':
+                state.isDeleteConfirmModalOpen = true;
+                render();
+                break;
+            case 'closeDeleteConfirmModal':
+                state.isDeleteConfirmModalOpen = false;
+                render();
+                break;
+            case 'confirmDeletePost':
+                deletePost(postId);
+                state.isDeleteConfirmModalOpen = false;
+                render();
+                break;
+            case 'openNewCommentModal':
+                state.isNewCommentModalOpen = true;
+                render();
+                break;
+            case 'closeNewCommentModal':
+                state.isNewCommentModalOpen = false;
+                render();
+                break;
+            case 'openProfileEditModal':
+                if (state.user) {
+                    state.profileEditData = {
+                        displayName: state.user.displayName,
+                        about: state.user.about || '',
+                        city: state.user.city || '',
+                        interests: state.user.interests || [],
+                        avatarUrl: state.user.avatarUrl || '',
+                    };
+                    state.isProfileEditModalOpen = true;
+                    render();
+                }
+                break;
+            case 'closeProfileEditModal':
+                state.isProfileEditModalOpen = false;
+                render();
+                break;
+            case 'removeImage':
+                if (index !== undefined) {
+                    state.newPost.images.splice(parseInt(index), 1);
+                    render();
+                }
+                break;
+            // הפעלות מיוחדות ל-Input File
+            case 'handleImageUpload':
+                handleImageUpload(e.currentTarget);
+                break;
+            case 'handleAvatarUpload':
+                handleAvatarUpload(e.currentTarget);
+                break;
+          }
+        };
+      });
+      
+      // 2. האזנה לטפסי אימות
+      const loginForm = document.getElementById('loginForm');
+      if (loginForm) {
+        loginForm.onsubmit = (e) => {
+          e.preventDefault();
+          const email = document.getElementById('loginEmail').value;
+          const password = document.getElementById('loginPassword').value;
+          loginUser(email, password);
+        };
+      }
+      
+      const registerForm = document.getElementById('registerForm');
+      if (registerForm) {
+        registerForm.onsubmit = (e) => {
+          e.preventDefault();
+          const email = document.getElementById('registerEmail').value;
+          const password = document.getElementById('registerPassword').value;
+          const displayName = document.getElementById('registerName').value;
+          registerUser(email, password, displayName);
+        };
+      }
+      
+      // 3. האזנה לטופס פוסט חדש
+      const newPostForm = document.getElementById('newPostForm');
+      if (newPostForm) {
+        newPostForm.onsubmit = (e) => {
+          e.preventDefault();
+          const title = document.getElementById('postTitle').value;
+          const content = document.getElementById('postContent').value;
+          const category = document.getElementById('postCategory').value;
+          createNewPost({ title, content, category, images: state.newPost.images });
+        };
+      }
+
+      // 4. האזנה לטופס עריכת פוסט (בתוך המודל)
+      const editPostForm = document.getElementById('editPostForm');
+      if (editPostForm) {
+          editPostForm.onsubmit = (e) => {
+              e.preventDefault();
+              const postId = e.currentTarget.dataset.postId;
+              const title = document.getElementById('editPostTitle').value;
+              const content = document.getElementById('editPostContent').value;
+              const category = document.getElementById('editPostCategory').value;
+              
+              const updates = { title, content, category };
+              updatePost(postId, updates);
+          };
+      }
+
+      // 5. האזנה לטופס תגובה חדשה (בתוך המודל)
+      const newCommentForm = document.getElementById('newCommentForm');
+      if (newCommentForm) {
+          newCommentForm.onsubmit = (e) => {
+              e.preventDefault();
+              const commentText = document.getElementById('commentText').value;
+              if (state.selectedPost && commentText.trim()) {
+                  addComment(state.selectedPost.id, commentText.trim());
+              }
+          };
+      }
+
+      // 6. האזנה לטופס עריכת פרופיל (בתוך המודל)
+      const profileEditForm = document.getElementById('profileEditForm');
+      if (profileEditForm) {
+          profileEditForm.onsubmit = (e) => {
+              e.preventDefault();
+              
+              // איסוף נתונים
+              const updates = {};
+              updates.displayName = document.getElementById('editDisplayName').value;
+              updates.city = document.getElementById('editCity').value;
+              updates.about = document.getElementById('editAbout').value;
+              
+              const interestsInput = document.getElementById('editInterests').value;
+              updates.interests = interestsInput.split(',').map(i => i.trim()).filter(i => i);
+              
+              // אם אווטאר שונה, הוא כבר נשמר במצב profileEditData.avatarUrl
+              if (state.profileEditData.avatarUrl && state.profileEditData.avatarUrl !== state.user.avatarUrl) {
+                  updates.avatarUrl = state.profileEditData.avatarUrl;
+              }
+              
+              updateUserProfile(updates);
+              state.isProfileEditModalOpen = false;
+              render();
+          };
+      }
+      
+      // 7. האזנה לשינוי שדות בטופס פוסט חדש כדי לשמור אותם
+      const postTitle = document.getElementById('postTitle');
+      const postContent = document.getElementById('postContent');
+      const postCategory = document.getElementById('postCategory');
+      
+      if (postTitle) postTitle.oninput = (e) => state.newPost.title = e.target.value;
+      if (postContent) postContent.oninput = (e) => state.newPost.content = e.target.value;
+      if (postCategory) postCategory.onchange = (e) => state.newPost.category = e.target.value;
+      
+      // 8. האזנה ללחיצה מחוץ למודל כדי לסגור
+      document.querySelectorAll('.modal').forEach(modal => {
+          modal.onclick = (e) => {
+              if (e.target === modal) {
+                  if (state.isTermsModalOpen) state.isTermsModalOpen = false;
+                  if (state.isEditPostModalOpen) state.isEditPostModalOpen = false;
+                  if (state.isDeleteConfirmModalOpen) state.isDeleteConfirmModalOpen = false;
+                  if (state.isNewCommentModalOpen) state.isNewCommentModalOpen = false;
+                  if (state.isProfileEditModalOpen) state.isProfileEditModalOpen = false;
+                  render();
+              }
+          };
+      });
+
+    }
+    
+    // =================================================================
+    // 8. פונקציות עזר לטיפול בתמונות
+    // =================================================================
+    
+    // המרת קובץ תמונה ל-Base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+        });
+    }
+
+    // טיפול בהעלאת תמונות לפוסט חדש
+    async function handleImageUpload(inputElement) {
+        const files = Array.from(inputElement.files);
+        for (const file of files) {
+            if (state.newPost.images.length >= 3) break;
+            if (file.size > 1024 * 1024 * 0.5) { // מגבלה של 500KB לתמונה
+                alert(`הקובץ ${file.name} גדול מדי (מעל 500KB)`);
+                continue;
+            }
+            try {
+                const base64 = await fileToBase64(file);
+                state.newPost.images.push(base64);
+            } catch (error) {
+                console.error("שגיאה בהמרת תמונה:", error);
+            }
+        }
+        inputElement.value = null; // איפוס הקלט
+        render();
+    }
+    
+    // טיפול בהעלאת אווטאר לפרופיל
+    async function handleAvatarUpload(inputElement) {
+        const file = inputElement.files[0];
+        if (!file) return;
+        
+        if (file.size > 1024 * 1024 * 0.5) { // מגבלה של 500KB לתמונה
+            alert(`הקובץ גדול מדי (מעל 500KB)`);
+            inputElement.value = null;
+            return;
+        }
+
+        try {
+            const base64 = await fileToBase64(file);
+            // שומרים את האווטאר החדש במצב זמני, נשמר ב-Firestore רק בלחיצה על 'שמור שינויים'
+            state.profileEditData.avatarUrl = base64; 
+        } catch (error) {
+            console.error("שגיאה בהמרת אווטאר:", error);
+        }
+    }
+    
+    // =================================================================
+    // 9. פונקציות עזר לפורמט
+    // =================================================================
+
+    function getCategoryName(key) {
+        switch(key) {
+            case 'general': return 'כללי';
+            case 'health': return 'בריאות';
+            case 'legal': return 'משפטי/פיננסי';
+            case 'leisure': return 'פנאי ותחביבים';
+            default: return 'אחר';
+        }
+    }
+    
+    // =================================================================
+    // 10. לוגיקת אתחול והאזנה ל-Auth
+    // =================================================================
+
+    // הגדרת האזנה לשינויי מצב אימות
+    function setupAuthListener() {
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
-                // **המשתמש מחובר (בבדיקה הראשונית או אחרי כניסה)**
-                state.user = user;
+                // **המשתמש מחובר**
+                userId = user.uid;
                 
                 try {
-                    // 1. אחזור נתוני פרופיל מ-Firestore
-                    const profileData = await fetchUserProfile();
+                    const userDoc = await firebase.firestore().collection(getCollectionPath('users')).doc(userId).get();
                     
-                    if (profileData) {
-                        // 2. עדכון ה-state
-                        state.profile = profileData;
+                    if (userDoc.exists) {
+                        state.user = userDoc.data();
                         
-                        // 3. הגדרת מאזינים לנתונים הציבוריים
-                        setupPublicListeners();
-                        
-                        // 4. ניתוב למסך הבית רק אם לא היתה שגיאה קריטית
+                        // 2. אחזור נתונים ראשוני והאזנה לשינויים
+                        await fetchInitialData(); 
+                            
+                        // 3. ניתוב למסך הבית רק אם לא היתה שגיאה קריטית
                         if (state.screen === 'loading' || state.screen === 'login' || state.screen === 'register') {
                             goTo('home');
                         } else {
                             render(); // אם המשתמש כבר במסך כלשהו (כמו פורום), רנדר מחדש
                         }
                     } else {
-                        // המשתמש מחובר ב-Auth אבל לא קיים במסמך users (כנראה נמחק או עדיין בהרשמה)
-                        // אם זה משתמש אנונימי או חדש - נאפשר לו להירשם
-                        if (user.isAnonymous) {
-                           goTo('login');
-                        } else {
-                            // אם זה משתמש רשום ללא פרופיל, ננתב להרשמה (או לוגין כדי שינסה שוב)
-                            if (state.screen !== 'register') {
-                                goTo('login');
-                            }
-                        }
+                        // המשתמש מחובר ב-Auth אבל לא קיים במסמך users (כנראה נמחק)
+                        auth.signOut();
                     }
                 } catch (error) {
-                    console.error("שגיאה קריטית באחזור פרופיל משתמש או נתונים:", error);
+                    console.error("שגיאה קריטית באחזור פרופיל משתמש או נתונים (Firebase/Config):", error);
                      // אם יש שגיאה בחיבור ל-Firebase, אנו חוזרים ללוגין
                     state.user = null;
                     state.screen = 'login';
                     render();
-                    // שימוש במודאל/הודעה מותאמת אישית במקום alert
-                    // alert("שגיאה בחיבור לשרת או באחזור נתונים. נסה להתחבר שוב.");
+                    // שימוש ב-alert כחלופה למודל אירועים
+                    alert("שגיאה בחיבור לשרת או באחזור נתונים. נסה להתחבר שוב.");
                 }
             } else {
                 // **המשתמש לא מחובר או יצא**
+                userId = null;
                 state.user = null;
-                state.profile = null;
-                cleanupListeners(); // נקה מאזינים ציבוריים כשיוצאים
                 if (state.screen !== 'register') {
                     goTo('login');
                 } else {
@@ -1158,29 +1486,31 @@
         });
     }
 
+    /**
+     * @description פונקציית האתחול של האפליקציה (שם שונה כדי למנוע קונפליקט עם Firebase)
+     */
+    function startAppLogic() {
+        // אתחול Firebase
+        try {
+            if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+                app = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
+                setupAuthListener();
+            } else {
+                console.error("Firebase config is missing or empty.");
+                goTo('login');
+            }
+        } catch (e) {
+            if (!e.message.includes('already been initialized')) {
+                console.error("שגיאה באתחול Firebase:", e);
+                goTo('login');
+            }
+        }
+    }
+
     // הפעלת האפליקציה
-    startApp(); 
-</script>
-
-<!-- Terms modal (simple) -->
-<div id="rulesModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-60" data-modal-id="rulesModal">
-  <div class="bg-white p-6 rounded w-full max-w-2xl card" onclick="event.stopPropagation()">
-    <h3 class="font-semibold mb-2">תקנון השימוש וקוד התנהגות בקהילה</h3>
-    <div class="small-muted mb-4 text-sm">
-      <strong>הערה חשובה:</strong> מרכז העזרה מועבר על בסיס קהילתי בלבד. בעלי האתר אינם מספקים ייעוץ מקצועי ואינם אחראים על התכנים או התוצאות. פניות בתחום משפטי, רפואי או פיננסי מהוות המלצה בלבד ואין לראות בהן תחליף לייעוץ מקצועי.
-    </div>
-    <ol class="text-sm small-muted list-decimal ml-6 space-y-2">
-      <li>כבדו פרטיות של חברים — אין לפרסם מידע אישי ללא הסכמה ברורה.</li>
-      <li>אסור לשתף תכנים פוגעניים, גזעניים או קיצוניים.</li>
-      <li>הימנעו מהצעות רפואיות/משפטיות/פיננסיות מוחלטות; יש להפנות לייעוץ מקצועי.</li>
-      <li>יש לשמור על שפה מכבדת ומאפשרת.</li>
-      <li>למנהלי הקהילה שמורה הזכות למחוק תכנים פוגעניים או לחסום משתמשים המפרים את הכללים.</li>
-    </ol>
-    <div class="mt-6 text-left">
-        <button data-action="closeModal" data-modal-id="rulesModal" class="text-gray-500 hover:text-gray-700">סגור</button>
-    </div>
-  </div>
-</div>
-
+    startAppLogic(); // <--- שינוי לשם החדש
+  </script>
 </body>
 </html>
