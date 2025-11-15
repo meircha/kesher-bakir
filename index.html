@@ -83,7 +83,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
 
 <script>
-/* ================== CONFIG - הוחלף בערכים הנכונים שלך ================== */
+/* ================== CONFIG - תוקן עם הערכים שלך ================== */
 const firebaseConfig = {
     apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM", 
     authDomain: "kesher-bakir.firebaseapp.com",
@@ -168,7 +168,6 @@ function render(){
   }
 }
 // 🛑 ==================== סוף התיקון ==================== 🛑
-
 
 /* ========== Header updates ========== */
 function updateHeader(){
@@ -442,7 +441,12 @@ function renderUsers(){
       <div class="flex items-center justify-between mb-3">
         <div><h3 class="text-lg font-semibold">חברים</h3><div class="text-sm small-muted">סינון לפי עיר / חיפוש</div></div>
         <div class="flex gap-2">
-          <select id="cityFilter" class="p-2 border rounded" onchange="renderUsersList()"><option value="">הכל</option></select>
+          <select id="cityFilter" class="p-2 border rounded" onchange="renderUsersList()"><option value="">כל הערים</option></select>
+          <select id="onlineFilter" class="p-2 border rounded" onchange="renderUsersList()">
+            <option value="">הכל</option>
+            <option value="online">מחוברים</option>
+            <option value="offline">לא מחוברים</option>
+          </select>
           <input id="userSearch" placeholder="חפש שם..." class="p-2 border rounded" oninput="renderUsersList()" />
         </div>
       </div>
@@ -463,7 +467,14 @@ function renderChat(){
 
       <div class="flex gap-4 h-full">
         <div class="w-1/3 border rounded p-2 overflow-y-auto">
-          <div class="mb-2"><select id="chatCityFilter" class="w-full p-2 border rounded" onchange="renderChatUsersList()"><option value="">הכל</option></select></div>
+          <div class="mb-2 flex gap-2">
+            <select id="chatCityFilter" class="w-full p-2 border rounded" onchange="renderChatUsersList()"><option value="">כל הערים</option></select>
+            <select id="chatOnlineFilter" class="w-full p-2 border rounded" onchange="renderChatUsersList()">
+                <option value="">הכל</option>
+                <option value="online">מחוברים</option>
+                <option value="offline">לא מחוברים</option>
+            </select>
+          </div>
           <div id="chatUsersList"></div>
         </div>
 
@@ -561,10 +572,30 @@ async function fetchInitial(){
 function renderForumsSmall(){ const el=document.getElementById('forumsListSmall'); if(!el) return; el.innerHTML = (state.forums||[]).slice(0,4).map(f=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(f.title)}</div><div class="text-sm small-muted">${escapeHtml(f.description||'')}</div><div class="mt-2"><button class="pill btn-primary" onclick="openForum('${f.id}')">פתח</button></div></div>`).join('') || '<div class="text-gray-500">אין פורומים</div>'; }
 function renderActivitiesSmall(){ const el=document.getElementById('activitiesListSmall'); if(!el) return; el.innerHTML = (state.activities||[]).slice(0,4).map(a=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(a.title)}</div><div class="text-sm small-muted">${escapeHtml(a.location||'')}</div><div class="mt-2"><button class="pill btn-primary" onclick="openActivity('${a.id}')">פתח</button></div></div>`).join('') || '<div class="text-gray-500">אין פעילויות</div>'; }
 
+// 🛑 ==================== התיקון כאן ==================== 🛑
+// הוספנו סינון לפי מחובר/לא מחובר
 function renderUsersList(){
   const q = document.getElementById('userSearch') ? document.getElementById('userSearch').value.trim().toLowerCase() : '';
   const city = document.getElementById('cityFilter') ? document.getElementById('cityFilter').value : '';
-  const list = (state.users||[]).filter(u => (city? u.city===city : true) && (q? (u.name||'').toLowerCase().includes(q) : true) && u.isActive!==false);
+  // קריאת הערך מהפילטר החדש
+  const onlineStatus = document.getElementById('onlineFilter') ? document.getElementById('onlineFilter').value : ''; 
+
+  const list = (state.users||[]).filter(u => {
+      const cityMatch = (city ? u.city === city : true);
+      const nameMatch = (q ? (u.name || '').toLowerCase().includes(q) : true);
+      const activeMatch = (u.isActive !== false);
+      
+      // לוגיקת סינון סטטוס
+      let statusMatch = true;
+      if (onlineStatus === 'online') {
+          statusMatch = u.isOnline === true;
+      } else if (onlineStatus === 'offline') {
+          statusMatch = u.isOnline === false;
+      }
+      
+      return cityMatch && nameMatch && activeMatch && statusMatch;
+  });
+  
   const el = document.getElementById('usersList'); if(!el) return;
   if(!list.length){ el.innerHTML = '<div class="text-gray-500">אין משתמשים</div>'; return; }
   el.innerHTML = list.map(u=>`<div class="p-3 border rounded mb-2 flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl">${u.avatarEmoji|| (u.name||'א').charAt(0)}</div><div><div class="font-semibold">${escapeHtml(u.name)}</div><div class="text-sm small-muted">${escapeHtml(u.city||'')}</div><div class="text-sm small-muted">תחביבים: ${escapeHtml((u.hobbies||[]).join(', '))}</div></div></div><div class="flex gap-2"><button class="pill btn-primary" onclick="openChat('${u.id}','${escapeHtml(u.name)}')">צ'אט</button>${state.user && state.user.role==='admin'?`<button class="pill bg-red-400" onclick="adminDeleteUser('${u.id}')">מחק</button>`:''}</div></div>`).join('');
@@ -573,10 +604,30 @@ function renderUsersList(){
 /* Chat users list (left pane) */
 function renderChatUsersList(){
   const city = document.getElementById('chatCityFilter') ? document.getElementById('chatCityFilter').value : '';
-  const list = (state.users||[]).filter(u => (city? u.city===city : true) && u.id !== (state.user? state.user.id : '') && u.isActive!==false);
+  // קריאת הערך מהפילטר החדש
+  const onlineStatus = document.getElementById('chatOnlineFilter') ? document.getElementById('chatOnlineFilter').value : ''; 
+
+  const list = (state.users||[]).filter(u => {
+      const cityMatch = (city ? u.city === city : true);
+      const selfMatch = (u.id !== (state.user ? state.user.id : ''));
+      const activeMatch = (u.isActive !== false);
+
+      // לוגיקת סינון סטטוס
+      let statusMatch = true;
+      if (onlineStatus === 'online') {
+          statusMatch = u.isOnline === true;
+      } else if (onlineStatus === 'offline') {
+          statusMatch = u.isOnline === false;
+      }
+      
+      return cityMatch && selfMatch && activeMatch && statusMatch;
+  });
+  
   const el = document.getElementById('chatUsersList'); if(!el) return;
   el.innerHTML = list.map(u=>`<div class="p-2 border-b flex items-center justify-between clickable" onclick="openChat('${u.id}','${escapeHtml(u.name)}')"><div>${escapeHtml(u.name)} <div class="text-xs small-muted">${escapeHtml(u.city||'')}</div></div><div>${u.isOnline?'<span class="text-green-600 text-xs">מחובר</span>':'<span class="text-gray-400 text-xs">לא מחובר</span>'}</div></div>`).join('');
 }
+// 🛑 ==================== סוף התיקון ==================== 🛑
+
 
 /* ===================== Chat realtime ===================== */
 let currentChatUnsub = null;
