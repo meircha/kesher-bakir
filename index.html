@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>קהילת קשר — קהילה תומכת 60+</title>
 
-  <!-- Tailwind + FontAwesome (CDN) -->
+  <!-- Tailwind CDN (לנוחות; אפשר להחליף בעת פרודקשן) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -17,7 +17,8 @@
       --card:#FFFFFF;
       --muted:#4A5568;
     }
-    body{ background:var(--bg); font-family: "Segoe UI", Roboto, Arial, sans-serif; color:#1a202c; -webkit-font-smoothing:antialiased; }
+    html,body { height:100%; }
+    body{ background:var(--bg); font-family: "Segoe UI", Roboto, Arial, sans-serif; color:#1a202c; -webkit-font-smoothing:antialiased; margin:0; padding:0; }
     .card{ background:var(--card); border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
     .btn-primary{ background:var(--accent); color:white; }
     .btn-sec{ background:var(--primary); color:white; }
@@ -26,14 +27,16 @@
     input, textarea, select { font-size:1rem; }
     .fab{ position:fixed; bottom:18px; left:18px; z-index:60; border-radius:999px; width:64px; height:64px; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 20px rgba(0,0,0,0.12); }
     .small-muted{ color:var(--muted); font-size:.9rem; }
+    .hidden{ display:none; }
   </style>
 </head>
 <body>
-<!-- SERVICE WORKER -->
+
+<!-- Service Worker registration for FCM (ensure firebase-messaging-sw.js is at repo root) -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/kesher-bakir/firebase-messaging-sw.js')
-      .then(()=>console.log('SW registered'))
+      .then(()=>console.log('SW registered (github pages path).'))
       .catch(e=>console.warn('SW register failed', e));
   }
 </script>
@@ -71,7 +74,7 @@
   </div>
 </header>
 
-<!-- App root -->
+<!-- Root -->
 <main class="max-w-6xl mx-auto px-4 py-6" id="root"></main>
 
 <!-- Floating quick chat -->
@@ -79,32 +82,33 @@
   <i class="fa-solid fa-comments" style="font-size:20px;"></i>
 </button>
 
-<!-- Firebase SDKs -->
+<!-- Firebase (v8) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
 
 <script>
-/* ================== CONFIG (בדוק/החלף לערכים שלך) ================== */
+/* ================== CONFIG - חשוב להחליף לערכים שלך ================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM",
-  authDomain: "kesher-bakir.firebaseapp.com",
-  projectId: "kesher-bakir",
-  storageBucket: "kesher-bakir.firebasestorage.app",
-  messagingSenderId: "671996189455",
-  appId: "1:671996189455:web:dbe089d69a85a2ab38fc7a",
-  measurementId: "G-42EWSKFXW"
+  apiKey: "REPLACE_WITH_YOUR_API_KEY",
+  authDomain: "REPLACE_WITH_AUTH_DOMAIN",
+  projectId: "REPLACE_WITH_PROJECT_ID",
+  storageBucket: "REPLACE_WITH_STORAGE_BUCKET",
+  messagingSenderId: "REPLACE_WITH_SENDER_ID",
+  appId: "REPLACE_WITH_APP_ID",
+  measurementId: ""
 };
 /* ===================================================================== */
+
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const messaging = firebase.messaging();
 
-/* ===== persistence (optional) ===== */
+/* נסיון persistence */
 if (db.enablePersistence) {
-  db.enablePersistence().catch(err => { console.warn('persistence failed', err && err.code); });
+  db.enablePersistence().catch(err => console.warn('persistence:', err && err.code));
 }
 
 /* ========== State ========== */
@@ -120,34 +124,40 @@ const state = {
   selectedUser:null,
   cities:[],
   unreadTotal:0,
-  onlineWatcherInterval: null
+  listeners: {}
 };
 
 /* ========== Helpers ========== */
 function el(html){ const d=document.createElement('div'); d.innerHTML=html; return d.firstElementChild; }
 function escapeHtml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function getChatRoomId(a,b){ if(!a||!b) return null; return a < b ? `${a}_${b}` : `${b}_${a}`; }
+function showToast(msg){ alert(msg); }
 
-/* ========== UI: render router ========== */
-function goTo(screen, params){ state.screen = screen; render(); if(params && params.forumId) state.currentForumId = params.forumId; }
+/* ========== Router / Render ========== */
+function goTo(screen, params){ state.screen = screen; if(params) Object.assign(state, params); render(); }
 function render(){
   updateHeader();
   const root = document.getElementById('root');
-  switch(state.screen){
-    case 'home': root.innerHTML = renderHome(); afterHomeRender(); break;
-    case 'login': root.innerHTML = renderLogin(); break;
-    case 'register': root.innerHTML = renderRegister(); break;
-    case 'forums': root.innerHTML = renderForums(); break;
-    case 'activities': root.innerHTML = renderActivities(); break;
-    case 'helpCenter': root.innerHTML = renderHelpCenter(); break;
-    case 'users': root.innerHTML = renderUsers(); break;
-    case 'chat': root.innerHTML = renderChat(); break;
-    case 'admin': root.innerHTML = renderAdmin(); break;
-    default: root.innerHTML = '<div>טעות ניווט</div>';
+  try {
+    switch(state.screen){
+      case 'home': root.innerHTML = renderHome(); afterHomeRender(); break;
+      case 'login': root.innerHTML = renderLogin(); break;
+      case 'register': root.innerHTML = renderRegister(); break;
+      case 'forums': root.innerHTML = renderForums(); break;
+      case 'activities': root.innerHTML = renderActivities(); break;
+      case 'helpCenter': root.innerHTML = renderHelpCenter(); break;
+      case 'users': root.innerHTML = renderUsers(); break;
+      case 'chat': root.innerHTML = renderChat(); break;
+      case 'admin': root.innerHTML = renderAdmin(); break;
+      default: root.innerHTML = '<div>טעות ניווט</div>';
+    }
+  } catch(e){
+    console.error('render error', e);
+    root.innerHTML = `<div class="p-4 card">שגיאה בהצגה: ${escapeHtml(e.message)}</div>`;
   }
 }
 
-/* ========== Header / Greeting / Unread badge ========== */
+/* ========== Header updates ========== */
 function updateHeader(){
   const greeting = document.getElementById('greetingText');
   if(greeting) greeting.innerText = state.user ? `שלום, ${state.user.name}${state.user.role==='admin' ? ' (ADMIN)' : ''}` : '';
@@ -160,14 +170,12 @@ function updateHeader(){
   }
 }
 
-/* ========== Home UI ========== */
+/* ===================== Home ===================== */
 function renderHome(){
   return `
     <section class="card overflow-hidden mb-6">
       <div class="relative">
-        <!-- תמונה שמרנית של קבוצת מבוגרים -->
-        <img id="heroImg" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1600&auto=format&fit=crop&ixlib=rb-4.0.3&s=5e7a1b3bca8e4a6d0b7e6d2c3f6c5a2b"
-             alt="קהילה" class="w-full h-56 object-cover" />
+        <img id="heroImg" src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=1600&auto=format&fit=crop&ixlib=rb-4.0.3&s=3d6c2b2b5d3af9c1b8f8f1a5b7c4b2a1" alt="קהילה" class="w-full h-56 object-cover" />
         <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
         <div class="absolute left-6 bottom-6 text-white">
           <div class="text-2xl font-bold">ברוכים הבאים — קהילת קשר</div>
@@ -212,10 +220,10 @@ function renderHome(){
           <div class="flex items-center justify-between">
             <div>
               <div class="text-lg font-bold">טיפ יומי</div>
-              <div id="dailyTip" class="text-md small-muted mt-2"></div>
+              <div id="dailyTipContainer" class="text-md small-muted mt-2">טוען...</div>
             </div>
             <div>
-              <button class="pill btn-primary" onclick="refreshTip()">טען טיפ אחר</button>
+              <button id="refreshTipBtnHeader" class="pill btn-primary">טען טיפ אחר</button>
             </div>
           </div>
         </div>
@@ -236,12 +244,13 @@ function renderHome(){
   `;
 }
 function afterHomeRender(){
-  document.getElementById('dailyTip').innerText = getDailyTip();
+  // safe update of daily tip
+  renderDailyTipSafe();
   renderForumsSmall();
   renderActivitiesSmall();
 }
 
-/* ========== Login / Register ========== */
+/* ===================== Login/Register ===================== */
 function renderLogin(){
   return `
     <div class="card p-6 max-w-md mx-auto">
@@ -256,9 +265,7 @@ function renderLogin(){
     </div>
   `;
 }
-
 function renderRegister(){
-  // hobbies options + contributions options (with "other")
   const hobbies = ['טיולים','קריאה','גינון','בישול','שירה/מוסיקה','יצירה','ספורט עדין','משחקי קופסה','תפירה'];
   const contributions = ['עזרה טכנית','מילוי טפסים','ייעוץ משפטי','הסעה/קניות','הדרכה/הוראה','בישול ליומיים','סיוע רגשי'];
   return `
@@ -322,7 +329,7 @@ function renderRegister(){
   `;
 }
 
-/* ========== Forums ========== */
+/* ===================== Forums ===================== */
 function renderForums(){
   return `
     <div class="card p-4">
@@ -351,7 +358,7 @@ function renderForums(){
   `;
 }
 
-/* ========== Activities ========== */
+/* ===================== Activities ===================== */
 function renderActivities(){
   return `
     <div class="card p-4">
@@ -383,7 +390,7 @@ function renderActivities(){
   `;
 }
 
-/* ========== Help Center ========== */
+/* ===================== Help Center ===================== */
 function renderHelpCenter(){
   return `
     <div class="card p-4">
@@ -417,7 +424,7 @@ function renderHelpCenter(){
   `;
 }
 
-/* ========== Users (list + filter) ========== */
+/* ===================== Users ===================== */
 function renderUsers(){
   return `
     <div class="card p-4">
@@ -433,7 +440,7 @@ function renderUsers(){
   `;
 }
 
-/* ========== Chat screen ======== */
+/* ===================== Chat ===================== */
 function renderChat(){
   if(!state.user) return `<div class="card p-4">אנא התחבר כדי להשתמש בצ'אט</div>`;
   return `
@@ -461,7 +468,7 @@ function renderChat(){
   `;
 }
 
-/* ========== Admin panel ======== */
+/* ===================== Admin ===================== */
 function renderAdmin(){
   if(!state.user || state.user.role !== 'admin') return goTo('home');
   return `
@@ -489,38 +496,142 @@ function renderAdmin(){
   `;
 }
 
-/* ================== Data fetching & rendering helpers ================== */
+/* ===================== Data fetch / sync ===================== */
 
 async function fetchInitial(){
+  // fetch essential collections. Each fetch is wrapped to avoid total fail if one collection lacks permissions
   try {
-    const [usersSnap, forumsSnap, actsSnap, helpCatsSnap, helpReqSnap] = await Promise.all([
-      db.collection('users').get(),
-      db.collection('forums').get(),
-      db.collection('activities').get(),
-      db.collection('helpCategories').get(),
-      db.collection('helpRequests').get()
-    ]);
+    // users
+    const usersSnap = await db.collection('users').get();
     state.users = usersSnap.docs.map(d=>({ id:d.id, ...d.data() }));
-    state.forums = forumsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
-    state.activities = actsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
-    state.helpCategories = helpCatsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
-    state.helpRequests = helpReqSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+    // forums
+    try {
+      const forumsSnap = await db.collection('forums').get();
+      state.forums = forumsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    } catch(e){ console.warn('forums fetch failed', e); state.forums = []; }
+
+    // activities
+    try {
+      const actsSnap = await db.collection('activities').get();
+      state.activities = actsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    } catch(e){ console.warn('activities fetch failed', e); state.activities = []; }
+
+    // helpCategories (helpCenter)
+    try {
+      const helpSnap = await db.collection('helpCenter').get();
+      state.helpCategories = helpSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    } catch(e){ console.warn('helpCenter fetch failed', e); state.helpCategories = []; }
+
+    // daily tips
+    try {
+      const tipsSnap = await db.collection('dailyTips').get();
+      state.dailyTips = tipsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    } catch(e){ console.warn('dailyTips fetch failed', e); state.dailyTips = []; }
+
+    // populate cities
     state.cities = Array.from(new Set(state.users.map(u=>u.city).filter(Boolean))).sort();
     populateCityFilters();
-    render();
-  } catch(e){ console.error('fetchInitial', e); }
+
+    // update header/unread
+    if(state.user) updateUnreadTotal();
+
+  } catch(err){
+    console.error('fetchInitial critical error', err);
+    // if a permissions error occurs, show a clear message in UI
+    if(err && err.code && err.code.includes && err.code.includes('permission')) {
+      document.getElementById('root').innerHTML = `<div class="card p-4 text-red-600">שגיאת הרשאות ב-Firestore: אין גישה לאוספים. ודא שה־Rules נכונים ושהמשתמש מחובר.</div>`;
+    }
+  }
 }
 
-/* small render helpers */
-function renderForumsSmall(){ const el=document.getElementById('forumsListSmall'); if(!el) return; el.innerHTML = state.forums.slice(0,4).map(f=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(f.title)}</div><div class="text-sm small-muted">${escapeHtml(f.description||'')}</div><div class="mt-2"><button class="pill btn-primary" onclick="openForum('${f.id}')">פתח</button></div></div>`).join(''); }
-function renderActivitiesSmall(){ const el=document.getElementById('activitiesListSmall'); if(!el) return; el.innerHTML = state.activities.slice(0,4).map(a=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(a.title)}</div><div class="text-sm small-muted">${escapeHtml(a.location||'')}</div></div>`).join(''); }
+/* ===================== Render helpers ===================== */
 
-function populateCityFilters(){
-  const cf = document.getElementById('cityFilter'); if(cf){ cf.innerHTML = `<option value="">הכל</option>${state.cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`; }
-  const cc = document.getElementById('chatCityFilter'); if(cc){ cc.innerHTML = `<option value="">הכל</option>${state.cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`; }
+function renderForumsSmall(){ const el=document.getElementById('forumsListSmall'); if(!el) return; el.innerHTML = (state.forums||[]).slice(0,4).map(f=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(f.title)}</div><div class="text-sm small-muted">${escapeHtml(f.description||'')}</div><div class="mt-2"><button class="pill btn-primary" onclick="openForum('${f.id}')">פתח</button></div></div>`).join('') || '<div class="text-gray-500">אין פורומים</div>'; }
+function renderActivitiesSmall(){ const el=document.getElementById('activitiesListSmall'); if(!el) return; el.innerHTML = (state.activities||[]).slice(0,4).map(a=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(a.title)}</div><div class="text-sm small-muted">${escapeHtml(a.location||'')}</div><div class="mt-2"><button class="pill btn-primary" onclick="openActivity('${a.id}')">פתח</button></div></div>`).join('') || '<div class="text-gray-500">אין פעילויות</div>'; }
+
+function renderUsersList(){
+  const q = document.getElementById('userSearch') ? document.getElementById('userSearch').value.trim().toLowerCase() : '';
+  const city = document.getElementById('cityFilter') ? document.getElementById('cityFilter').value : '';
+  const list = (state.users||[]).filter(u => (city? u.city===city : true) && (q? (u.name||'').toLowerCase().includes(q) : true) && u.isActive!==false);
+  const el = document.getElementById('usersList'); if(!el) return;
+  if(!list.length){ el.innerHTML = '<div class="text-gray-500">אין משתמשים</div>'; return; }
+  el.innerHTML = list.map(u=>`<div class="p-3 border rounded mb-2 flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl">${u.avatarEmoji|| (u.name||'א').charAt(0)}</div><div><div class="font-semibold">${escapeHtml(u.name)}</div><div class="text-sm small-muted">${escapeHtml(u.city||'')}</div><div class="text-sm small-muted">תחביבים: ${escapeHtml((u.hobbies||[]).join(', '))}</div></div></div><div class="flex gap-2"><button class="pill btn-primary" onclick="openChat('${u.id}','${escapeHtml(u.name)}')">צ'אט</button>${state.user && state.user.role==='admin'?`<button class="pill bg-red-400" onclick="adminDeleteUser('${u.id}')">מחק</button>`:''}</div></div>`).join('');
 }
 
-/* ========== Forums functions ========== */
+/* Chat users list (left pane) */
+function renderChatUsersList(){
+  const city = document.getElementById('chatCityFilter') ? document.getElementById('chatCityFilter').value : '';
+  const list = (state.users||[]).filter(u => (city? u.city===city : true) && u.id !== (state.user? state.user.id : '') && u.isActive!==false);
+  const el = document.getElementById('chatUsersList'); if(!el) return;
+  el.innerHTML = list.map(u=>`<div class="p-2 border-b flex items-center justify-between clickable" onclick="openChat('${u.id}','${escapeHtml(u.name)}')"><div>${escapeHtml(u.name)} <div class="text-xs small-muted">${escapeHtml(u.city||'')}</div></div><div>${u.isOnline?'<span class="text-green-600 text-xs">מחובר</span>':'<span class="text-gray-400 text-xs">לא מחובר</span>'}</div></div>`).join('');
+}
+
+/* ===================== Chat realtime ===================== */
+let currentChatUnsub = null;
+function openChat(userId, userName){
+  if(!state.user) { goTo('login'); return; }
+  state.selectedUser = state.users.find(u=>u.id===userId) || { id:userId, name:userName };
+  const roomId = getChatRoomId(state.user.id, state.selectedUser.id);
+  // reset unread for this user in that room
+  db.collection('chats').doc(roomId).update({ [`unread_${state.user.id}`]: 0 }).catch(()=>{});
+  state.chatMessages = [];
+  if(currentChatUnsub) currentChatUnsub();
+  currentChatUnsub = db.collection('chats').doc(roomId).collection('messages').orderBy('timestamp')
+    .onSnapshot(snap=>{
+      state.chatMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      if(state.screen !== 'chat'){ state.screen='chat'; render(); }
+      updateChatBox();
+      updateUnreadTotal();
+    }, err=>{ console.error('chat listen err', err); });
+}
+
+function updateChatBox(){
+  const cb = document.getElementById('chatBox'); if(!cb) return;
+  cb.innerHTML = (state.chatMessages||[]).map(m=>{
+    const isMe = m.senderId === state.user.id;
+    const time = m.timestamp && m.timestamp.toDate ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
+    return `<div class="${isMe? 'text-right':'text-left'}"><div class="${isMe? 'inline-block bg-gradient-to-tr from-[#4EC7B6] to-[#2FB3A3] text-white p-3 rounded-lg':'inline-block bg-white border p-3 rounded-lg'} max-w-[85%]">${escapeHtml(m.content)}<div class="text-xs small-muted mt-1">${time}${isMe && m.read? ' ✅':''}</div></div></div>`;
+  }).join('');
+  setTimeout(()=>{ const cb2=document.getElementById('chatBox'); if(cb2) cb2.scrollTop = cb2.scrollHeight; },50);
+}
+
+async function sendMessage(){
+  const input = document.getElementById('chatInput'); if(!input) return;
+  const content = input.value.trim(); if(!content) return;
+  if(!state.selectedUser) return alert('בחר שיחה');
+  const roomId = getChatRoomId(state.user.id, state.selectedUser.id);
+  const message = { senderId: state.user.id, content, timestamp: firebase.firestore.FieldValue.serverTimestamp(), read:false };
+  try {
+    await db.collection('chats').doc(roomId).collection('messages').add(message);
+    await db.collection('chats').doc(roomId).set({
+      participants: [state.user.id, state.selectedUser.id],
+      lastMessage: content,
+      lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+      [`unread_${state.selectedUser.id}`]: firebase.firestore.FieldValue.increment(1)
+    }, { merge:true });
+    input.value = '';
+    // push via Cloud Function can be added
+  } catch(e){ console.error(e); alert('שגיאה בשליחת ההודעה'); }
+}
+
+/* recompute global unread */
+async function updateUnreadTotal(){
+  if(!state.user) return;
+  try {
+    let total = 0;
+    const snap = await db.collection('chats').where('participants','array-contains', state.user.id).get();
+    snap.forEach(d=>{
+      const data = d.data();
+      const v = data[`unread_${state.user.id}`] || 0;
+      total += v;
+    });
+    state.unreadTotal = total;
+    updateHeader();
+  } catch(e){ console.warn('updateUnreadTotal', e); }
+}
+
+/* ===================== Forums functions ===================== */
 function showCreateForumModal(){ document.getElementById('createForumModal').classList.remove('hidden'); }
 function hideCreateForumModal(){ document.getElementById('createForumModal').classList.add('hidden'); }
 async function createForum(){
@@ -536,19 +647,20 @@ async function createForum(){
 }
 function searchForums(){
   const q = document.getElementById('forumSearch').value.trim().toLowerCase();
-  const arr = state.forums.filter(f => !q || (f.title && f.title.toLowerCase().includes(q)) || (f.description && f.description.toLowerCase().includes(q)));
+  const arr = (state.forums||[]).filter(f => !q || (f.title && f.title.toLowerCase().includes(q)) || (f.description && f.description.toLowerCase().includes(q)));
   const el = document.getElementById('forumsFullList'); if(!el) return;
   el.innerHTML = arr.map(f=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(f.title)}</div><div class="text-sm small-muted">${escapeHtml(f.description||'')}</div><div class="mt-2"><button class="pill btn-primary" onclick="openForum('${f.id}')">פתח</button>${state.user && state.user.role==='admin'?` <button class="pill bg-red-400" onclick="deleteForum('${f.id}')">מחק</button>`:''}</div></div>`).join('');
 }
 async function openForum(id){
-  const doc = await db.collection('forums').doc(id).get();
-  if(!doc.exists) return alert('פורום לא קיים');
-  const data = doc.data();
-  // fetch posts
-  const postsSnap = await db.collection('forums').doc(id).collection('posts').orderBy('createdAt','desc').get();
-  const posts = postsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
-  const html = `<div class="p-4"><div class="flex justify-between items-center mb-3"><div><h3 class="font-semibold">${escapeHtml(data.title)}</h3><div class="text-sm small-muted">${escapeHtml(data.description||'')}</div></div><div><button class="pill bg-white border" onclick="render();">חזור</button></div></div><div class="mb-3"><button class="pill btn-primary" onclick="createPostPrompt('${id}')">צור פוסט</button></div><div>${posts.map(p=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(p.title)}</div><div class="text-sm">${escapeHtml(p.body)}</div><div class="text-xs small-muted mt-2">${p.createdAt? new Date(p.createdAt.seconds*1000).toLocaleString():''}</div><div class="mt-2"><button class="pill bg-white border" onclick="showComments('${id}','${p.id}')">תגובות</button> ${state.user && state.user.role==='admin'?`<button class="pill bg-red-400" onclick="deletePost('${id}','${p.id}')">מחק</button>`:''}</div></div>`).join('')}</div></div>`;
-  document.getElementById('root').innerHTML = `<div class="card p-4">${html}</div>`;
+  try {
+    const doc = await db.collection('forums').doc(id).get();
+    if(!doc.exists) return alert('פורום לא קיים');
+    const data = doc.data();
+    const postsSnap = await db.collection('forums').doc(id).collection('posts').orderBy('createdAt','desc').get();
+    const posts = postsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    const html = `<div class="p-4"><div class="flex justify-between items-center mb-3"><div><h3 class="font-semibold">${escapeHtml(data.title)}</h3><div class="text-sm small-muted">${escapeHtml(data.description||'')}</div></div><div><button class="pill bg-white border" onclick="render()">חזור</button></div></div><div class="mb-3"><button class="pill btn-primary" onclick="createPostPrompt('${id}')">צור פוסט</button></div><div>${posts.map(p=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(p.title)}</div><div class="text-sm">${escapeHtml(p.body)}</div><div class="text-xs small-muted mt-2">${p.createdAt? new Date(p.createdAt.seconds*1000).toLocaleString():''}</div><div class="mt-2"><button class="pill bg-white border" onclick="showComments('${id}','${p.id}')">תגובות</button> ${state.user && state.user.role==='admin'?`<button class="pill bg-red-400" onclick="deletePost('${id}','${p.id}')">מחק</button>`:''}</div></div>`).join('')}</div></div>`;
+    document.getElementById('root').innerHTML = `<div class="card p-4">${html}</div>`;
+  } catch(e){ console.error('openForum', e); alert('שגיאה בטעינת פורום'); }
 }
 function createPostPrompt(forumId){ const t = prompt('כותרת הפוסט:'); if(!t) return; const b = prompt('תוכן הפוסט:'); if(!b) return; db.collection('forums').doc(forumId).collection('posts').add({ title:t, body:b, authorId: state.user? state.user.id : null, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(()=> openForum(forumId)); }
 function showComments(forumId, postId){ db.collection('forums').doc(forumId).collection('posts').doc(postId).collection('comments').orderBy('createdAt','asc').get().then(snap=>{ const comments = snap.docs.map(d=>d.data()); const html = `<div class="p-4"><div class="mb-3"><button class="pill bg-white border" onclick="openForum('${forumId}')">חזור</button></div><div>${comments.map(c=>`<div class="p-2 border rounded mb-2"><div class="text-sm">${escapeHtml(c.text)}</div><div class="text-xs small-muted mt-1">${c.createdAt? new Date(c.createdAt.seconds*1000).toLocaleString():''}</div></div>`).join('')}</div><div class="mt-3"><button class="pill btn-primary" onclick="addComment('${forumId}','${postId}')">הוסף תגובה</button></div></div>`; document.getElementById('root').innerHTML = `<div class="card p-4">${html}</div>`; }); }
@@ -556,7 +668,7 @@ function addComment(forumId, postId){ const t = prompt('כתוב תגובה:'); 
 async function deleteForum(id){ if(!confirm('מחק פורום?')) return; await db.collection('forums').doc(id).delete(); state.forums = state.forums.filter(f=>f.id!==id); render(); }
 async function deletePost(forumId, postId){ if(!confirm('מחק פוסט?')) return; await db.collection('forums').doc(forumId).collection('posts').doc(postId).delete(); openForum(forumId); }
 
-/* ========== Activities functions ========== */
+/* ===================== Activities functions ===================== */
 function showCreateActivityModal(){ document.getElementById('createActivityModal').classList.remove('hidden'); }
 function hideCreateActivityModal(){ document.getElementById('createActivityModal').classList.add('hidden'); }
 async function createActivity(){
@@ -575,18 +687,8 @@ async function createActivity(){
     state.activities.unshift({ id: doc.id, title, location, capacity, description: desc, ownerId: state.user?state.user.id:null });
     hideCreateActivityModal();
     render();
-  } catch(e){ console.error(e); alert('שגיאה ביצירה'); }
+  } catch(e){ console.error(e); alert('שגיאה ביצירת פעילות'); }
 }
-
-function renderActivitiesListFull(){
-  const el = document.getElementById('activitiesFullList');
-  if(!el) return;
-  el.innerHTML = state.activities.map(a => {
-    const spots = a.capacity ? `• מקומות: ${ (a.attendees ? a.attendees.length : 0) } / ${a.capacity}` : '• ללא הגבלה';
-    return `<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(a.title)}</div><div class="text-sm small-muted">${escapeHtml(a.location||'')} ${spots}</div><div class="mt-2"><button class="pill btn-primary" onclick="openActivity('${a.id}')">פתח</button> ${state.user && (state.user.id===a.ownerId || state.user.role==='admin')?`<button class="pill bg-white border" onclick="editActivityPrompt('${a.id}')">ערוך</button><button class="pill bg-red-400" onclick="deleteActivity('${a.id}')">מחק</button>`:''}</div></div>`;
-  }).join('');
-}
-function renderActivitiesSmall(){ const el=document.getElementById('activitiesListSmall'); if(!el) return; el.innerHTML = state.activities.slice(0,4).map(a=>`<div class="p-3 border rounded mb-2"><div class="font-semibold">${escapeHtml(a.title)}</div><div class="text-sm small-muted">${escapeHtml(a.location||'')}</div><div class="mt-2"><button class="pill btn-primary" onclick="openActivity('${a.id}')">פתח</button></div></div>`).join(''); }
 
 async function openActivity(id){
   const doc = await db.collection('activities').doc(id).get();
@@ -637,16 +739,16 @@ async function editActivityPrompt(id){
 }
 async function deleteActivity(id){ if(!confirm('מחק פעילות?')) return; await db.collection('activities').doc(id).delete(); fetchInitial(); }
 
-/* send message to all attendees (store as activityMessages and optionally call Cloud Function) */
+/* send message to all attendees (store as activityMessages) */
 async function messageActivity(activityId){
   const text = prompt('הודעה לרשומים:');
   if(!text) return;
   await db.collection('activities').doc(activityId).collection('activityMessages').add({ text, senderId: state.user.id, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  alert('נשלחה הודעה (נשמרה ב-Firestore). אם תרצה גם דחיפה — אממש לך Cloud Function לשליחה לפוסטים שהמשתמשים רשומים להם).');
+  alert('נשלחה הודעה (נשמרה ב-Firestore).');
 }
 
-/* ========== Help center functions ========== */
-function showHelpModal(){ document.getElementById('helpModal').classList.remove('hidden'); const sel=document.getElementById('helpCatSelect'); sel.innerHTML = state.helpCategories.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join(''); }
+/* ===================== Help center functions ===================== */
+function showHelpModal(){ document.getElementById('helpModal').classList.remove('hidden'); const sel=document.getElementById('helpCatSelect'); if(sel) sel.innerHTML = (state.helpCategories||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.title||c.name||'')}</option>`).join(''); }
 function hideHelpModal(){ document.getElementById('helpModal').classList.add('hidden'); }
 async function submitHelpRequest(){
   const cat = document.getElementById('helpCatSelect').value;
@@ -663,88 +765,13 @@ async function submitHelpRequest(){
 async function createHelpCategory(){
   const name = document.getElementById('newHelpCat').value.trim();
   if(!name) return alert('הזן שם קטגוריה');
-  const doc = await db.collection('helpCategories').add({ name });
-  state.helpCategories.push({ id: doc.id, name });
+  const doc = await db.collection('helpCenter').add({ title: name });
+  state.helpCategories.push({ id: doc.id, title: name });
   render();
 }
-async function deleteHelpCategory(id){ if(!confirm('מחק קטגוריה?')) return; await db.collection('helpCategories').doc(id).delete(); state.helpCategories = state.helpCategories.filter(c=>c.id!==id); render(); }
+async function deleteHelpCategory(id){ if(!confirm('מחק קטגוריה?')) return; await db.collection('helpCenter').doc(id).delete(); state.helpCategories = state.helpCategories.filter(c=>c.id!==id); render(); }
 
-/* ========== Users list functions ========== */
-function renderUsersList(){
-  const q = document.getElementById('userSearch') ? document.getElementById('userSearch').value.trim().toLowerCase() : '';
-  const city = document.getElementById('cityFilter') ? document.getElementById('cityFilter').value : '';
-  const list = state.users.filter(u => (city? u.city===city : true) && (q? (u.name||'').toLowerCase().includes(q) : true) && u.isActive!==false );
-  const el = document.getElementById('usersList'); if(!el) return;
-  el.innerHTML = list.map(u=>`<div class="p-3 border rounded mb-2 flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl">${u.avatarEmoji|| (u.name||'א').charAt(0)}</div><div><div class="font-semibold">${escapeHtml(u.name)}</div><div class="text-sm small-muted">${escapeHtml(u.city||'')}</div><div class="text-sm small-muted">תחביבים: ${escapeHtml((u.hobbies||[]).join(', '))}</div></div></div><div class="flex gap-2"><button class="pill btn-primary" onclick="openChat('${u.id}','${escapeHtml(u.name)}')">צ'אט</button>${state.user && state.user.role==='admin'?`<button class="pill bg-red-400" onclick="adminDeleteUser('${u.id}')">מחק</button>`:''}</div></div>`).join('');
-}
-
-/* ========== Chat functions (real-time) ========== */
-let currentChatUnsub = null;
-function renderChatUsersList(){
-  const city = document.getElementById('chatCityFilter') ? document.getElementById('chatCityFilter').value : '';
-  const list = state.users.filter(u => (city? u.city===city : true) && u.id !== (state.user? state.user.id : '') && u.isActive!==false);
-  const el = document.getElementById('chatUsersList'); if(!el) return;
-  el.innerHTML = list.map(u=>`<div class="p-2 border-b flex items-center justify-between clickable" onclick="openChat('${u.id}','${escapeHtml(u.name)}')"><div>${escapeHtml(u.name)} <div class="text-xs small-muted">${escapeHtml(u.city||'')}</div></div><div>${u.isOnline?'<span class=\"text-green-600 text-xs\">מחובר</span>':'<span class=\"text-gray-400 text-xs\">לא מחובר</span>'}</div></div>`).join('');
-}
-
-function openChat(userId, userName){
-  if(!state.user) { goTo('login'); return; }
-  state.selectedUser = state.users.find(u=>u.id===userId) || { id:userId, name: userName };
-  const roomId = getChatRoomId(state.user.id, state.selectedUser.id);
-  // reset unread in room for this user
-  db.collection('chats').doc(roomId).update({ [`unread_${state.user.id}`]: 0 }).catch(()=>{});
-  state.chatMessages = [];
-  if(currentChatUnsub) currentChatUnsub();
-  currentChatUnsub = db.collection('chats').doc(roomId).collection('messages').orderBy('timestamp').onSnapshot(snap=>{
-    state.chatMessages = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-    if(state.screen !== 'chat') { state.screen = 'chat'; render(); }
-    updateChatBox();
-    updateUnreadTotal(); // recompute global unread
-  });
-}
-
-function updateChatBox(){
-  const cb = document.getElementById('chatBox'); if(!cb) return;
-  cb.innerHTML = state.chatMessages.map(m=> {
-    const isMe = m.senderId === (state.user? state.user.id : '');
-    const time = m.timestamp && m.timestamp.toDate ? new Date(m.timestamp.toDate()).toLocaleTimeString() : '';
-    return `<div class="${isMe? 'text-right':'text-left'}"><div class="${isMe? 'inline-block bg-gradient-to-tr from-[#4EC7B6] to-[#2FB3A3] text-white p-3 rounded-lg':'inline-block bg-white border p-3 rounded-lg'} max-w-[85%]">${escapeHtml(m.content)}<div class="text-xs small-muted mt-1">${time}${isMe && m.read? ' ✅':''}</div></div></div>`;
-  }).join('');
-  setTimeout(()=>{ const cb2=document.getElementById('chatBox'); if(cb2) cb2.scrollTop = cb2.scrollHeight; },50);
-}
-
-async function sendMessage(){
-  const input = document.getElementById('chatInput'); if(!input) return;
-  const content = input.value.trim(); if(!content) return;
-  if(!state.selectedUser) return alert('בחר שיחה');
-  const roomId = getChatRoomId(state.user.id, state.selectedUser.id);
-  const msg = { senderId: state.user.id, content, timestamp: firebase.firestore.FieldValue.serverTimestamp(), read:false };
-  try {
-    await db.collection('chats').doc(roomId).collection('messages').add(msg);
-    await db.collection('chats').doc(roomId).set({
-      participants: [state.user.id, state.selectedUser.id],
-      lastMessage: content,
-      lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
-      [`unread_${state.selectedUser.id}`]: firebase.firestore.FieldValue.increment(1)
-    }, { merge:true });
-    input.value = '';
-    // Optionally call Cloud Function endpoint for push notifications (server) - see notes
-  } catch(e){ console.error('sendMessage err', e); alert('שגיאה בשליחת ההודעה'); }
-}
-
-/* recompute global unread */
-async function updateUnreadTotal(){
-  if(!state.user) return;
-  try {
-    let total = 0;
-    const snap = await db.collection('chats').where('participants','array-contains', state.user.id).get();
-    snap.forEach(d=>{ const data = d.data(); const v = data[`unread_${state.user.id}`] || 0; total += v; });
-    state.unreadTotal = total;
-    updateHeader();
-  } catch(e){ console.warn('updateUnreadTotal', e); }
-}
-
-/* ========== Registration + Login logic ========== */
+/* ===================== Registration / Auth ===================== */
 async function doRegister(){
   const name = document.getElementById('regName').value.trim();
   const username = document.getElementById('regUsername').value.trim();
@@ -754,41 +781,33 @@ async function doRegister(){
   const city = document.getElementById('regCity').value;
   const agree = document.getElementById('agreeRules').checked;
   if(!name || !email || !pwd || !age || !agree) return alert('מלא את כל השדות והסכום לתקנון');
-  // hobbies
   const hobbyChecks = Array.from(document.querySelectorAll('#hobbiesList input[type=checkbox]')).filter(i=>i.checked).map(i=>i.value);
-  const hobbyOther = document.getElementById('hobbyOtherChk').checked ? document.getElementById('hobbyOtherText').value.trim() : '';
+  const hobbyOther = document.getElementById('hobbyOtherChk') && document.getElementById('hobbyOtherChk').checked ? document.getElementById('hobbyOtherText').value.trim() : '';
   const hobbies = hobbyOther ? [...hobbyChecks.filter(h=>'אחר'!==h), hobbyOther] : hobbyChecks;
-
   const contribChecks = Array.from(document.querySelectorAll('#contribList input[type=checkbox]')).filter(i=>i.checked).map(i=>i.value);
-  const contribOther = document.getElementById('contribOtherChk').checked ? document.getElementById('contribOtherText').value.trim() : '';
+  const contribOther = document.getElementById('contribOtherChk') && document.getElementById('contribOtherChk').checked ? document.getElementById('contribOtherText').value.trim() : '';
   const contributions = contribOther ? [...contribChecks.filter(c=>'אחר'!==c), contribOther] : contribChecks;
-
-  // age check: min 60 unless admin override (we'll enforce here: >=60)
   if(age < 60) return alert('הרשמה מוגבלת לגיל 60 ומעלה. אם יש צורך בשינוי פנה למנהל.');
-
   try {
     const cred = await auth.createUserWithEmailAndPassword(email, pwd);
     const uid = cred.user.uid;
-    // avatar
     let avatarUrl = null;
     const fileIn = document.getElementById('profileImage');
     if(fileIn && fileIn.files && fileIn.files[0]){
-      avatarUrl = await readFileAsDataURL(fileIn.files[0]); // store small dataURL
+      avatarUrl = await readFileAsDataURL(fileIn.files[0]);
     } else {
       const emoji = document.getElementById('emojiChoice').value.trim();
-      if(emoji) avatarUrl = null; // will store emoji separately
+      if(emoji) avatarUrl = null;
     }
     const doc = {
       name, username, email, age, city, hobbies, contributions, role: 'user', isActive: true, joinDate: firebase.firestore.FieldValue.serverTimestamp(),
       avatarDataUrl: avatarUrl || null,
-      avatarEmoji: (!avatarUrl && document.getElementById('emojiChoice').value.trim()) || null
+      avatarEmoji: (!avatarUrl && document.getElementById('emojiChoice')? document.getElementById('emojiChoice').value.trim() : null)
     };
     await db.collection('users').doc(uid).set(doc);
     alert('נרשמת בהצלחה! היכנס כעת.');
-    // auto-login handled by onAuthStateChanged
-  } catch(e){ console.error('register err', e); alert('שגיאה בהרשמה: ' + e.message); }
+  } catch(e){ console.error('register err', e); alert('שגיאה בהרשמה: ' + (e && e.message)); }
 }
-
 function readFileAsDataURL(file){
   return new Promise((res, rej)=>{
     const r = new FileReader();
@@ -797,26 +816,25 @@ function readFileAsDataURL(file){
     r.readAsDataURL(file);
   });
 }
-
 async function doLogin(){
   const email = document.getElementById('loginEmail').value;
   const pwd = document.getElementById('loginPwd').value;
   if(!email||!pwd) return alert('הכנס אימייל וסיסמה');
   try {
     await auth.signInWithEmailAndPassword(email, pwd);
-  } catch(e){ alert('שגיאה בהתחברות: ' + e.message); }
+  } catch(e){ alert('שגיאה בהתחברות: ' + (e && e.message)); }
 }
 
-/* ========== Admin functions ========== */
+/* admin delete user */
 async function adminDeleteUser(userId){
-  if(!confirm('מחק משתמש מ-Firestore? (הזהיר: לא מוחק מ-Auth)')) return;
+  if(!confirm('מחק משתמש מ-Firestore? (לא מוחק מ-Auth)')) return;
   await db.collection('users').doc(userId).delete();
   state.users = state.users.filter(u=>u.id!==userId);
   render();
   alert('נמחק מ-Firestore. למחיקה מלאה יש להשתמש ב-Admin SDK/Cloud Function.');
 }
 
-/* promote to senior and set permissions */
+/* promote to senior */
 async function adminPromoteToSenior(userId){
   const perms = prompt('רשום הרשאות עבור משתמש בכיר (comma-separated): deleteComments, manageForums, manageActivities, handleHelpRequests', 'deleteComments,manageForums');
   const arr = perms ? perms.split(',').map(s=>s.trim()) : [];
@@ -825,52 +843,51 @@ async function adminPromoteToSenior(userId){
   fetchInitial();
 }
 
-/* ========== Auth state change & presence ========== */
+/* ===================== Auth state / presence ===================== */
 auth.onAuthStateChanged(async user=>{
   if(user){
-    const userDoc = await db.collection('users').doc(user.uid).get();
-    if(!userDoc.exists){
-      // create minimal users record
-      await db.collection('users').doc(user.uid).set({ name: user.email.split('@')[0], email: user.email, role: (user.email==='meircha.ai@gmail.com')?'admin':'user', isActive:true, joinDate: firebase.firestore.FieldValue.serverTimestamp() });
+    // ensure user doc exists
+    const docRef = db.collection('users').doc(user.uid);
+    const docSnap = await docRef.get();
+    if(!docSnap.exists){
+      await docRef.set({ name: user.email.split('@')[0], email:user.email, role: (user.email==='meircha.ai@gmail.com')?'admin':'user', isActive:true, joinDate: firebase.firestore.FieldValue.serverTimestamp() });
     }
-    const doc = await db.collection('users').doc(user.uid).get();
-    const data = doc.data();
-    state.user = { id: user.uid, ...data };
-    // mark online
-    await db.collection('users').doc(user.uid).update({ isOnline: true });
-    // setup presence on unload / blur
+    const d = (await docRef.get()).data();
+    state.user = { id:user.uid, email:user.email, name: d.name || 'משתמש', role: d.role || 'user', city: d.city || '', isActive: d.isActive!==false, avatarEmoji: d.avatarEmoji || null };
+    // presence
+    await db.collection('users').doc(user.uid).update({ isOnline: true }).catch(()=>{});
     window.addEventListener('beforeunload', ()=>{ db.collection('users').doc(user.uid).update({ isOnline: false }).catch(()=>{}); });
     window.addEventListener('blur', ()=>{ db.collection('users').doc(user.uid).update({ isOnline: false }).catch(()=>{}); });
     window.addEventListener('focus', ()=>{ db.collection('users').doc(user.uid).update({ isOnline: true }).catch(()=>{}); });
-    // fetch data & render
+    // load data
     await fetchInitial();
-    // init messaging for push (asks permission politely)
+    // messaging
     initMessagingForUser(user.uid).catch(()=>{});
-    state.screen = 'home'; render();
+    state.screen = 'home';
+    render();
   } else {
     // user logged out
-    if(state.user && state.user.id){
-      // try to set offline
-      db.collection('users').doc(state.user.id).update({ isOnline: false }).catch(()=>{});
-    }
+    try { if(state.user && state.user.id) await db.collection('users').doc(state.user.id).update({ isOnline: false }); } catch(e){/*ignore*/ }
     state.user = null;
     await fetchInitial();
-    state.screen = 'login'; render(); // IMPORTANT: redirect to login on logout (requested)
+    state.screen = 'login';
+    render();
   }
 });
 
-/* logout button */
-document.getElementById('authBtn').addEventListener('click', ()=>{
-  if(state.user) auth.signOut();
-  else goTo('login');
+/* logout button handler in header */
+document.addEventListener('click', function(e){
+  if(e.target && e.target.id === 'authBtn'){
+    if(state.user) auth.signOut();
+    else goTo('login');
+  }
 });
 
-/* ========== Messaging (FCM) client init ======== */
+/* ===================== Messaging (FCM client) ===================== */
 async function initMessagingForUser(uid){
   try {
     const perm = await Notification.requestPermission();
     if(perm !== 'granted'){ console.log('notifications not granted:', perm); return; }
-    // get token (optionally pass vapidKey)
     const token = await messaging.getToken({ vapidKey: null }).catch(e=>{ console.warn('getToken err', e); return null; });
     if(token) await db.collection('users').doc(uid).update({ fcmToken: token });
     messaging.onMessage(payload => {
@@ -883,41 +900,80 @@ async function initMessagingForUser(uid){
   } catch(e){ console.warn('initMessaging err', e); }
 }
 
-/* ========== Unread badge poll (also direct compute) ========= */
-setInterval(()=>{ if(state.user) updateUnreadTotal(); }, 20000);
-
-/* ========== Utilities: daily tip ========== */
+/* ===================== Utilities ===================== */
 const TIP_LIST = ["צאו להליכה קצרה והתחברו לטבע.", "התקשרו לחבר ותשתפו זיכרון נחמד.", "נסו להכין מנה חדשה פשוטה.", "עשו תרגילי נשימות של 5 דקות.", "כתבו מכתב תודה לאדם יקר."];
 function getDailyTip(){ const d = new Date(); return TIP_LIST[d.getDate() % TIP_LIST.length]; }
-function refreshTip(){ document.getElementById('dailyTip').innerText = getDailyTip(); }
+function renderDailyTipSafe(){
+  try {
+    const el = document.getElementById('dailyTipContainer');
+    if(!el){ console.warn('dailyTipContainer missing'); return; }
+    if(state.dailyTips && state.dailyTips.length){
+      el.innerText = state.dailyTips[0].text || getDailyTip();
+    } else {
+      el.innerText = getDailyTip();
+    }
+    // wire header button safely
+    const btn = document.getElementById('refreshTipBtnHeader');
+    if(btn){ btn.onclick = ()=>{ cycleTip(); }; }
+  } catch(e){ console.error('renderDailyTipSafe', e); }
+}
+function cycleTip(){
+  if(state.dailyTips && state.dailyTips.length){
+    // rotate array
+    state.dailyTips.push(state.dailyTips.shift());
+    renderDailyTipSafe();
+  } else {
+    // fallback random tip
+    const el = document.getElementById('dailyTipContainer');
+    if(el) el.innerText = getDailyTip();
+  }
+}
 
-/* ========== Fetch initial wrapper on load ========== */
-window.addEventListener('load', ()=>{ render(); fetchInitial(); refreshTip(); });
+/* safe refreshTip for legacy code */
+function refreshTip(text){
+  const el = document.getElementById('dailyTipContainer') || document.getElementById('dailyTipText');
+  if(!el){ console.warn('no daily tip element'); return; }
+  el.innerText = text || getDailyTip();
+}
 
-/* ================= Cloud Function example (Node.js) =================
-  // Save this as functions/index.js in Firebase Functions project
-  const functions = require('firebase-functions');
-  const admin = require('firebase-admin');
-  admin.initializeApp();
+/* populate city filters */
+function populateCityFilters(){
+  const cf = document.getElementById('cityFilter'); if(cf){ cf.innerHTML = `<option value="">הכל</option>${state.cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`; }
+  const cc = document.getElementById('chatCityFilter'); if(cc){ cc.innerHTML = `<option value="">הכל</option>${state.cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`; }
+}
 
-  exports.onNewChatMessage = functions.firestore.document('chats/{roomId}/messages/{msgId}')
-    .onCreate(async (snap, context) => {
-      const msg = snap.data();
-      const roomId = context.params.roomId;
-      const participantsDoc = await admin.firestore().doc(`chats/${roomId}`).get();
-      const participants = participantsDoc.data().participants || [];
-      const receiverId = participants.find(id => id !== msg.senderId);
-      if(!receiverId) return null;
-      const userDoc = await admin.firestore().doc(`users/${receiverId}`).get();
-      const token = userDoc.data().fcmToken;
-      if(!token) return null;
-      const payload = {
-        notification: { title: `הודעה חדשה מ-${msg.senderName || 'חבר'}`, body: msg.content.slice(0,120) },
-        data: { roomId }
-      };
-      return admin.messaging().sendToDevice(token, payload);
-    });
-  ================================================ */
+/* ========== Admin lists render ========== */
+async function loadAdminLists(){
+  if(!state.user || state.user.role!=='admin') return;
+  const usersEl = document.getElementById('adminUsersList'); if(!usersEl) return;
+  usersEl.innerHTML = (state.users||[]).map(u=>`<div class="p-2 border rounded mb-2 flex justify-between items-center">${escapeHtml(u.name)}<div><button class="pill bg-red-400" onclick="adminDeleteUser('${u.id}')">מחק</button> <button class="pill btn-sec" onclick="adminPromoteToSenior('${u.id}')">קדם</button></div></div>`).join('');
+  const repEl = document.getElementById('adminHelpCats'); if(repEl) repEl.innerHTML = (state.helpCategories||[]).map(c=>`<div class="p-2 border rounded mb-2 flex justify-between items-center">${escapeHtml(c.title||c.name||'')}<div><button class="pill bg-red-400" onclick="deleteHelpCategory('${c.id}')">מחק</button></div></div>`).join('');
+  const actEl = document.getElementById('adminActivities'); if(actEl) actEl.innerHTML = (state.activities||[]).map(a=>`<div class="p-2 border rounded mb-2">${escapeHtml(a.title)} • ${escapeHtml(a.location||'')} <div class="mt-2"><button class="pill bg-white border" onclick="openActivity('${a.id}')">פתח</button></div></div>`).join('');
+}
+
+/* ========== fetchInitial wrapper will be called on load/auth change ========== */
+
+/* ========== Event bindings ========== */
+window.addEventListener('load', ()=>{
+  render();
+  // call fetchInitial safely after short delay to allow auth to settle
+  setTimeout(()=>{ fetchInitial().catch(e=>console.warn('initial fetch err', e)); }, 300);
+  // safe periodic unread update
+  setInterval(()=>{ if(state.user) updateUnreadTotal().catch(()=>{}); }, 25000);
+});
+
+/* ===================== Error handling notes ===================== */
+/*
+ - אם תקבל 'Missing or insufficient permissions' — ודא שה-Firestore Rules מאפשרים קריאה למשתמשים המחוברים.
+ - לצורך בדיקות: אפשר להפעיל זמנית
+   match /{document=**} { allow read, write: if true; }
+   אבל אל תשכח להחזיר לכללים מאובטחים לפני פרודקשן.
+ - ודא שקיימים documents באוספים: dailyTips, helpCenter (כמו שהסברתי לפני).
+*/
+
+/* ===================== Cloud Function note (ל־push) =====================
+ אם תרצה שאשלים לך את ה-Cloud Function לפריסה, אכתוב קובץ Node.js מוכן לשים ב-functions/index.js יחד עם הוראות פריסה.
+======================================================================= */
 
 </script>
 
@@ -930,8 +986,8 @@ window.addEventListener('load', ()=>{ render(); fetchInitial(); refreshTip(); })
     </div>
     <ol class="text-sm small-muted list-decimal ml-6">
       <li>כבדו פרטיות של חברים — אין לפרסם מידע אישי ללא הסכמה ברורה.</li>
-      <li>אסור לשתף תכנים פוגעניים, אנטישמיים, גזעניים או קיצוניים.</li>
-      <li>הימנעו מהצעות עקיפה לפעילות מסחרית אשר איננה אישרה על ידי המערכת.</li>
+      <li>אסור לשתף תכנים פוגעניים, גזעניים או קיצוניים.</li>
+      <li>הימנעו מהצעות מסחריות לא מורשות ללא אישור מנהל הקהילה.</li>
       <li>האדמין וצוות הקהילה רשאים להסיר תוכן פוגעני או לשלול גישה בהתאם לשיקול דעתם.</li>
       <li>אין לראות בתכנים ייעוץ מקצועי; לכל צורך מקצועי יש לפנות לגורם מוסמך.</li>
     </ol>
