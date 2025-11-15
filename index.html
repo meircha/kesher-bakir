@@ -149,7 +149,7 @@ function render(){
       case 'login': root.innerHTML = renderLogin(); break;
       case 'register': root.innerHTML = renderRegister(); break;
       case 'forums': root.innerHTML = renderForums(); break;
-      case 'forumDetails': root.innerHTML = renderForumDetails(); break; // חדש: תצוגת פוסט ספציפי
+      case 'forumDetails': root.innerHTML = renderForumDetails(); break; 
       case 'activities': root.innerHTML = renderActivities(); break;
       case 'helpCenter': root.innerHTML = renderHelpCenter(); break;
       case 'users': root.innerHTML = renderUsers(); break;
@@ -164,7 +164,7 @@ function render(){
       case 'forums': searchForums(); break;
       case 'forumDetails': afterForumDetailsRender(); break;
       case 'activities': renderActivitiesList(); break; 
-      // case 'helpCenter': renderHelpRequestsList(); break; // יטופל בהמשך
+      case 'helpCenter': renderHelpRequestsList(); break; // עדכון: הוספת פונקציה זו
       case 'users': renderUsersList(); break;
       case 'chat': renderChatUsersList(); updateChatBox(); break;
       case 'admin': loadAdminLists(); break;
@@ -172,7 +172,8 @@ function render(){
 
   } catch(e){
     console.error('render error', e);
-    root.innerHTML = `<div class="p-4 card">שגיאה בהצגה: ${escapeHtml(e.message)}</div>`;
+    // **תיקון קריסת הרינדור הקריטי:** הצגת הודעת שגיאה ברורה במקום קריסה מלאה
+    root.innerHTML = `<div class="p-4 card text-red-600">שגיאת רינדור קריטית: ${escapeHtml(e.message)}</div>`;
   }
 }
 
@@ -181,7 +182,7 @@ function updateHeader(){
   const greeting = document.getElementById('greetingText');
   let roleText = '';
   if (state.user && state.user.role === 'admin') roleText = ' (ADMIN)';
-  if (state.user && state.user.role === 'senior') roleText = ' (בכיר)'; // 🛑 חדש: תפקיד בכיר
+  if (state.user && state.user.role === 'senior') roleText = ' (בכיר)'; 
   
   if(greeting) greeting.innerText = state.user ? `שלום, ${state.user.name}${roleText}` : '';
   const authBtn = document.getElementById('authBtn');
@@ -266,7 +267,7 @@ function afterHomeRender(){
   renderActivitiesSmall();
 }
 
-/* ===================== Login/Register (Login fix) ===================== */
+/* ===================== Login/Register ===================== */
 function renderLogin(){
   return `
     <div class="card p-6 max-w-md mx-auto">
@@ -275,7 +276,8 @@ function renderLogin(){
       <div class="mb-4"><label class="text-sm">סיסמה</label><input id="loginPwd" type="password" class="w-full p-2 border rounded" /></div>
       <div class="flex gap-2 justify-end">
         <button class="pill bg-white border" onclick="goTo('home')">בטל</button>
-        <button class="pill btn-primary" onclick="doLogin()">התחבר</button> </div>
+        <button class="pill btn-primary" onclick="doLogin()">התחבר</button> 
+      </div>
       <div class="mt-4 text-sm small-muted">אין לך חשבון? <button class="text-blue-600 underline" onclick="goTo('register')">הרשם כאן</button></div>
     </div>
   `;
@@ -343,7 +345,6 @@ function renderRegister(){
     </div>
   `;
 }
-// 🛑 פונקציות Login/Register - נוספו חזרה
 async function doLogin(){
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPwd').value;
@@ -405,7 +406,7 @@ async function doRegister(){
 }
 
 
-/* ===================== Forums (with new Admin/Senior permissions) ===================== */
+/* ===================== Forums ===================== */
 function renderForums(){
   return `
     <div class="card p-4">
@@ -489,7 +490,8 @@ function renderForumDetails(){
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-xl font-bold">${escapeHtml(forum.title)}</h2>
                 <div class="flex gap-2">
-                    ${isPermittedToDeleteForum ? `<button class="pill bg-red-500 text-white" onclick="deleteForum('${forum.id}')">מחק פורום</button>` : ''} <button class="pill bg-white border" onclick="goTo('forums')">חזור לפורומים</button>
+                    ${isPermittedToDeleteForum ? `<button class="pill bg-red-500 text-white" onclick="deleteForum('${forum.id}')">מחק פורום</button>` : ''} 
+                    <button class="pill bg-white border" onclick="goTo('forums')">חזור לפורומים</button>
                 </div>
             </div>
             <p class="text-sm small-muted mb-4">${escapeHtml(forum.description || '')}</p>
@@ -720,7 +722,7 @@ async function deleteComment(commentId){
     } catch(e){ console.error(e); alert('שגיאה במחיקת תגובה'); }
 }
 
-/* ===================== Activities (unchanged) ===================== */
+/* ===================== Activities ===================== */
 function renderActivities(){
   return `
     <div class="card p-4">
@@ -808,7 +810,7 @@ function openActivity(activityId){
 }
 
 
-/* ===================== Help Center (unchanged) ===================== */
+/* ===================== Help Center ===================== */
 function renderHelpCenter(){
   return `
     <div class="card p-4">
@@ -824,7 +826,9 @@ function renderHelpCenter(){
         <button class="pill bg-white border" onclick="toggleHelpCategories()">קטגוריות</button>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-3 mb-4 hidden" id="helpCategoriesGrid"></div>
+      <div class="grid md:grid-cols-3 gap-3 mb-4 hidden" id="helpCategoriesGrid">
+          ${(state.helpCategories||[]).map(c=>`<div class="p-4 card clickable" onclick="filterHelpRequests('${c.id}')">${escapeHtml(c.title||c.name||'')}</div>`).join('') || '<div class="p-4 text-sm small-muted col-span-full">לא הוגדרו קטגוריות עזרה (אדמין נדרש להגדיר).</div>'}
+      </div>
 
       <div id="helpRequestsList"></div>
 
@@ -849,32 +853,82 @@ function toggleHelpCategories(){
     if(!grid) return;
     if(grid.classList.contains('hidden')){
         grid.classList.remove('hidden');
-        grid.innerHTML = (state.helpCategories||[]).map(c=>`<div class="p-4 card clickable" onclick="filterHelpRequests('${c.id}')">${escapeHtml(c.title||c.name||'')}</div>`).join('');
-        if(state.helpCategories.length === 0){
-             grid.innerHTML = '<div class="p-4 text-sm small-muted col-span-full">לא הוגדרו קטגוריות עזרה (אדמין נדרש להגדיר).</div>';
-        }
     } else {
         grid.classList.add('hidden');
     }
 }
+function renderHelpRequestsList(){
+    const el = document.getElementById('helpRequestsList'); if(!el) return;
+    if(!state.helpRequests || state.helpRequests.length === 0){
+        el.innerHTML = '<div class="text-gray-500">אין בקשות עזרה פתוחות כרגע.</div>';
+        return;
+    }
+
+    el.innerHTML = state.helpRequests.map(r=>{
+        const author = state.users.find(u => u.id === r.authorId) || { name: 'משתמש לא ידוע' };
+        const category = state.helpCategories.find(c => c.id === r.categoryId) || { title: 'כללי' };
+        const statusClass = r.status === 'open' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+
+        return `
+            <div class="p-3 border rounded mb-2">
+                <div class="flex justify-between items-center">
+                    <div class="font-semibold">${escapeHtml(r.title)}</div>
+                    <span class="text-xs pill ${statusClass}">${r.status === 'open' ? 'פתוח' : 'טופל'}</span>
+                </div>
+                <div class="text-sm small-muted mt-1">קטגוריה: ${escapeHtml(category.title)} | מאת: ${escapeHtml(author.name)}</div>
+                <div class="text-sm mt-2">${escapeHtml(r.body.substring(0, 100))}...</div>
+                <div class="mt-2 text-right">
+                    <button class="pill btn-primary text-xs" onclick="viewHelpRequest('${r.id}')">פתח</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 function filterHelpRequests(categoryId){
     alert(`מסנן בקשות לפי קטגוריה: ${categoryId}`);
 }
-function showHelpModal(){ document.getElementById('helpModal').classList.remove('hidden'); const sel=document.getElementById('helpCatSelect'); if(sel) sel.innerHTML = (state.helpCategories||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.title||c.name||'')}</option>`).join(''); }
+function showHelpModal(){ 
+    if(!state.user) return goTo('login');
+    document.getElementById('helpModal').classList.remove('hidden'); 
+    const sel=document.getElementById('helpCatSelect'); 
+    if(sel) sel.innerHTML = (state.helpCategories||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.title||c.name||'')}</option>`).join('');
+    if(state.helpCategories.length === 0){
+        sel.innerHTML = '<option value="">(אין קטגוריות, פנה לאדמין)</option>';
+        alert('אין קטגוריות עזרה זמינות. נא לפנות למנהל האתר.');
+    }
+}
 function hideHelpModal(){ document.getElementById('helpModal').classList.add('hidden'); }
 async function submitHelpRequest(){
   const cat = document.getElementById('helpCatSelect').value;
   const title = document.getElementById('helpTitle').value.trim();
   const body = document.getElementById('helpBody').value.trim();
-  if(!title||!body) return alert('מלא כותרת ותיאור');
-  await db.collection('helpRequests').add({ categoryId: cat, title, body, authorId: state.user? state.user.id : null, status:'open', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  alert('הבקשה נשלחה לקהילה');
-  hideHelpModal();
-  fetchInitial();
+  if(!title||!body || !cat) return alert('מלא את כל השדות ובחר קטגוריה');
+  
+  try {
+    await db.collection('helpRequests').add({ 
+        categoryId: cat, title, body, 
+        authorId: state.user? state.user.id : null, 
+        status:'open', 
+        createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+    });
+    alert('הבקשה נשלחה לקהילה');
+    hideHelpModal();
+    // Fetch and re-render the list
+    await db.collection('helpRequests').get().then(snap => {
+        state.helpRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderHelpRequestsList();
+    });
+  } catch(e) {
+      console.error(e);
+      alert('שגיאה בשליחת בקשת עזרה');
+  }
+}
+function viewHelpRequest(requestId){
+    alert(`פותח בקשת עזרה: ${requestId}`);
+    // Future implementation: render a dedicated help request details page
 }
 
-
-/* ===================== Users (unchanged) ===================== */
+/* ===================== Users ===================== */
 function renderUsers(){
   return `
     <div class="card p-4">
@@ -919,7 +973,7 @@ function renderUsersList(){
   el.innerHTML = list.map(u=>`<div class="p-3 border rounded mb-2 flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl">${u.avatarEmoji|| (u.name||'א').charAt(0)}</div><div><div class="font-semibold">${escapeHtml(u.name)}</div><div class="text-sm small-muted">${escapeHtml(u.city||'')}</div><div class="text-sm small-muted">תחביבים: ${escapeHtml((u.hobbies||[]).join(', '))}</div></div></div><div class="flex gap-2"><button class="pill btn-primary" onclick="openChat('${u.id}','${escapeHtml(u.name)}')">צ'אט</button>${state.user && state.user.role==='admin'?`<button class="pill bg-red-400" onclick="adminDeleteUser('${u.id}')">מחק</button>`:''}</div></div>`).join('');
 }
 
-/* ===================== Chat (unchanged) ===================== */
+/* ===================== Chat ===================== */
 function renderChat(){
   if(!state.user) return `<div class="card p-4">אנא התחבר כדי להשתמש בצ'אט</div>`;
   return `
@@ -1009,7 +1063,7 @@ function renderChatUsersList(){
       
       const isUnread = u.chatMeta.unreadCount > 0;
 
-      return `<div class="p-2 border-b flex items-center justify-between clickable ${isUnread ? 'bg-yellow-50/70 font-semibold' : ''}" onclick="openChat('${u.id}','${escapeHtml(u.name)}')">
+      return `<div class="p-2 border-b flex items-center justify-between clickable ${isUnread ? 'bg-yellow-50/70 font-semibold' : ''}" onclick="openChat('${u.id}','${escapeHtml(u.name}')">
           <div class="flex flex-col">
               <div class="flex items-center gap-2">
                   <span>${escapeHtml(u.name)}</span> ${unreadBadge}
@@ -1020,11 +1074,144 @@ function renderChatUsersList(){
       </div>`;
   }).join('');
 }
-// ... (chat functions unchanged)
-// ...
+// Placeholder chat functions (need to be implemented for full functionality)
+let currentChatUnsub = null;
+async function openChat(userId, userName){
+    if(!state.user) return goTo('login');
+    if(currentChatUnsub) currentChatUnsub();
+    state.selectedUser = { id: userId, name: userName };
+    state.chatMessages = [];
+    updateChatBox();
+
+    const roomId = getChatRoomId(state.user.id, userId);
+
+    // 1. Mark as read
+    const myUnreadField = `unread_${state.user.id}`;
+    db.collection('chats').doc(roomId).update({ [myUnreadField]: 0 })
+        .then(() => updateUnreadTotal())
+        .catch(e => console.warn('Failed to mark chat as read:', e));
+
+    // 2. Listen to new messages
+    currentChatUnsub = db.collection('chats').doc(roomId).collection('messages')
+        .orderBy('createdAt', 'asc')
+        .limit(50)
+        .onSnapshot(snap => {
+            state.chatMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            updateChatBox(); 
+        }, err => console.error('Chat listen failed', err));
+}
+function updateChatBox(){
+    const box = document.getElementById('chatBox');
+    if(!box) return;
+    if(!state.selectedUser) {
+        box.innerHTML = '<div class="text-center text-gray-500 mt-10">בחר חבר כדי להתחיל שיחה.</div>';
+        return;
+    }
+
+    const userName = state.selectedUser.name;
+    const myId = state.user.id;
+    
+    let html = `<div class="text-center text-sm small-muted mb-4 border-b pb-2">שיחה עם <strong>${escapeHtml(userName)}</strong></div>`;
+    
+    if(state.chatMessages.length === 0) {
+         html += '<div class="text-center text-gray-500 mt-10">השיחה מתחילה עכשיו!</div>';
+    } else {
+        html += state.chatMessages.map(m => {
+            const isMe = m.authorId === myId;
+            return `<div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
+                <div class="max-w-xs p-3 rounded-lg ${isMe ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}">
+                    <div class="text-xs small-muted ${isMe ? 'text-blue-100' : 'text-gray-500'} mb-1">${isMe ? 'אני' : escapeHtml(userName)}</div>
+                    ${escapeHtml(m.body)}
+                </div>
+            </div>`;
+        }).join('');
+    }
+    
+    box.innerHTML = html;
+    box.scrollTop = box.scrollHeight;
+}
+async function sendMessage(){
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    if(!message || !state.selectedUser) return;
+
+    const myId = state.user.id;
+    const otherId = state.selectedUser.id;
+    const roomId = getChatRoomId(myId, otherId);
+
+    try {
+        const batch = db.batch();
+        const chatRef = db.collection('chats').doc(roomId);
+        const msgRef = chatRef.collection('messages').doc();
+        
+        // 1. Add message
+        batch.set(msgRef, {
+            body: message,
+            authorId: myId,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // 2. Update chat metadata (last message and unread count for *other* user)
+        const otherUnreadField = `unread_${otherId}`;
+        const chatMeta = {
+            participants: [myId, otherId],
+            lastMessage: message,
+            lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+            [otherUnreadField]: firebase.firestore.FieldValue.increment(1),
+            [`unread_${myId}`]: 0 // My unread count remains 0
+        };
+        batch.set(chatRef, chatMeta, { merge: true });
+
+        await batch.commit();
+
+        input.value = ''; // Clear input
+    } catch(e) {
+        console.error('Failed to send message:', e);
+        alert('שגיאה בשליחת הודעה');
+    }
+}
+async function updateUnreadTotal(){
+    if(!state.user) return;
+    const myId = state.user.id;
+    const myUnreadField = `unread_${myId}`;
+    
+    try {
+        const chatsSnap = await db.collection('chats')
+            .where('participants', 'array-contains', myId)
+            .get();
+        
+        let total = 0;
+        let newChatsMeta = {};
+        chatsSnap.forEach(d => {
+            const data = d.data();
+            const unread = data[myUnreadField] || 0;
+            total += unread;
+
+            // Also update chat metadata for chat users list
+            const otherId = data.participants.find(p => p !== myId);
+            if (otherId) {
+                newChatsMeta[otherId] = {
+                    lastMessageTime: data.lastMessageTime,
+                    unreadCount: unread,
+                    lastMessage: data.lastMessage
+                };
+            }
+        });
+
+        state.unreadTotal = total;
+        state.chatsMeta = newChatsMeta;
+        
+        // If we are on the chat screen, re-render user list to reflect unread counts
+        if(state.screen === 'chat') renderChatUsersList();
+        
+        updateHeader();
+    } catch(e){
+        console.warn('Failed to update unread total:', e);
+    }
+}
 
 
-/* ===================== Admin (unchanged) ===================== */
+/* ===================== Admin ===================== */
 function renderAdmin(){
   if(!state.user || state.user.role !== 'admin') return goTo('home');
   return `
@@ -1034,7 +1221,7 @@ function renderAdmin(){
       <div class="grid md:grid-cols-2 gap-4">
         <div class="p-3 border rounded">
           <h4 class="font-semibold mb-2">משתמשים</h4>
-          <div id="adminUsersList"></div>
+          <div id="adminUsersList">טוען...</div>
         </div>
 
         <div class="p-3 border rounded">
@@ -1051,8 +1238,75 @@ function renderAdmin(){
     </div>
   `;
 }
-// ... (admin functions unchanged)
-// ...
+function loadAdminLists(){
+    renderAdminUsersList();
+    renderAdminHelpCategories();
+}
+function renderAdminUsersList(){
+    const el = document.getElementById('adminUsersList'); if(!el) return;
+    const adminList = state.users.filter(u => u.id !== state.user.id);
+    
+    el.innerHTML = adminList.map(u => {
+        const role = u.role === 'admin' ? 'אדמין' : (u.role === 'senior' ? 'בכיר' : 'רגיל');
+        return `
+            <div class="p-2 border-b flex justify-between items-center text-sm">
+                <span>${escapeHtml(u.name)} (${role})</span>
+                <button class="pill bg-red-400 text-white text-xs" onclick="adminDeleteUser('${u.id}')">מחק</button>
+            </div>
+        `;
+    }).join('');
+}
+async function adminDeleteUser(userId){
+    if(!state.user || state.user.role !== 'admin') return;
+    if(!confirm(`האם אתה בטוח שברצונך למחוק את המשתמש הזה?`)) return;
+
+    try {
+        // In a real app, this would be a Cloud Function call to delete Auth and Firestore data.
+        // Here, we just mark the user as inactive in Firestore for simplicity.
+        await db.collection('users').doc(userId).update({ isActive: false, isOnline: false });
+        alert('המשתמש סומן כלא פעיל. יש למחוק אותו גם מ-Firebase Auth ידנית.');
+        await fetchInitial(); 
+        renderAdminUsersList(); 
+    } catch(e) {
+        console.error('Admin delete failed', e);
+        alert('שגיאה במחיקת משתמש');
+    }
+}
+async function createHelpCategory(){
+    const title = document.getElementById('newHelpCat').value.trim();
+    if(!title) return alert('נא למלא שם קטגוריה');
+
+    try {
+        const doc = await db.collection('helpCenter').add({ title, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        state.helpCategories.push({ id: doc.id, title });
+        document.getElementById('newHelpCat').value = '';
+        renderAdminHelpCategories();
+    } catch(e){
+        console.error('Create help category failed', e);
+        alert('שגיאה ביצירת קטגוריה');
+    }
+}
+function renderAdminHelpCategories(){
+    const el = document.getElementById('adminHelpCats'); if(!el) return;
+    el.innerHTML = (state.helpCategories||[]).map(c => `
+        <div class="p-2 border-b flex justify-between items-center text-sm">
+            <span>${escapeHtml(c.title)}</span>
+            <button class="pill bg-red-400 text-white text-xs" onclick="deleteHelpCategory('${c.id}')">מחק</button>
+        </div>
+    `).join('') || '<div class="text-gray-500">אין קטגוריות</div>';
+}
+async function deleteHelpCategory(categoryId){
+    if(!confirm('האם אתה בטוח שברצונך למחוק קטגוריה זו?')) return;
+
+    try {
+        await db.collection('helpCenter').doc(categoryId).delete();
+        state.helpCategories = state.helpCategories.filter(c => c.id !== categoryId);
+        renderAdminHelpCategories();
+    } catch(e){
+        console.error('Delete help category failed', e);
+        alert('שגיאה במחיקת קטגוריה');
+    }
+}
 
 
 /* ===================== Data fetch / sync ===================== */
@@ -1076,9 +1330,15 @@ async function fetchInitial(){
 
     // helpCategories (helpCenter)
     try {
-      const helpSnap = await db.collection('helpCenter').get();
-      state.helpCategories = helpSnap.docs.map(d=>({ id:d.id, ...d.data() }));
-    } catch(e){ console.warn('helpCenter fetch failed', e); state.helpCategories = []; }
+      const helpCatsSnap = await db.collection('helpCenter').get();
+      state.helpCategories = helpCatsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    } catch(e){ console.warn('helpCenter categories fetch failed', e); state.helpCategories = []; }
+    
+    // helpRequests
+    try {
+      const helpReqsSnap = await db.collection('helpRequests').orderBy('createdAt', 'desc').get();
+      state.helpRequests = helpReqsSnap.docs.map(d=>({ id: d.id, ...d.data() }));
+    } catch(e) { console.warn('helpRequests fetch failed', e); state.helpRequests = []; }
 
     // daily tips
     try {
@@ -1109,7 +1369,9 @@ async function fetchInitial(){
 
     // populate cities
     state.cities = Array.from(new Set(state.users.map(u=>u.city).filter(Boolean))).sort();
-    populateCityFilters();
+    
+    // 🛑 תיקון: קריאה לפונקציה הממלאת את הסינונים לאחר אחזור הנתונים
+    populateCityFilters(); 
 
     // update header/unread
     if(state.user) updateUnreadTotal();
@@ -1122,7 +1384,7 @@ async function fetchInitial(){
   }
 }
 
-/* ===================== Utilities (unchanged) ===================== */
+/* ===================== Utilities ===================== */
 const TIP_LIST = ["צאו להליכה קצרה והתחברו לטבע.", "התקשרו לחבר ותשתפו זיכרון נחמד.", "נסו להכין מנה חדשה פשוטה.", "עשו תרגילי נשימות של 5 דקות.", "כתבו מכתב תודה לאדם יקר."];
 function getDailyTip(){ const d = new Date(); return TIP_LIST[d.getDate() % TIP_LIST.length]; }
 function renderDailyTipSafe(){
@@ -1148,8 +1410,39 @@ function cycleTip(){
   }
 }
 function populateCityFilters(){
-  const cf = document.getElementById('cityFilter'); if(cf){ cf.innerHTML = `<option value="">הכל</option>${state.cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`; }
-  const cc = document.getElementById('chatCityFilter'); if(cc){ cc.innerHTML = `<option value="">הכל</option>${state.cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`; }
+  const cf = document.getElementById('cityFilter'); 
+  if(cf){ 
+    cf.innerHTML = `<option value="">כל הערים</option>${state.cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`; 
+  }
+  const cc = document.getElementById('chatCityFilter'); 
+  if(cc){ 
+    cc.innerHTML = `<option value="">כל הערים</option>${state.cities.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`; 
+  }
+}
+// Placeholder functions for small lists in home screen
+function renderForumsSmall(){
+    const el = document.getElementById('forumsListSmall');
+    if(el) el.innerHTML = (state.forums||[]).slice(0, 3).map(f => `
+        <div class="p-2 border-b last:border-b-0 clickable" onclick="openForum('${f.id}')">
+            <div class="font-semibold text-sm">${escapeHtml(f.title)}</div>
+            <div class="text-xs small-muted">${f.postCount||0} פוסטים</div>
+        </div>
+    `).join('') || '<div class="text-gray-500 text-sm">אין פורומים חדשים.</div>';
+}
+function renderActivitiesSmall(){
+    const el = document.getElementById('activitiesListSmall');
+    const today = new Date().toISOString().split('T')[0];
+    const upcoming = (state.activities || []).filter(a => (a.date || '') >= today).sort((a, b) => (a.date || '').localeCompare(b.date || '')).slice(0, 3);
+    
+    if(el) el.innerHTML = upcoming.map(a => `
+        <div class="p-2 border-b last:border-b-0">
+            <div class="font-semibold text-sm">${escapeHtml(a.title)}</div>
+            <div class="text-xs small-muted">${a.date || 'תאריך לא ידוע'} - ${escapeHtml(a.location || 'לא צוין')}</div>
+        </div>
+    `).join('') || '<div class="text-gray-500 text-sm">אין פעילויות קרובות.</div>';
+}
+function showRules(){
+    document.getElementById('rulesModal').classList.remove('hidden');
 }
 
 
