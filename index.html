@@ -129,12 +129,16 @@ function showToast(msg){ alert(msg); }
 
 /* ========== Router / Render ========== */
 function goTo(screen, params){ state.screen = screen; if(params) Object.assign(state, params); render(); }
+
+// 🛑 ==================== התיקון כאן ==================== 🛑
+// הוספנו קריאות לפונקציות המילוי (כמו renderUsersList) לאחר רינדור המסגרת
 function render(){
   updateHeader();
   const root = document.getElementById('root');
   try {
+    // שלב 1: רינדור המסגרת
     switch(state.screen){
-      case 'home': root.innerHTML = renderHome(); afterHomeRender(); break;
+      case 'home': root.innerHTML = renderHome(); break;
       case 'login': root.innerHTML = renderLogin(); break;
       case 'register': root.innerHTML = renderRegister(); break;
       case 'forums': root.innerHTML = renderForums(); break;
@@ -145,11 +149,26 @@ function render(){
       case 'admin': root.innerHTML = renderAdmin(); break;
       default: root.innerHTML = '<div>טעות ניווט</div>';
     }
+
+    // שלב 2: קריאה לפונקציות שממלאות את התוכן
+    // (זה התיקון לבעיית הרשימות הריקות)
+    switch(state.screen){
+      case 'home': afterHomeRender(); break;
+      case 'forums': searchForums(); break;
+      // case 'activities': renderActivitiesList(); break; // (פונקציה זו טרם נכתבה בקוד שלך)
+      // case 'helpCenter': renderHelpRequestsList(); break; // (פונקציה זו טרם נכתבה בקוד שלך)
+      case 'users': renderUsersList(); break;
+      case 'chat': renderChatUsersList(); updateChatBox(); break;
+      case 'admin': loadAdminLists(); break;
+    }
+
   } catch(e){
     console.error('render error', e);
     root.innerHTML = `<div class="p-4 card">שגיאה בהצגה: ${escapeHtml(e.message)}</div>`;
   }
 }
+// 🛑 ==================== סוף התיקון ==================== 🛑
+
 
 /* ========== Header updates ========== */
 function updateHeader(){
