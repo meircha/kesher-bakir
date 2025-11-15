@@ -84,7 +84,7 @@
     // 1. הגדרות וייבוא ספריות
     // =========================================================
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, serverTimestamp, setLogLevel, getDocs, updateDoc, arrayUnion, arrayRemove, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     
     // ======= ה‑Firebase config שהדבקת =======
@@ -100,8 +100,8 @@
     // ========================================
 
     // **הגדרות סביבת Canvas (חובה להשתמש במשתנים הגלובליים)**
-    const appId = 'default-kesher-app-id';
-
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kesher-app-id';
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
     // **משתנים גלובליים ל-Firebase**
     let app, db, auth;
 
@@ -109,12 +109,12 @@
     // 2. ניהול מצב (State Management)
     // =========================================================
     const state = {
-        screen: 'loading', // 'loading', 'login', 'register', 'home', 'forum', 'singlePost', 'profile', 'addPost', 'editProfile'
-        user: null, // אובייקט המשתמש (מתוך Firestore)
-        posts: [], // כל הפוסטים בפורום
-        currentPost: null, // פוסט ספציפי לצפייה
-        allUsers: {}, // מפה של {uid: {displayName, avatar, gender}} לטובת הצגת שמות
-        error: null, // הודעת שגיאה גלובלית
+        screen: 'loading',
+        user: null,
+        posts: [],
+        currentPost: null,
+        allUsers: {},
+        error: null,
     };
 
     // =========================================================
@@ -1046,6 +1046,21 @@
             
             console.log("Firebase Debug: Firebase App Initialized. Starting Auth check...");
 
+            // אם יש token אתחול ניסיון כניסה
+            if (initialAuthToken) {
+                try {
+                    console.log("Firebase Debug: Attempting sign-in with custom token...");
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Firebase Debug: Custom token sign-in successful.");
+                } catch (e) {
+                    console.error("שגיאת ק�ונית: כשל בהתחברות עם Token ראשוני.", e);
+                    try { await signOut(auth); } catch(_) {}
+                }
+            } else {
+                // ניסיון כניסה אנונימית כשאין טוקן
+                try { await signInAnonymously(auth); } catch(e){ /* לא קריטי */ }
+            }
+
             return true;
         } catch (error) {
             console.error("שגיאה קריטית: כשל באתחול Firebase SDK.", error);
@@ -1054,7 +1069,8 @@
         }
     }
     
-    async function initializeApp() {
+    // renamed to avoid clash with imported initializeApp
+    async function startApp() {
         goTo('loading');
         
         const firebaseReady = await initializeFirebase();
@@ -1108,7 +1124,8 @@
         });
     }
 
-    initializeApp(); 
+    // start the app (note: function renamed to avoid collision with imported initializeApp)
+    startApp(); 
 </script>
 
 <!-- Terms modal (simple) -->
