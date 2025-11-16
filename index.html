@@ -3,21 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>קהילה 60+</title>
+  <title>קהילת קשר 60+</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <style>
-    /* --- צבעים ועיצוב כללי --- */
     :root{
-      --primary:#2B6CB0; /* כחול ראשי */
-      --accent:#38B2AC; /* טורקיז */
-      --bg:#F7FAFC; /* רקע */
+      --primary:#2B6CB0;
+      --accent:#38B2AC;
+      --bg:#F7FAFC;
       --card:#FFFFFF;
       --muted:#4A5568;
-      --danger: #E53E3E; /* שגיאה */
+      --danger: #E53E3E;
     }
     html,body { height:100%; }
     body{ background:var(--bg); font-family: "Segoe UI", Roboto, Arial, sans-serif; color:#1a202c; -webkit-font-smoothing:antialiased; margin:0; padding:0; }
@@ -66,41 +65,33 @@
 </div>
 
 <!-- אזור האפליקציה -->
-<div id="app-container" class="flex-grow flex flex-col items-center">
-    <!-- התוכן מוטען דינמית -->
-</div>
+<div id="app-container" class="flex-grow flex flex-col items-center"></div>
 
 <script type="module">
     // =========================================================
-    // יבוא Firebase
+    // 1. יבוא Firebase
     // =========================================================
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, serverTimestamp, setLogLevel, getDocs, updateDoc, arrayUnion, arrayRemove, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     
-    // ======= Firebase config - בדוק את הערכים בקונסול של הפרויקט שלך =======
+    // ======= Firebase config - ודא שהערכים כאן תואמים לפרויקט שלך ב־Firebase =======
     const firebaseConfig = {
       apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM",
       authDomain: "kesher-bakir.firebaseapp.com",
       projectId: "kesher-bakir",
-      // תוקן: storageBucket תקין לפורמט של Firebase
-      storageBucket: "kesher-bakir.appspot.com",
+      storageBucket: "kesher-bakir.appspot.com", // תוקן
       messagingSenderId: "671996189455",
       appId: "1:671996189455:web:d8ee089585a852ab38fc7a",
       measurementId: "G-42EWSKFHXP"
     };
     // ========================================================================
 
-    // אפשרויות התחלה חיצוניות (אם השרת שלך מספק טוקן)
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kesher-app-id';
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    // משתנים עולמיים ל‑Firebase
     let app, db, auth;
 
-    // =========================================================
-    // State (ניהול מצב פשוט)
-    // =========================================================
     const state = {
         screen: 'loading',
         user: null,
@@ -108,13 +99,14 @@
         currentPost: null,
         allUsers: {},
         error: null,
+        pendingAuth: null, // אם Auth קיים אבל אין פרופיל Firestore
     };
 
     // =========================================================
-    // פונקציות עזר להצגת שגיאות וניווט
+    // UI & Utility
     // =========================================================
     function showError(message, critical = false) {
-        console.error("שגיאה פנימית:", message);
+        console.error("ERROR:", message);
         state.error = message;
         
         const errorBox = document.getElementById('error-message-box');
@@ -194,7 +186,7 @@
     }
     
     // =========================================================
-    // Interactions עם Firebase (Auth + Firestore)
+    // Firebase functions
     // =========================================================
 
     function showRules() {
@@ -225,10 +217,10 @@
             }
             
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            console.log("התחברות בוצעה בהצלחה:", userCredential.user.email);
+            console.log("Signed in:", userCredential.user.email);
             return true;
         } catch (error) {
-            console.error("שגיאה בכניסה:", error);
+            console.error("Login error:", error, "code:", error.code, "message:", error.message);
             showError(`שגיאת כניסה: ${getFirebaseErrorMessage(error.code)}`);
             return false;
         }
@@ -246,6 +238,33 @@
              return false;
         }
         
+        // אם יש pendingAuth - המשתמש כבר נמצא ב‑Auth אך חסר פרופיל ב‑Firestore
+        if (state.pendingAuth) {
+            try {
+                const uid = state.pendingAuth.uid;
+                const userProfileRef = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'data');
+                await setDoc(userProfileRef, {
+                    uid: uid,
+                    email: state.pendingAuth.email || email,
+                    displayName: displayName,
+                    gender: gender,
+                    avatar: gender === 'male' ? 'https://placehold.co/400x400/2B6CB0/ffffff?text=M' : 'https://placehold.co/400x400/38B2AC/ffffff?text=F',
+                    createdAt: serverTimestamp(),
+                    lastLogin: serverTimestamp(),
+                    bio: `היי, אני ${displayName} בקהילה!`
+                });
+                state.user = { uid, email: state.pendingAuth.email || email, displayName, gender, avatar: gender === 'male' ? 'https://placehold.co/400x400/2B6CB0/ffffff?text=M' : 'https://placehold.co/400x400/38B2AC/ffffff?text=F', bio: `היי, אני ${displayName} בקהילה!` };
+                state.pendingAuth = null;
+                await fetchInitialData();
+                goTo('home');
+                return true;
+            } catch (error) {
+                console.error("Error creating profile from pendingAuth:", error);
+                showError("שגיאה ביצירת פרופיל. נסה שוב.");
+                return false;
+            }
+        }
+
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
@@ -263,11 +282,11 @@
                 bio: `היי, אני ${displayName} בקהילה!`
             });
             
-            console.log("נוצר פרופיל חדש עבור:", user.email);
+            console.log("User registered and profile created:", user.email);
             return true;
 
         } catch (error) {
-            console.error("שגיאה בהרשמה:", error);
+            console.error("Register error:", error);
             showError(`שגיאת רישום: (${getFirebaseErrorMessage(error.code)})`);
             return false;
         }
@@ -294,7 +313,7 @@
             }
             render();
         }, (error) => {
-            console.error("שגיאה בעדכון פוסטים:", error);
+            console.error("Error updating posts:", error);
             showError("שגיאה בעדכון פוסטים. בדוק חיבור.");
         });
 
@@ -319,7 +338,7 @@
             state.allUsers = userMap;
             console.log("Firebase Debug: Users map loaded. Count:", Object.keys(state.allUsers).length);
         } catch (error) {
-            console.error("שגיאה בטעינת משתמשים:", error);
+            console.error("Error loading users:", error);
             showError("שגיאה בטעינת משתמשים.");
         }
     }
@@ -345,7 +364,7 @@
             goTo('forum');
             return true;
         } catch (error) {
-            console.error("שגיאה ביצירת פוסט:", error);
+            console.error("Add post error:", error);
             showError("שגיאה ביצירת פוסט. בדוק הרשאות Firestore.");
             return false;
         }
@@ -376,7 +395,7 @@
             }
 
         } catch (error) {
-            console.error("שגיאה בהוספת תגובה:", error);
+            console.error("Add comment error:", error);
             showError("שגיאה בהוספת תגובה.");
         }
     }
@@ -400,14 +419,14 @@
                 });
             }
         } catch (error) {
-            console.error("שגיאה בעדכון לייק:", error);
+            console.error("Toggle like error:", error);
             showError("שגיאה בעדכון לייק.");
         }
     }
 
 
     // =========================================================
-    // תבניות UI (Cards)
+    // UI templates (שמרתי את כל המסכים)
     // =========================================================
 
     function PostCard(post) {
@@ -419,7 +438,7 @@
             <div class="post-card p-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer" onclick="goTo('singlePost', {postId: '${post.id}'})">
                 <div class="flex-grow">
                     <div class="flex items-center mb-1">
-                        <img src="${user.avatar}" alt="תמונת ${user.displayName}" class="w-8 h-8 rounded-full ml-3 border-2 border-kesher-secondary">
+                        <img src="${user.avatar}" alt="תמונה ${user.displayName}" class="w-8 h-8 rounded-full ml-3 border-2 border-kesher-secondary">
                         <span class="text-sm font-semibold text-kesher-text">${user.displayName}</span>
                         <span class="small-muted mr-3">| ${formatTimestamp(post.createdAt)}</span>
                     </div>
@@ -445,7 +464,7 @@
         
         return `
             <div class="comment-card p-4 my-3 rounded-lg flex">
-                <img src="${user.avatar}" alt="תמונת ${user.displayName}" class="w-10 h-10 rounded-full border-2 border-kesher-accent ml-3">
+                <img src="${user.avatar}" alt="תמונה ${user.displayName}" class="w-10 h-10 rounded-full border-2 border-kesher-accent ml-3">
                 <div class="flex-grow">
                     <div class="flex justify-between items-start mb-1">
                         <span class="font-semibold text-kesher-text">${user.displayName}</span>
@@ -458,7 +477,7 @@
     }
 
     // =========================================================
-    // Views (כל המסכים הוצבו חזרה ושומרו)
+    // Views (כל המסכים שלך נשמרו)
     // =========================================================
 
     function renderLoading() {
@@ -472,6 +491,7 @@
     }
     
     function renderLogin() {
+        const prefill = state.pendingAuth?.email || '';
         return `
             <div class="flex flex-col items-center justify-center w-full min-h-screen p-4">
                 <div class="card p-8 w-full max-w-md text-center">
@@ -481,7 +501,7 @@
                     
                     <form id="loginForm" class="space-y-4">
                         <input type="email" id="loginEmail" placeholder="אימייל" required 
-                               class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr">
+                               class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr" value="${prefill}">
                         <input type="password" id="loginPassword" placeholder="סיסמה" required 
                                class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr">
                         
@@ -502,6 +522,7 @@
     }
     
     function renderRegister() {
+        const prefill = state.pendingAuth?.email || '';
         return `
             <div class="flex flex-col items-center justify-center w-full min-h-screen p-4">
                 <div class="card p-8 w-full max-w-md text-center">
@@ -510,7 +531,7 @@
                     
                     <form id="registerForm" class="space-y-4">
                         <input type="email" id="registerEmail" placeholder="אימייל" required 
-                               class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr">
+                               class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr" value="${prefill}">
                         <input type="password" id="registerPassword" placeholder="סיסמה (6 תווים לפחות)" required 
                                class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr">
                         <input type="text" id="registerDisplayName" placeholder="שם תצוגה" required 
@@ -553,7 +574,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     
                     <div class="md:col-span-2 card p-6 bg-white flex items-center shadow-xl">
-                        <img src="${user.avatar}" alt="תמונת פרופיל" class="w-20 h-20 rounded-full border-4 border-kesher-accent ml-4 shadow-md">
+                        <img src="${user.avatar}" alt="תמונה" class="w-20 h-20 rounded-full border-4 border-kesher-accent ml-4 shadow-md">
                         <div>
                             <p class="text-xl text-gray-500">שלום, ${user.displayName}!</p>
                             <h2 class="text-3xl font-extrabold text-kesher-primary">${user.displayName}</h2>
@@ -647,7 +668,7 @@
                     <h1 class="text-3xl font-extrabold text-kesher-primary mb-4">${post.title}</h1>
                     
                     <div class="flex items-center mb-4 border-b pb-4">
-                        <img src="${author.avatar}" alt="תמונת ${author.displayName}" class="w-12 h-12 rounded-full border-2 border-kesher-primary ml-3 shadow">
+                        <img src="${author.avatar}" alt="תמונה ${author.displayName}" class="w-12 h-12 rounded-full border-2 border-kesher-primary ml-3 shadow">
                         <div>
                             <p class="font-semibold text-kesher-text">${author.displayName} <span class="text-xs small-muted">(מחבר)</span></p>
                             <p class="small-muted text-xs">פורסם: ${formatTimestamp(post.createdAt)}</p>
@@ -703,12 +724,12 @@
                     ${comments.length > 0 ? commentsHtml : '<p class="text-center small-muted p-4 bg-white rounded-lg shadow-sm">אין עדיין תגובות. כתבו את הראשונה!</p>'}
                 `;
             }, (error) => {
-                console.error("שגיאה בטעינת תגובות:", error);
+                console.error("Error loading comments:", error);
                 commentsContainer.innerHTML = `<p class="text-center text-red-500 p-4">שגיאה בטעינת תגובות: ${error.message}</p>`;
             });
 
         } catch (error) {
-            console.error("שגיאה בקריאה ל־comments:", error);
+            console.error("Error reading comments:", error);
             commentsContainer.innerHTML = `<p class="text-center text-red-500 p-4">שגיאה בקריאה: ${error.message}</p>`;
         }
     }
@@ -791,7 +812,7 @@
                     <h1 class="text-3xl font-extrabold text-kesher-primary mb-6 border-b pb-2">פרופיל אישי</h1>
 
                     <div class="flex flex-col items-center mb-6">
-                        <img src="${user.avatar}" alt="תמונת פרופיל" class="w-32 h-32 rounded-full border-4 border-kesher-accent shadow-lg mb-4">
+                        <img src="${user.avatar}" alt="תמונה" class="w-32 h-32 rounded-full border-4 border-kesher-accent shadow-lg mb-4">
                         <h2 class="text-2xl font-bold text-kesher-text">${user.displayName}</h2>
                         <p class="small-muted text-lg">${user.email}</p>
                     </div>
@@ -848,7 +869,7 @@
             goTo('profile');
             return true;
         } catch (error) {
-            console.error("שגיאה בעדכון פרופיל:", error);
+            console.error("Error updating profile:", error);
             showError("שגיאה בעדכון הפרופיל. נסה שוב מאוחר יותר.");
             return false;
         }
@@ -867,7 +888,7 @@
                     <form id="editProfileForm" onsubmit="event.preventDefault(); handleEditProfileSubmit()" class="space-y-4">
                         
                         <div class="flex flex-col items-center mb-6">
-                            <img src="${user.avatar}" alt="תמונת פרופיל" class="w-32 h-32 rounded-full border-4 border-kesher-accent shadow-lg mb-4">
+                            <img src="${user.avatar}" alt="תמונה" class="w-32 h-32 rounded-full border-4 border-kesher-accent shadow-lg mb-4">
                             <p class="small-muted">כדי לשנות תמונה, עדכן/י ב‑Firestore או שמשתמש מספק תמונה.</p>
                         </div>
                         
@@ -921,7 +942,7 @@
                     <div class="flex items-center">
                         <div class="text-2xl font-extrabold text-kesher-primary flex items-center cursor-pointer" onclick="goTo('home')">
                             <img src="https://placehold.co/30x30/FF6B6B/ffffff?text=K" alt="לוגו" class="rounded-full shadow-sm ml-2">
-                            קהילת 60+
+                            קהילת קשר
                         </div>
                         <nav class="hidden md:flex mr-6 space-x-4 space-x-reverse">
                             <a href="#" class="${state.screen === 'home' ? activeClass : baseClass}" onclick="goTo('home')">
@@ -936,7 +957,7 @@
                     <div class="flex items-center">
                         <button class="text-sm font-semibold flex items-center hover:opacity-80 transition" onclick="goTo('profile')">
                             <span class="text-kesher-text mr-2">${user.displayName}</span>
-                            <img src="${user.avatar}" alt="תמונת ${user.displayName}" class="w-10 h-10 rounded-full border-2 border-kesher-secondary shadow">
+                            <img src="${user.avatar}" alt="תמונה" class="w-10 h-10 rounded-full border-2 border-kesher-secondary shadow">
                         </button>
                         <button class="small-muted mr-4 hover:text-red-500 transition" onclick="logout()">
                             <i class="fas fa-sign-out-alt"></i>
@@ -1034,12 +1055,10 @@
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
-            // אופציונלי: להפעיל לוג דיבאג (לא חובה)
-            try { setLogLevel('debug'); } catch(e) { /* לא קריטי */ }
+            try { setLogLevel('debug'); } catch(e) {}
             
             console.log("Firebase: אתחול הצליח.");
 
-            // אם יש טוקן מותאם שניתן מהשרת — נסה לעשות בו שימוש
             if (initialAuthToken) {
                 try {
                     console.log("ניסיון כניסה עם custom token...");
@@ -1050,10 +1069,8 @@
                     try { await signOut(auth); } catch(_) {}
                 }
             } else {
-                // חשוב: לא מבצעים signInAnonymously אוטומטית כאן
-                // שכן התחברות אנונימית אוטומטית יכולה "לחסום" את תהליך התחברות ה־Email/Password.
-                // אם תרצה אפשר להפעיל תמיכה באנונימי בתרחיש ספציפי — אפשר להחזיר את הקריאה בשורה הבאה:
-                // await signInAnonymously(auth);
+                // הושבתה התחברות אנונימית אוטומטית כדי לא לחסום Email/Password.
+                // אם תרצה להפעיל אנונימי עבור מקרים מסוימים, השתמש בקריאה מבוקרת מחוץ לאתחול.
             }
 
             return true;
@@ -1079,9 +1096,18 @@
                 console.log("Firebase Debug: Auth state changed. User is logged in (UID:", userId, ").");
                 
                 const userProfileRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'data');
-                const profileDoc = await getDoc(userProfileRef);
+                let profileDoc = null;
+                try {
+                    profileDoc = await getDoc(userProfileRef);
+                } catch (e) {
+                    console.error("Error reading profile doc:", e);
+                    showError("שגיאה בטעינת פרופיל המשתמש. בדוק חיבור/הרשאות Firestore.");
+                    state.user = null;
+                    goTo('login');
+                    return;
+                }
                 
-                if (profileDoc.exists()) {
+                if (profileDoc && profileDoc.exists()) {
                     try {
                         state.user = { ...profileDoc.data(), uid: userId };
                         console.log("Firebase Debug: User profile fetched successfully:", state.user.displayName);
@@ -1094,18 +1120,17 @@
                             render();
                         }
                     } catch (error) {
-                        console.error("שגיאה פנימית בטעינת פרופיל או נתונים:", error);
+                        console.error("שגיאה פנימית בטעינת פרופיל:", error);
                         state.user = null;
                         state.screen = 'login';
                         showError("שגיאה בטעינת נתונים. נא לנסות שוב.", true);
                         render();
                     }
                 } else {
-                    // המשתמש נמצא ב‑Auth אבל אין לו פרופיל ב־Firestore
+                    // פרופיל חסר ב־Firestore — אל נעשה signOut אוטומטי
                     console.warn("Firebase Debug: Auth user found but profile missing in Firestore.");
-                    try { await signOut(auth); } catch(_) {}
-                    state.user = null;
-                    showError("אין פרופיל משתמש ב־Firestore עבור חשבון זה. יש להרשם מחדש.", true);
+                    state.pendingAuth = { uid: userId, email: userAuth.email || '' };
+                    showError("נמצאה כניסה אך אין פרופיל משתמש. יש להשלים את ההרשמה ליצירת הפרופיל.", false);
                     goTo('register');
                 }
             } else {
@@ -1124,7 +1149,7 @@
     startApp(); 
 </script>
 
-<!-- תנאי שימוש Modal -->
+<!-- Terms modal (simple) -->
 <div id="rulesModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-60" onclick="if(event.target.id === 'rulesModal') hideRules()">
   <div class="bg-white p-6 rounded-xl w-full max-w-2xl card shadow-2xl">
     <h3 class="font-bold text-2xl mb-4 text-kesher-primary">כללי הקהילה ותנאי שימוש</h3>
