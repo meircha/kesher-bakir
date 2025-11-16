@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>קהילת קשר 60+</title>
 
-  <!-- Tailwind CDN -->
+  <!-- Tailwind (dev CDN — החלף ל‑build בייצור) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -19,54 +19,111 @@
       --danger:#E53E3E;
     }
     html,body { height:100%; }
-    body{ background:var(--bg); font-family: "Segoe UI", Roboto, Arial, sans-serif; color:#1a202c; -webkit-font-smoothing:antialiased; margin:0; padding:0; }
+    body{ background:var(--bg); font-family: "Segoe UI", Roboto, Arial, sans-serif; color:#1a202c; margin:0; padding:0; -webkit-font-smoothing:antialiased; }
     .card{ background:var(--card); border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
-    .btn-primary{ background:var(--accent); color:white; transition:background-color 0.2s; }
+    .btn-primary{ background:var(--accent); color:white; transition:background-color .15s; }
     .btn-primary:hover{ background:#319795; }
-    .btn-sec{ background:var(--primary); color:white; transition:background-color 0.2s; }
+    .btn-sec{ background:var(--primary); color:white; transition:background-color .15s; }
     .btn-sec:hover{ background:#2C5282; }
-    .pill{ padding:.5rem .9rem; border-radius:9999px; font-size:.875rem; font-weight:600; }
-    .small-muted{ color:var(--muted); font-size:0.875rem; }
+    .pill{ padding:.35rem .7rem; border-radius:9999px; font-size:.75rem; font-weight:600; }
+    .small-muted{ color:var(--muted); font-size:.9rem; }
     .text-link{ color:var(--primary); cursor:pointer; text-decoration:underline; font-weight:500; }
-    input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px var(--accent);
-      outline: none;
-    }
-    .post-card { border-bottom: 1px solid #E2E8F0; }
-    .post-card:last-child { border-bottom: none; }
-    .comment-card { background: #F0F4F8; border-right: 3px solid var(--accent); margin-right: 1.5rem; }
-    .text-red-500 { color: var(--danger); }
-    #error-message-box { position: fixed; top: 0; left: 0; right: 0; z-index: 100; text-align: center; padding: 1rem; color: white; background-color: var(--danger); font-weight: bold; display: none; }
+    input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); outline: none; }
+    header .nav-item.active { border-bottom: 3px solid var(--accent); padding-bottom: .4rem; }
+    #hero { background: linear-gradient(90deg,#f7fafc,#e6f6f5); padding: 2.5rem 0; }
+    #site-banner-img { width:160px; height:120px; border-radius:12px; object-fit:cover; }
+    @media (max-width: 768px) { header nav { display:none; } #site-banner-img { width:120px; height:90px; } }
+    #error-message-box { position: fixed; top: 0; left: 0; right: 0; z-index:1000; display:none; justify-content:center; align-items:center; padding: .9rem 1rem; color: white; background-color: var(--danger); font-weight:700; }
+    .hidden { display:none !important; }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-<!-- Global error box -->
-<div id="error-message-box">
-  <span id="error-text">שגיאה: קרתה שגיאה. נא לבדוק.</span>
-  <button onclick="hideError()" class="float-left text-white font-bold text-lg mr-4">&times;</button>
+<!-- Global error -->
+<div id="error-message-box" role="alert">
+  <div id="error-text">שגיאה: בדוק את הקונסול.</div>
+  <button onclick="hideError()" aria-label="close" class="ml-4 text-white font-bold text-xl">&times;</button>
 </div>
 
+<!-- Header -->
+<header class="bg-white shadow sticky top-0 z-40">
+  <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <div onclick="goTo('home')" class="flex items-center cursor-pointer select-none">
+        <img id="brand-logo" src="https://placehold.co/60x60/FF6B6B/ffffff?text=K" alt="קשר" class="w-12 h-12 rounded-full mr-3 shadow-sm">
+        <div>
+          <div class="text-lg font-extrabold">קהילת קשר</div>
+          <div class="text-xs small-muted">קהילה +60</div>
+        </div>
+      </div>
+      <nav class="ml-6 hidden md:flex items-center gap-4 text-sm">
+        <a class="nav-item px-3 py-2 hover:opacity-80 cursor-pointer" onclick="goTo('home')"><i class="fas fa-home ml-1"></i> דף הבית</a>
+        <a class="nav-item px-3 py-2 hover:opacity-80 cursor-pointer" onclick="goTo('forum')"><i class="fas fa-comments ml-1"></i> פורום</a>
+        <a class="nav-item px-3 py-2 hover:opacity-80 cursor-pointer" onclick="goTo('activities')"><i class="fas fa-calendar-alt ml-1"></i> פעילויות</a>
+        <a class="nav-item px-3 py-2 hover:opacity-80 cursor-pointer" onclick="goTo('members')"><i class="fas fa-users ml-1"></i> חברים</a>
+        <a class="nav-item px-3 py-2 hover:opacity-80 cursor-pointer" onclick="goTo('chats')"><i class="fas fa-comments ml-1"></i> צ'אטים</a>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div id="daily-tip" class="text-sm small-muted hidden md:block">טיפ יומי: שמרו על קשר עם השכנים — חיוך אחד עושה פלאים</div>
+      <div id="user-actions" class="flex items-center gap-3">
+        <button id="btn-create" class="btn-sec py-2 px-3 rounded text-sm" onclick="goTo('addPost')"><i class="fas fa-plus mr-2"></i> פוסט חדש</button>
+        <button id="btn-admin" class="btn-primary py-2 px-3 rounded text-sm hidden" onclick="goTo('admin')"><i class="fas fa-tools mr-2"></i> ניהול</button>
+        <div id="user-menu" class="flex items-center gap-2">
+          <button id="login-btn" class="text-sm text-link" onclick="goTo('login')">התחבר/י</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section id="hero" class="mb-6">
+  <div class="container mx-auto px-4">
+    <div class="card p-6 flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-extrabold mb-2">ברוכים הבאים לקהילת קשר</h1>
+        <p class="small-muted mb-4">מרכז תמיכה, שיתוף ועזרה לקשישים +60 — הצטרפו, שתפו וחזקו את הקהילה שלכם.</p>
+        <div class="flex gap-3">
+          <button class="btn-primary py-2 px-4 rounded" onclick="goTo('forum')">היכנסו לפורום</button>
+          <button class="btn-sec py-2 px-4 rounded" onclick="goTo('register')">הירשמו</button>
+        </div>
+      </div>
+      <div class="flex-shrink-0">
+        <img id="site-banner-img" src="https://placehold.co/400x300/8EC5B0/ffffff?text=Senior+Friends" alt="אנשים מבוגרים" />
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- App container -->
-<div id="app-container" class="flex-grow flex flex-col items-center"></div>
+<main id="app-container" class="container mx-auto px-4 flex-grow">
+  <!-- תוכן דינמי יושתל כאן -->
+  <div class="flex items-center justify-center p-12">
+    <div class="text-center small-muted">טוען אפליקציה...</div>
+  </div>
+</main>
+
+<!-- Terms modal -->
+<div id="rulesModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50" onclick="if(event.target.id==='rulesModal') hideRules()">
+  <div class="bg-white rounded-lg p-6 w-full max-w-2xl card">
+    <h3 class="font-bold text-2xl mb-4">תנאי שימוש</h3>
+    <div class="small-muted mb-4">כללי הקהילה: שמור/שמרי על כבוד, הימנע/הימנעי מפרסום פוגעני, ועוד.</div>
+    <div class="text-right">
+      <button class="btn-primary py-2 px-4 rounded" onclick="hideRules()">סגור</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
-/* Full corrected index.html
-   - fallback profile resolution: artifacts/.../profile/data then /users/<uid>
-   - pendingAuth handling
-   - register supports pendingAuth (creates profile under artifacts path)
-   - login.catch logs error.code and error.message
-   - storageBucket fixed
-   - no automatic anonymous sign-in
-   Copy-paste entire file to replace existing index.html
-*/
-
+/* חלק 1/נשלח — קוד JS (התחלה) */
+/* יבוא Firebase (v11.6.1) */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, serverTimestamp, getDocs, updateDoc, arrayUnion, arrayRemove, increment, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// ===== Firebase config - replace values with your project's values if different =====
+/* Firebase config — וודא שהערכים תואמים ל‑Project settings ב‑Firebase */
 const firebaseConfig = {
   apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM",
   authDomain: "kesher-bakir.firebaseapp.com",
@@ -76,7 +133,6 @@ const firebaseConfig = {
   appId: "1:671996189455:web:d8ee089585a852ab38fc7a",
   measurementId: "G-42EWSKFHXP"
 };
-// ===================================================================================
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kesher-app-id';
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
@@ -90,10 +146,11 @@ const state = {
   currentPost: null,
   allUsers: {},
   error: null,
-  pendingAuth: null
+  pendingAuth: null,
+  dailyTipIndex: 0
 };
 
-// ----------------------- Utilities -----------------------
+/* UI helpers */
 function showError(message, critical = false) {
   console.error("ERROR:", message);
   state.error = message;
@@ -102,16 +159,50 @@ function showError(message, critical = false) {
   if (box && txt) {
     txt.textContent = message;
     box.style.display = 'flex';
-    if (!critical) setTimeout(hideError, 5000);
+    if (!critical) setTimeout(hideError, 6000);
   }
-  if (state.screen !== 'loading') render();
 }
-
 function hideError() {
   state.error = null;
   const box = document.getElementById('error-message-box');
   if (box) box.style.display = 'none';
-  render();
+}
+function showRules(){ document.getElementById('rulesModal').classList.remove('hidden'); }
+function hideRules(){ document.getElementById('rulesModal').classList.add('hidden'); }
+
+function updateHeaderForUser() {
+  const loginBtn = document.getElementById('login-btn');
+  const btnAdmin = document.getElementById('btn-admin');
+  if (state.user) {
+    loginBtn.style.display = 'none';
+    document.getElementById('user-menu').innerHTML = `
+      <button class="text-sm font-semibold flex items-center" onclick="goTo('profile')">
+        <img src="${state.user.avatar}" alt="${state.user.displayName}" class="w-8 h-8 rounded-full border mr-2"> <span>${state.user.displayName}</spa
+        n>
+      </button>
+    `;
+    if (state.user.role === 'admin' || (state.user.__rawProfile && state.user.__rawProfile.role === 'admin')) {
+      btnAdmin.classList.remove('hidden');
+    } else {
+      btnAdmin.classList.add('hidden');
+    }
+  } else {
+    loginBtn.style.display = '';
+    document.getElementById('user-menu').innerHTML = '';
+    btnAdmin.classList.add('hidden');
+  }
+}
+
+function formatTimestamp(ts) {
+  if (!ts) return 'לא זמין';
+  try {
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    const diff = (Date.now() - d.getTime())/1000;
+    if (diff < 60) return 'הרגע';
+    if (diff < 3600) return `לפני ${Math.floor(diff/60)} דקות`;
+    if (diff < 86400) return `לפני ${Math.floor(diff/3600)} שעות`;
+    return d.toLocaleDateString('he-IL');
+  } catch(e) { return 'לא זמין'; }
 }
 
 function getFirebaseErrorMessage(code) {
@@ -123,38 +214,11 @@ function getFirebaseErrorMessage(code) {
     case 'auth/wrong-password': return 'מייל או סיסמה שגויים.';
     case 'auth/email-already-in-use': return 'המייל כבר רשום.';
     case 'auth/weak-password': return 'הסיסמה חלשה (לפחות 6 תווים).';
-    default: return 'שגיאת אימות: ' + code.replace('auth/', '');
+    default: return 'שגיאת אימות: ' + code.replace('auth/','');
   }
 }
 
-function goTo(screen, params = {}) {
-  hideError();
-  state.screen = screen;
-  if (screen === 'singlePost' && params.postId) {
-    state.currentPost = state.posts.find(p => p.id === params.postId) || null;
-    if (!state.currentPost) {
-      showError("הפוסט לא נמצא.");
-      goTo('forum');
-      return;
-    }
-  } else {
-    state.currentPost = null;
-  }
-  render();
-}
-
-function formatTimestamp(timestamp) {
-  if (!timestamp) return 'לא זמין';
-  let date = timestamp instanceof Date ? timestamp : (timestamp.toDate ? timestamp.toDate() : new Date(timestamp));
-  const now = new Date();
-  const diff = (now.getTime() - date.getTime()) / 1000;
-  if (diff < 60) return 'הרגע';
-  if (diff < 3600) return `לפני ${Math.floor(diff/60)} דקות`;
-  if (diff < 86400) return `לפני ${Math.floor(diff/3600)} שעות`;
-  return date.toLocaleDateString('he-IL');
-}
-
-// ----------------------- Firebase auth + firestore operations -----------------------
+/* Auth actions */
 
 async function login(email, password) {
   hideError();
@@ -166,7 +230,7 @@ async function login(email, password) {
     return true;
   } catch (error) {
     console.error("Login error:", error, "code:", error.code, "message:", error.message);
-    showError(`שגיאת כניסה: ${getFirebaseErrorMessage(error.code)}`);
+    showError(getFirebaseErrorMessage(error.code));
     return false;
   }
 }
@@ -176,7 +240,6 @@ async function register(email, password, displayName, gender) {
   if (!auth || !db) { showError("Firebase לא אתחל כראוי."); return false; }
   if (password.length < 6) { showError("אורך סיסמה חייב להיות לפחות 6 תווים."); return false; }
 
-  // If pendingAuth exists, create profile under artifacts path for existing auth user
   if (state.pendingAuth) {
     try {
       const uid = state.pendingAuth.uid;
@@ -194,6 +257,7 @@ async function register(email, password, displayName, gender) {
       state.user = { uid, email: state.pendingAuth.email || email, displayName, gender, avatar: gender === 'male' ? 'https://placehold.co/400x400/2B6CB0/ffffff?text=M' : 'https://placehold.co/400x400/38B2AC/ffffff?text=F', bio: `היי, אני ${displayName} בקהילה!` };
       state.pendingAuth = null;
       await fetchInitialData();
+      updateHeaderForUser();
       goTo('home');
       return true;
     } catch (e) {
@@ -203,7 +267,6 @@ async function register(email, password, displayName, gender) {
     }
   }
 
-  // Normal registration flow
   try {
     const uc = await createUserWithEmailAndPassword(auth, email, password);
     const user = uc.user;
@@ -229,44 +292,40 @@ async function register(email, password, displayName, gender) {
 
 async function logout() {
   if (auth) await signOut(auth);
+  state.user = null;
+  updateHeaderForUser();
+  goTo('login');
 }
+
+/* Data fetching and listeners */
 
 async function fetchInitialData() {
   if (!db) return;
-  // posts
+
   try {
     const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
     onSnapshot(query(postsRef), (snap) => {
-      const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      state.posts = posts.sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0));
-      if (state.screen === 'singlePost' && state.currentPost) state.currentPost = state.posts.find(p => p.id === state.currentPost.id) || null;
+      state.posts = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (b.createdAt?.toMillis?b.createdAt.toMillis():0)-(a.createdAt?.toMillis? a.createdAt.toMillis():0));
       render();
-    }, (e) => {
-      console.error("Posts snapshot error:", e);
-      showError("שגיאה בעדכון פוסטים.");
-    });
-  } catch (e) {
-    console.error("fetchInitialData posts error:", e);
-  }
+    }, (e) => { console.error("Posts snapshot error:", e); showError("שגיאה בעדכון פוסטים."); });
+  } catch (e) { console.error("fetch posts error:", e); }
 
-  // users map (artifacts path)
   try {
     const usersRef = collection(db, 'artifacts', appId, 'users');
     const usersSnap = await getDocs(usersRef);
-    const userMap = {};
-    for (const d of usersSnap.docs) {
-      const profileRef = doc(d.ref, 'profile', 'data');
-      const prof = await getDoc(profileRef);
-      if (prof.exists()) {
-        const data = prof.data();
-        userMap[data.uid] = { displayName: data.displayName, avatar: data.avatar, gender: data.gender, bio: data.bio || '' };
+    const map = {};
+    for (const u of usersSnap.docs) {
+      const p = await getDoc(doc(u.ref, 'profile', 'data'));
+      if (p.exists()) {
+        const d = p.data();
+        map[d.uid] = { displayName: d.displayName, avatar: d.avatar, gender: d.gender, bio: d.bio || '' };
       }
     }
-    state.allUsers = userMap;
-  } catch (e) {
-    console.error("fetchInitialData users error:", e);
-  }
+    state.allUsers = map;
+  } catch (e) { console.error("fetch users error:", e); }
 }
+
+/* Posts, comments, likes */
 
 async function addPost(title, content, category) {
   if (!db || !state.user) { showError("צריך להתחבר כדי לפרסם."); return false; }
@@ -275,11 +334,7 @@ async function addPost(title, content, category) {
     await addDoc(postsRef, { userId: state.user.uid, title, content, category, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), commentsCount:0, likes:[] });
     goTo('forum');
     return true;
-  } catch (e) {
-    console.error("addPost error:", e);
-    showError("שגיאה ביצירת פוסט.");
-    return false;
-  }
+  } catch (e) { console.error("addPost error:", e); showError("שגיאה ביצירת פוסט."); return false; }
 }
 
 async function addComment(postId, text) {
@@ -289,10 +344,7 @@ async function addComment(postId, text) {
     const commentsRef = collection(postRef, 'comments');
     await addDoc(commentsRef, { userId: state.user.uid, content: text, createdAt: serverTimestamp() });
     try { await updateDoc(postRef, { commentsCount: increment(1), updatedAt: serverTimestamp() }); } catch(e){ console.warn(e); }
-  } catch (e) {
-    console.error("addComment error:", e);
-    showError("שגיאה בהוספת תגובה.");
-  }
+  } catch (e) { console.error("addComment error:", e); showError("שגיאה בהוספת תגובה."); }
 }
 
 async function toggleLike(postId) {
@@ -300,335 +352,98 @@ async function toggleLike(postId) {
   try {
     const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId);
     const post = state.posts.find(p => p.id === postId);
-    if (post) {
-      const likes = Array.isArray(post.likes) ? post.likes : [];
-      const liked = likes.includes(state.user.uid);
-      await updateDoc(postRef, { likes: liked ? arrayRemove(state.user.uid) : arrayUnion(state.user.uid) });
-    }
-  } catch (e) {
-    console.error("toggleLike error:", e);
-    showError("שגיאה בעדכון לייק.");
-  }
+    if (!post) return;
+    const likes = Array.isArray(post.likes) ? post.likes : [];
+    const liked = likes.includes(state.user.uid);
+    await updateDoc(postRef, { likes: liked ? arrayRemove(state.user.uid) : arrayUnion(state.user.uid) });
+  } catch (e) { console.error("toggleLike error:", e); showError("שגיאה בעדכון לייק."); }
 }
 
-// ----------------------- UI templates (full screens) -----------------------
+/* UI components */
 
 function PostCard(post) {
-  const user = state.allUsers[post.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
-  const likesCount = post.likes ? post.likes.length : 0;
-  const isLiked = post.likes ? (state.user ? post.likes.includes(state.user.uid) : false) : false;
+  const u = state.allUsers[post.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/80x80/cccccc/ffffff?text=?' };
+  const likes = Array.isArray(post.likes)?post.likes.length:0;
+  const liked = Array.isArray(post.likes) && state.user ? post.likes.includes(state.user.uid) : false;
   return `
-    <div class="post-card p-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer" onclick="goTo('singlePost', {postId: '${post.id}'})">
+    <div class="post-card p-4 flex justify-between items-start hover:bg-gray-50 cursor-pointer" onclick="goTo('singlePost',{postId:'${post.id}'})">
       <div class="flex-grow">
-        <div class="flex items-center mb-1">
-          <img src="${user.avatar}" alt="${user.displayName}" class="w-8 h-8 rounded-full ml-3 border-2">
-          <span class="text-sm font-semibold">${user.displayName}</span>
-          <span class="small-muted mr-3">| ${formatTimestamp(post.createdAt)}</span>
+        <div class="flex items-center mb-2">
+          <img src="${u.avatar}" class="w-10 h-10 rounded-full ml-3" alt="${u.displayName}">
+          <div>
+            <div class="font-semibold">${u.displayName}</div>
+            <div class="small-muted text-xs">${formatTimestamp(post.createdAt)}</div>
+          </div>
         </div>
-        <h4 class="text-lg font-bold mb-1">${post.title}</h4>
-        <span class="pill bg-gray-100 text-gray-700 text-xs">${post.category}</span>
+        <h3 class="font-bold text-lg">${post.title}</h3>
+        <p class="small-muted mt-2">${(post.content||'').slice(0,240)}${(post.content||'').length>240? '...':''}</p>
       </div>
-      <div class="flex items-center gap-4">
-        <div class="text-center">
-          <div class="text-sm small-muted">תגובות</div>
-          <div class="text-xl font-bold">${post.commentsCount || 0}</div>
-        </div>
-        <div class="flex flex-col items-center">
-          <button onclick="event.stopPropagation(); toggleLike('${post.id}')" class="${isLiked ? 'text-red-500' : 'text-gray-400'} text-xl">
-            <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
-          </button>
-          <div class="text-sm small-muted">${likesCount}</div>
-        </div>
+      <div class="flex flex-col items-center mr-4">
+        <button onclick="event.stopPropagation(); toggleLike('${post.id}')" class="${liked ? 'text-red-500' : 'text-gray-400'} mb-1">
+          <i class="${liked ? 'fas' : 'far'} fa-heart"></i>
+        </button>
+        <div class="small-muted">${likes}</div>
       </div>
     </div>
   `;
 }
+  <!-- חלק 3/להדבקה -->
+<script type="module">
+// continuation (helpers, views, rendering and Firebase init already imported earlier)
 
-function CommentCard(comment) {
-  const user = state.allUsers[comment.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
+/* CommentCard */
+function CommentCard(c) {
+  const u = state.allUsers[c.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/80x80/cccccc/ffffff?text=?' };
   return `
-    <div class="comment-card p-4 my-3 rounded-lg flex">
-      <img src="${user.avatar}" alt="${user.displayName}" class="w-10 h-10 rounded-full border-2 ml-3">
+    <div class="comment-card p-3 mb-3 rounded-lg flex">
+      <img src="${u.avatar}" class="w-10 h-10 rounded-full ml-3" alt="${u.displayName}">
       <div class="flex-grow">
-        <div class="flex justify-between items-start mb-1">
-          <span class="font-semibold">${user.displayName}</span>
-          <span class="small-muted text-xs">${formatTimestamp(comment.createdAt)}</span>
+        <div class="flex justify-between">
+          <div class="font-semibold">${u.displayName}</div>
+          <div class="small-muted text-xs">${formatTimestamp(c.createdAt)}</div>
         </div>
-        <p class="text-sm text-gray-700 mt-1">${comment.content}</p>
+        <div class="mt-1 text-gray-700">${c.content}</div>
       </div>
     </div>
   `;
 }
 
-// Full-render views: login, register, home, forum, singlePost, addPost, profile, editProfile
-function renderLoading() {
-  return `
-    <div class="flex flex-col items-center justify-center h-screen w-full">
-      <i class="fas fa-spinner fa-spin text-6xl mb-4 text-gray-600"></i>
-      <h1 class="text-2xl font-bold">טוען...</h1>
-      <p class="small-muted mt-2">מנסה להתחבר ל‑Firebase.</p>
-    </div>
-  `;
-}
+/* Views rendering functions (continued if needed) are already defined in previous parts.
+   Now implement render orchestrator and event bindings, comment loading, profile update, etc. */
 
-function renderLogin() {
-  const prefill = state.pendingAuth?.email || '';
-  return `
-    <div class="flex flex-col items-center justify-center w-full min-h-screen p-4">
-      <div class="card p-8 w-full max-w-md text-center">
-        <img src="https://placehold.co/150x150/FF6B6B/ffffff?text=K" class="mx-auto mb-6 rounded-full shadow-lg">
-        <h1 class="text-3xl font-extrabold mb-2">התחבר/י לחשבון</h1>
-        <p class="small-muted mb-6">קהילת 60+</p>
-
-        <form id="loginForm" class="space-y-4">
-          <input type="email" id="loginEmail" placeholder="אימייל" required class="w-full p-3 border rounded-lg" value="${prefill}" dir="ltr">
-          <input type="password" id="loginPassword" placeholder="סיסמה" required class="w-full p-3 border rounded-lg" dir="ltr">
-          <button type="submit" class="btn-primary w-full p-3 rounded-lg font-bold">התחבר</button>
-        </form>
-
-        <p class="mt-4">עוד לא רשום? <span class="text-link" onclick="goTo('register')">להרשמה</span></p>
-        <p class="mt-2 text-xs small-muted"><span class="text-link" onclick="showRules()">תנאי שימוש</span></p>
-      </div>
-    </div>
-  `;
-}
-
-function renderRegister() {
-  const prefill = state.pendingAuth?.email || '';
-  return `
-    <div class="flex flex-col items-center justify-center w-full min-h-screen p-4">
-      <div class="card p-8 w-full max-w-md text-center">
-        <h1 class="text-3xl font-extrabold mb-2">הרשמה</h1>
-        <p class="small-muted mb-6">צור/י חשבון חדש בקהילה.</p>
-
-        <form id="registerForm" class="space-y-4">
-          <input type="email" id="registerEmail" placeholder="אימייל" required class="w-full p-3 border rounded-lg" value="${prefill}" dir="ltr">
-          <input type="password" id="registerPassword" placeholder="סיסמה (6 תווים לפחות)" required class="w-full p-3 border rounded-lg" dir="ltr">
-          <input type="text" id="registerDisplayName" placeholder="שם תצוגה" required class="w-full p-3 border rounded-lg">
-          <div class="flex justify-around bg-gray-100 p-2 rounded-lg">
-            <label class="flex items-center"><input type="radio" name="gender" value="male" required> זכר <i class="fas fa-male ml-1"></i></label>
-            <label class="flex items-center"><input type="radio" name="gender" value="female" required checked> נקבה <i class="fas fa-female ml-1"></i></label>
-          </div>
-          <button type="submit" class="btn-sec w-full p-3 rounded-lg font-bold">צור חשבון</button>
-        </form>
-
-        <p class="mt-4">כבר רשום? <span class="text-link" onclick="goTo('login')">התחבר</span></p>
-        <p class="mt-2 text-xs small-muted"><span class="text-link" onclick="showRules()">תנאי שימוש</span></p>
-      </div>
-    </div>
-  `;
-}
-
-function renderHome() {
-  if (!state.user) return renderLoading();
-  const user = state.user;
-  return `
-    ${Header()}
-    <main class="container mx-auto p-4 flex-grow">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="md:col-span-2 card p-6 bg-white flex items-center shadow-xl">
-          <img src="${user.avatar}" class="w-20 h-20 rounded-full border-4 ml-4">
-          <div>
-            <p class="text-xl text-gray-500">שלום, ${user.displayName}!</p>
-            <h2 class="text-3xl font-extrabold">${user.displayName}</h2>
-            <p class="small-muted mt-1">${user.bio || ''}</p>
-          </div>
-        </div>
-
-        <div class="card p-6 bg-kesher-secondary/10 flex flex-col justify-center items-center cursor-pointer hover:bg-kesher-secondary/20 transition" onclick="goTo('profile')">
-          <i class="fas fa-user-circle text-4xl text-kesher-secondary mb-2"></i>
-          <h3 class="font-bold text-kesher-secondary">הצג פרופיל</h3>
-        </div>
-      </div>
-
-      <h2 class="text-2xl font-bold mb-4 flex justify-between items-center border-b pb-2">
-        פוסטים אחרונים
-        <button class="btn-primary py-2 px-4 rounded-full text-sm" onclick="goTo('forum')">עוד פוסטים</button>
-      </h2>
-
-      <div class="card divide-y divide-gray-100">
-        ${state.posts.slice(0,5).map(p => PostCard(p)).join('')}
-        ${state.posts.length === 0 ? '<p class="p-4 text-center small-muted">אין עדיין פוסטים. תתחיל/י לשתף!</p>' : ''}
-      </div>
-
-      <div class="mt-8 text-center">
-        <button class="btn-sec py-3 px-8 rounded-full text-lg font-bold" onclick="goTo('addPost')"><i class="fas fa-plus-circle ml-2"></i> יצירת פוסט חדש</button>
-      </div>
-    </main>
-  `;
-}
-
-function renderForum() {
-  if (!state.user) return renderLoading();
-  const postsContent = state.posts.length > 0 ? state.posts.map(p => PostCard(p)).join('') : '<p class="p-4 text-center small-muted">אין פוסטים להצגה.</p>';
-  return `
-    ${Header()}
-    <main class="container mx-auto p-4 flex-grow">
-      <div class="flex justify-between items-center mb-6 border-b pb-4">
-        <h1 class="text-3xl font-extrabold text-kesher-secondary">פורום הקהילה</h1>
-        <button class="btn-sec py-2 px-4 rounded-full" onclick="goTo('addPost')"><i class="fas fa-edit ml-2"></i> פוסט חדש</button>
-      </div>
-      <div class="mb-4 small-muted">סינון (סה״כ פוסטים: ${state.posts.length}).</div>
-      <div class="card divide-y divide-gray-100 shadow-xl">
-        ${postsContent}
-      </div>
-    </main>
-  `;
-}
-
-function renderSinglePost() {
-  if (!state.user || !state.currentPost) return renderForum();
-  const post = state.currentPost;
-  const author = state.allUsers[post.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
-  const likesCount = post.likes ? post.likes.length : 0;
-  const isLiked = post.likes ? post.likes.includes(state.user.uid) : false;
-
-  setTimeout(() => loadComments(post.id), 0);
-
-  return `
-    ${Header()}
-    <main class="container mx-auto p-4 flex-grow">
-      <button class="small-muted text-link mb-4" onclick="goTo('forum')"><i class="fas fa-arrow-right ml-2"></i> חזרה לפורום</button>
-
-      <div class="card p-6 shadow-xl mb-6">
-        <span class="pill bg-kesher-accent/20 text-kesher-accent text-sm mb-3">${post.category}</span>
-        <h1 class="text-3xl font-extrabold text-kesher-primary mb-4">${post.title}</h1>
-
-        <div class="flex items-center mb-4 border-b pb-4">
-          <img src="${author.avatar}" class="w-12 h-12 rounded-full border-2 ml-3">
-          <div>
-            <p class="font-semibold">${author.displayName} <span class="small-muted text-xs">(מחבר)</span></p>
-            <p class="small-muted text-xs">פורסם: ${formatTimestamp(post.createdAt)}</p>
-          </div>
-        </div>
-
-        <div class="prose max-w-none text-gray-700 mb-6">
-          <p>${post.content.split('\n').map(p => `<span>${p}</span>`).join('<br>')}</p>
-        </div>
-
-        <div class="flex items-center justify-end border-t pt-4">
-          <button onclick="toggleLike('${post.id}')" class="${isLiked ? 'text-red-500 bg-red-100' : 'text-gray-500 hover:text-red-500 hover:bg-gray-100'} p-2 rounded-full">
-            <i class="${isLiked ? 'fas' : 'far'} fa-heart text-xl ml-2"></i> <span class="font-bold">${likesCount}</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="card p-4 mb-6 shadow-lg">
-        <h4 class="font-bold mb-3">הוסף תגובה:</h4>
-        <form id="addCommentForm" onsubmit="event.preventDefault(); handleAddComment('${post.id}')" class="space-y-3">
-          <textarea id="commentContent" rows="3" placeholder="כתוב/י תגובה..." required class="w-full p-3 border rounded-lg"></textarea>
-          <button type="submit" class="btn-primary py-2 px-6 rounded-lg font-bold float-left">שלח תגובה</button>
-        </form>
-      </div>
-
-      <div id="commentsContainer" class="mt-6">
-        <h3 class="text-xl font-bold mb-4 border-b pb-2">תגובות</h3>
-        <p class="small-muted p-4">טוען תגובות...</p>
-      </div>
-    </main>
-  `;
-}
-
+/* Load comments for a post (reusable) */
 async function loadComments(postId) {
   if (!db) return;
   const container = document.getElementById('commentsContainer');
   if (!container) return;
   try {
     const commentsRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts', postId, 'comments');
-    onSnapshot(query(commentsRef), (snap) => {
-      const comments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      comments.sort((a,b) => (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0) - (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0));
-      container.innerHTML = `
-        <h3 class="text-xl font-bold mb-4 border-b pb-2">תגובות (${comments.length})</h3>
-        ${comments.length > 0 ? comments.map(CommentCard).join('') : '<p class="text-center small-muted p-4 bg-white rounded-lg">אין עדיין תגובות. כתבו את הראשונה!</p>'}
-      `;
-    }, (e) => {
+    onSnapshot(query(commentsRef), snap => {
+      const comments = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0) - (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0));
+      container.innerHTML = `<h3 class="font-bold mb-3">תגובות (${comments.length})</h3>${comments.map(CommentCard).join('')}`;
+    }, e => {
       console.error("comments snapshot error:", e);
-      container.innerHTML = `<p class="text-center text-red-500 p-4">שגיאה בטעינת תגובות: ${e.message}</p>`;
+      container.innerHTML = `<div class="text-red-500 p-4">שגיאה בטעינת תגובות: ${e.message}</div>`;
     });
   } catch (e) {
     console.error("loadComments error:", e);
-    container.innerHTML = `<p class="text-center text-red-500 p-4">שגיאה: ${e.message}</p>`;
+    container.innerHTML = `<div class="text-red-500 p-4">שגיאה: ${e.message}</div>`;
   }
 }
 
-function renderAddPost() {
-  if (!state.user) return renderLoading();
-  const categories = [{value:'health',label:'בריאות'},{value:'finance',label:'כספים'},{value:'tech',label:'טכנולוגיה'},{value:'social',label:'חיי חברה'},{value:'general',label:'כללי'}];
-  return `
-    ${Header()}
-    <main class="container mx-auto p-4 flex-grow">
-      <div class="card p-8 w-full max-w-3xl mx-auto shadow-xl">
-        <h1 class="text-3xl font-extrabold mb-4">יצירת פוסט חדש</h1>
-        <p class="small-muted mb-6">שתפו משהו עם הקהילה.</p>
-        <form id="addPostForm" onsubmit="event.preventDefault(); handleAddPostSubmit()" class="space-y-4">
-          <select id="postCategory" required class="w-full p-3 border rounded-lg">
-            <option value="">בחר/י קטגוריה</option>
-            ${categories.map(c => `<option value="${c.value}">${c.label}</option>`).join('')}
-          </select>
-          <input type="text" id="postTitle" placeholder="כותרת הפוסט (חובה)" required class="w-full p-3 border rounded-lg font-semibold text-lg">
-          <textarea id="postContent" rows="8" placeholder="תוכן הפוסט..." required class="w-full p-3 border rounded-lg"></textarea>
-          <div class="flex justify-between items-center pt-4">
-            <button type="button" class="btn-sec bg-gray-500" onclick="goTo('forum')">בטל</button>
-            <button type="submit" class="btn-primary">פרסם פוסט</button>
-          </div>
-        </form>
-      </div>
-    </main>
-  `;
-}
-
-async function handleAddPostSubmit() {
-  const title = document.getElementById('postTitle').value;
-  const content = document.getElementById('postContent').value;
-  const category = document.getElementById('postCategory').value;
-  if (title && content && category) await addPost(title, content, category);
-  else showError("נא למלא את כל השדות.");
-}
-
-function renderProfile() {
-  if (!state.user) return renderLoading();
-  const user = state.user;
-  return `
-    ${Header()}
-    <main class="container mx-auto p-4 flex-grow">
-      <div class="card p-8 w-full max-w-2xl mx-auto shadow-xl">
-        <h1 class="text-3xl font-extrabold mb-6">פרופיל אישי</h1>
-        <div class="flex flex-col items-center mb-6">
-          <img src="${user.avatar}" class="w-32 h-32 rounded-full border-4 mb-4">
-          <h2 class="text-2xl font-bold">${user.displayName}</h2>
-          <p class="small-muted text-lg">${user.email || ''}</p>
-        </div>
-        <div class="space-y-4 text-right">
-          <div>
-            <label class="block font-semibold text-sm mb-1">מגדר:</label>
-            <p class="p-3 bg-gray-50 rounded-lg">${user.gender === 'male' ? 'זכר' : user.gender === 'female' ? 'נקבה' : 'לא מוגדר'}</p>
-          </div>
-          <div>
-            <label class="block font-semibold text-sm mb-1">ביוגרפיה:</label>
-            <p class="p-3 bg-gray-50 rounded-lg whitespace-pre-wrap">${user.bio || 'אין ביוגרפיה.'}</p>
-          </div>
-          <div>
-            <label class="block font-semibold text-sm mb-1">זיהוי משתמש (UID):</label>
-            <p class="p-3 bg-gray-50 rounded-lg text-xs" dir="ltr">${user.uid}</p>
-          </div>
-        </div>
-        <div class="flex justify-between items-center mt-8 pt-4 border-t">
-          <button class="btn-sec" onclick="goTo('editProfile')">ערוך פרופיל</button>
-          <button class="text-link text-red-500" onclick="logout()">התנתק</button>
-        </div>
-      </div>
-    </main>
-  `;
-}
-
-async function updateProfile(newDisplayName, newBio) {
+/* Update profile */
+async function updateProfile(displayName, bio) {
   if (!db || !state.user) { showError("אין חיבור ל‑Firebase."); return false; }
   try {
-    const userProfileRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'data');
-    await updateDoc(userProfileRef, { displayName: newDisplayName, bio: newBio });
-    state.user.displayName = newDisplayName; state.user.bio = newBio;
-    if (state.allUsers[state.user.uid]) { state.allUsers[state.user.uid].displayName = newDisplayName; state.allUsers[state.user.uid].bio = newBio; }
+    const ref = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'data');
+    await updateDoc(ref, { displayName, bio });
+    state.user.displayName = displayName;
+    state.user.bio = bio;
+    if (state.allUsers[state.user.uid]) {
+      state.allUsers[state.user.uid].displayName = displayName;
+      state.allUsers[state.user.uid].bio = bio;
+    }
     goTo('profile');
     return true;
   } catch (e) {
@@ -638,76 +453,10 @@ async function updateProfile(newDisplayName, newBio) {
   }
 }
 
-function renderEditProfile() {
-  if (!state.user) return renderLoading();
-  const user = state.user;
-  return `
-    ${Header()}
-    <main class="container mx-auto p-4 flex-grow">
-      <div class="card p-8 w-full max-w-2xl mx-auto shadow-xl">
-        <h1 class="text-3xl font-extrabold mb-6">עריכת פרופיל</h1>
-        <form id="editProfileForm" onsubmit="event.preventDefault(); handleEditProfileSubmit()" class="space-y-4">
-          <div class="flex flex-col items-center mb-6">
-            <img src="${user.avatar}" class="w-32 h-32 rounded-full border-4 mb-4">
-            <p class="small-muted">כדי לשנות תמונה, עדכן/י ב‑Firestore או העלה דרך ממשק ניהול.</p>
-          </div>
-          <div>
-            <label class="block font-semibold text-sm mb-1">שם תצוגה:</label>
-            <input type="text" id="editDisplayName" value="${user.displayName}" required class="w-full p-3 border rounded-lg">
-          </div>
-          <div>
-            <label class="block font-semibold text-sm mb-1">ביוגרפיה:</label>
-            <textarea id="editBio" rows="5" class="w-full p-3 border rounded-lg">${user.bio || ''}</textarea>
-          </div>
-          <div class="flex justify-between items-center pt-4">
-            <button type="button" class="btn-sec bg-gray-500" onclick="goTo('profile')">בטל</button>
-            <button type="submit" class="btn-primary">שמור שינויי פרופיל</button>
-          </div>
-        </form>
-      </div>
-    </main>
-  `;
-}
-
-async function handleEditProfileSubmit() {
-  const newDisplayName = document.getElementById('editDisplayName').value;
-  const newBio = document.getElementById('editBio').value;
-  if (newDisplayName) await updateProfile(newDisplayName, newBio);
-  else showError("שם תצוגה לא יכול להיות ריק.");
-}
-
-function Header() {
-  const user = state.user || { displayName: 'אורח', avatar: 'https://placehold.co/100x100/cccccc/ffffff?text=?' };
-  const activeClass = "border-b-4 border-kesher-accent text-kesher-accent font-bold";
-  const baseClass = "px-3 py-2 text-gray-700 hover:text-kesher-primary transition";
-  return `
-    <header class="bg-white shadow-md sticky top-0 z-50">
-      <div class="container mx-auto p-4 flex justify-between items-center">
-        <div class="flex items-center">
-          <div class="text-2xl font-extrabold text-kesher-primary flex items-center cursor-pointer" onclick="goTo('home')">
-            <img src="https://placehold.co/30x30/FF6B6B/ffffff?text=K" class="rounded-full ml-2"> קהילת קשר
-          </div>
-          <nav class="hidden md:flex mr-6 space-x-4 space-x-reverse">
-            <a href="#" class="${state.screen === 'home' ? activeClass : baseClass}" onclick="goTo('home')"><i class="fas fa-home ml-1"></i> דף הבית</a>
-            <a href="#" class="${state.screen === 'forum' || state.screen === 'singlePost' || state.screen === 'addPost' ? activeClass : baseClass}" onclick="goTo('forum')"><i class="fas fa-comments ml-1"></i> פורום</a>
-          </nav>
-        </div>
-        <div class="flex items-center">
-          <button class="text-sm font-semibold flex items-center hover:opacity-80 transition" onclick="goTo('profile')">
-            <span class="mr-2">${user.displayName}</span><img src="${user.avatar}" class="w-10 h-10 rounded-full border-2">
-          </button>
-          <button class="small-muted mr-4 hover:text-red-500 transition" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
-        </div>
-      </div>
-    </header>
-  `;
-}
-
-// ----------------------- Render orchestrator -----------------------
-
+/* Render orchestrator function (ensures events bound after innerHTML set) */
 function render() {
-  const c = document.getElementById('app-container');
-  if (!c) return;
+  const app = document.getElementById('app-container');
+  if (!app) return;
   let html = '';
   switch (state.screen) {
     case 'loading': html = renderLoading(); break;
@@ -717,35 +466,69 @@ function render() {
     case 'forum': html = renderForum(); break;
     case 'singlePost': html = renderSinglePost(); break;
     case 'addPost': html = renderAddPost(); break;
+    case 'members': html = renderMembers(); break;
+    case 'activities': html = renderActivities(); break;
+    case 'chats': html = renderChats(); break;
+    case 'admin': html = renderAdmin(); break;
     case 'profile': html = renderProfile(); break;
     case 'editProfile': html = renderEditProfile(); break;
-    default: html = renderLogin(); break;
+    default: html = renderHome(); break;
   }
-  c.innerHTML = html;
+  app.innerHTML = html;
 
-  // bind events for forms
+  // bind forms & controls
   if (state.screen === 'login') {
-    document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+    const f = document.getElementById('loginForm');
+    f?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
-      await login(email, password);
+      const pass = document.getElementById('loginPassword').value;
+      await login(email, pass);
     });
   }
+
   if (state.screen === 'register') {
-    document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+    const f = document.getElementById('registerForm');
+    f?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('registerEmail').value;
-      const password = document.getElementById('registerPassword').value;
-      const displayName = document.getElementById('registerDisplayName').value;
-      const gender = document.querySelector('input[name="gender"]:checked').value;
-      await register(email, password, displayName, gender);
+      const pass = document.getElementById('registerPassword').value;
+      const dn = document.getElementById('registerDisplayName').value;
+      const gender = document.querySelector('input[name="gender"]:checked')?.value || 'unknown';
+      await register(email, pass, dn, gender);
     });
+  }
+
+  if (state.screen === 'addPost') {
+    const f = document.getElementById('addPostForm');
+    f?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('postTitle').value;
+      const content = document.getElementById('postContent').value;
+      await addPost(title, content, 'general');
+    });
+  }
+
+  if (state.screen === 'editProfile') {
+    const f = document.getElementById('editProfileForm');
+    f?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const dn = document.getElementById('editDisplayName').value;
+      const bio = document.getElementById('editBio').value;
+      if (dn) await updateProfile(dn, bio);
+    });
+  }
+
+  // update header buttons/menu
+  updateHeaderForUser();
+
+  // load comments if needed
+  if (state.screen === 'singlePost' && state.currentPost) {
+    loadComments(state.currentPost.id);
   }
 }
 
-// ----------------------- Firebase init and auth state handling -----------------------
-
+/* Firebase init and auth state handling with fallback */
 async function initializeFirebase() {
   try {
     app = initializeApp(firebaseConfig);
@@ -756,7 +539,6 @@ async function initializeFirebase() {
     if (initialAuthToken) {
       try { await signInWithCustomToken(auth, initialAuthToken); console.log("Custom token sign-in ok."); } catch(e){ console.warn("Custom token failed:", e); }
     }
-    // Do NOT call signInAnonymously automatically - keep it disabled to allow Email/Password tests
     return true;
   } catch (e) {
     console.error("Firebase init error:", e);
@@ -775,46 +557,44 @@ async function startApp() {
       const uid = userAuth.uid;
       console.log("Auth state: logged in UID:", uid);
 
-      // Primary expected path
       const primaryRef = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'data');
+
       try {
         let primaryDoc = null;
-        try { primaryDoc = await getDoc(primaryRef); } catch(e) { console.error("primary getDoc error:", e); }
+        try { primaryDoc = await getDoc(primaryRef); } catch (e) { console.error("primary getDoc error:", e); }
 
         if (primaryDoc && primaryDoc.exists()) {
           state.user = { ...primaryDoc.data(), uid };
-          console.log("Profile found at artifacts path:", state.user.displayName);
           await fetchInitialData();
+          updateHeaderForUser();
           goTo('home');
           return;
         }
 
-        // Fallback: try root collection users/<uid>
-        console.warn("No profile at artifacts path, trying fallback /users/<uid> ...");
+        console.warn("No profile at artifacts path; attempting fallback to /users/<uid>");
         let fallbackDoc = null;
-        try { fallbackDoc = await getDoc(doc(db, 'users', uid)); } catch(e) { console.error("fallback getDoc error:", e); }
+        try { fallbackDoc = await getDoc(doc(db, 'users', uid)); } catch (e) { console.error("fallback getDoc error:", e); }
 
         if (fallbackDoc && fallbackDoc.exists()) {
-          const data = fallbackDoc.data();
+          const d = fallbackDoc.data();
           state.user = {
             uid,
-            email: data.email || userAuth.email || '',
-            displayName: data.name || data.displayName || data.email || 'משתמש',
-            gender: data.gender || data.sex || 'unknown',
-            avatar: data.avatar || ('https://placehold.co/400x400/2B6CB0/ffffff?text=' + (data.name ? data.name[0] : 'U')),
-            bio: data.bio || '',
-            __rawProfile: data
+            email: d.email || userAuth.email || '',
+            displayName: d.name || d.displayName || d.email || 'משתמש',
+            gender: d.gender || 'unknown',
+            avatar: d.avatar || ('https://placehold.co/400x400/2B6CB0/ffffff?text=' + (d.name ? d.name[0] : 'U')),
+            bio: d.bio || '',
+            __rawProfile: d
           };
-          console.log("Profile found at root /users:", state.user.displayName);
           await fetchInitialData();
+          updateHeaderForUser();
           goTo('home');
           return;
         }
 
-        // Nothing found: set pendingAuth and go to register (fields prefilled)
-        console.warn("Auth user found but no profile in either path.");
+        // nothing found - mark pendingAuth and go to register
         state.pendingAuth = { uid, email: userAuth.email || '' };
-        showError("נמצאה כניסה אך אין פרופיל משתמש. יש להשלים את ההרשמה ליצירת הפרופיל.", false);
+        showError("נמצאה כניסה אך אין פרופיל משתמש. יש להשלים הרשמה.", false);
         goTo('register');
       } catch (err) {
         console.error("Error resolving user profile:", err);
@@ -822,36 +602,458 @@ async function startApp() {
         state.user = null;
         goTo('login');
       }
+
     } else {
       console.log("Auth state: logged out.");
       state.user = null;
+      updateHeaderForUser();
       if (state.screen !== 'register') goTo('login'); else render();
     }
   });
 }
 
-startApp();
+/* Expose helper functions to window for inline onclick attributes */
+window.goTo = goTo;
+window.logout = logout;
+window.showRules = showRules;
+window.hideRules = hideRules;
+window.toggleLike = toggleLike;
 
+/* Start app */
+startApp();
 </script>
 
-<!-- Terms modal -->
-<div id="rulesModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-60" onclick="if(event.target.id === 'rulesModal') hideRules()">
-  <div class="bg-white p-6 rounded-xl w-full max-w-2xl card shadow-2xl">
-    <h3 class="font-bold text-2xl mb-4">כללי הקהילה ותנאי שימוש</h3>
-    <div class="small-muted mb-4 p-3 bg-red-50 border-r-4 border-red-500 rounded">
-      <strong>תשומת לב:</strong> יש להשתמש בפורום בכבוד ובנימוס. אין לפרסם תכנים פוגעניים או מסחרי בלתי מורשה.
-    </div>
-    <ol class="text-sm small-muted list-decimal mr-6 space-y-2 max-h-96 overflow-y-auto">
-      <li><strong>כבוד לאחרים:</strong> התנהגו בכבוד בכל דיון.</li>
-      <li><strong>תוכן אסור:</strong> אין לפרסם תכנים בעלי אופי פוגעני או מסחרי בלתי מורשה.</li>
-      <li><strong>פרטיות:</strong> הימנעו מפרסום מידע אישי של אחרים ללא הסכמה.</li>
-      <li><strong>דיווח:</strong> מצאתם תוכן בעייתי? דווחו למנהלי האתר.</li>
-    </ol>
-    <div class="text-center mt-6">
-      <button class="btn-primary py-2 px-6 rounded-lg font-bold" onclick="hideRules()">קראתי והסכמתי</button>
-    </div>
-  </div>
-</div>
+<!-- end of part 3 -->
 
-</body>
-</html>
+/* End of part 2 */
+  <!-- חלק 3/להדבקה -->
+<script type="module">
+// continuation (helpers, views, rendering and Firebase init already imported earlier)
+
+/* CommentCard */
+function CommentCard(c) {
+  const u = state.allUsers[c.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/80x80/cccccc/ffffff?text=?' };
+  return `
+    <div class="comment-card p-3 mb-3 rounded-lg flex">
+      <img src="${u.avatar}" class="w-10 h-10 rounded-full ml-3" alt="${u.displayName}">
+      <div class="flex-grow">
+        <div class="flex justify-between">
+          <div class="font-semibold">${u.displayName}</div>
+          <div class="small-muted text-xs">${formatTimestamp(c.createdAt)}</div>
+        </div>
+        <div class="mt-1 text-gray-700">${c.content}</div>
+      </div>
+    </div>
+  `;
+}
+
+/* Views rendering functions (continued if needed) are already defined in previous parts.
+   Now implement render orchestrator and event bindings, comment loading, profile update, etc. */
+
+/* Load comments for a post (reusable) */
+async function loadComments(postId) {
+  if (!db) return;
+  const container = document.getElementById('commentsContainer');
+  if (!container) return;
+  try {
+    const commentsRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts', postId, 'comments');
+    onSnapshot(query(commentsRef), snap => {
+      const comments = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0) - (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0));
+      container.innerHTML = `<h3 class="font-bold mb-3">תגובות (${comments.length})</h3>${comments.map(CommentCard).join('')}`;
+    }, e => {
+      console.error("comments snapshot error:", e);
+      container.innerHTML = `<div class="text-red-500 p-4">שגיאה בטעינת תגובות: ${e.message}</div>`;
+    });
+  } catch (e) {
+    console.error("loadComments error:", e);
+    container.innerHTML = `<div class="text-red-500 p-4">שגיאה: ${e.message}</div>`;
+  }
+}
+
+/* Update profile */
+async function updateProfile(displayName, bio) {
+  if (!db || !state.user) { showError("אין חיבור ל‑Firebase."); return false; }
+  try {
+    const ref = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'data');
+    await updateDoc(ref, { displayName, bio });
+    state.user.displayName = displayName;
+    state.user.bio = bio;
+    if (state.allUsers[state.user.uid]) {
+      state.allUsers[state.user.uid].displayName = displayName;
+      state.allUsers[state.user.uid].bio = bio;
+    }
+    goTo('profile');
+    return true;
+  } catch (e) {
+    console.error("updateProfile error:", e);
+    showError("שגיאה בעדכון הפרופיל.");
+    return false;
+  }
+}
+
+/* Render orchestrator function (ensures events bound after innerHTML set) */
+function render() {
+  const app = document.getElementById('app-container');
+  if (!app) return;
+  let html = '';
+  switch (state.screen) {
+    case 'loading': html = renderLoading(); break;
+    case 'login': html = renderLogin(); break;
+    case 'register': html = renderRegister(); break;
+    case 'home': html = renderHome(); break;
+    case 'forum': html = renderForum(); break;
+    case 'singlePost': html = renderSinglePost(); break;
+    case 'addPost': html = renderAddPost(); break;
+    case 'members': html = renderMembers(); break;
+    case 'activities': html = renderActivities(); break;
+    case 'chats': html = renderChats(); break;
+    case 'admin': html = renderAdmin(); break;
+    case 'profile': html = renderProfile(); break;
+    case 'editProfile': html = renderEditProfile(); break;
+    default: html = renderHome(); break;
+  }
+  app.innerHTML = html;
+
+  // bind forms & controls
+  if (state.screen === 'login') {
+    const f = document.getElementById('loginForm');
+    f?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPassword').value;
+      await login(email, pass);
+    });
+  }
+
+  if (state.screen === 'register') {
+    const f = document.getElementById('registerForm');
+    f?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('registerEmail').value;
+      const pass = document.getElementById('registerPassword').value;
+      const dn = document.getElementById('registerDisplayName').value;
+      const gender = document.querySelector('input[name="gender"]:checked')?.value || 'unknown';
+      await register(email, pass, dn, gender);
+    });
+  }
+
+  if (state.screen === 'addPost') {
+    const f = document.getElementById('addPostForm');
+    f?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('postTitle').value;
+      const content = document.getElementById('postContent').value;
+      await addPost(title, content, 'general');
+    });
+  }
+
+  if (state.screen === 'editProfile') {
+    const f = document.getElementById('editProfileForm');
+    f?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const dn = document.getElementById('editDisplayName').value;
+      const bio = document.getElementById('editBio').value;
+      if (dn) await updateProfile(dn, bio);
+    });
+  }
+
+  // update header buttons/menu
+  updateHeaderForUser();
+
+  // load comments if needed
+  if (state.screen === 'singlePost' && state.currentPost) {
+    loadComments(state.currentPost.id);
+  }
+}
+
+/* Firebase init and auth state handling with fallback */
+async function initializeFirebase() {
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    try { setLogLevel('debug'); } catch(e) {}
+    console.log("Firebase initialized.");
+    if (initialAuthToken) {
+      try { await signInWithCustomToken(auth, initialAuthToken); console.log("Custom token sign-in ok."); } catch(e){ console.warn("Custom token failed:", e); }
+    }
+    return true;
+  } catch (e) {
+    console.error("Firebase init error:", e);
+    showError("שגיאה באתחול Firebase.");
+    return false;
+  }
+}
+
+async function startApp() {
+  goTo('loading');
+  const ok = await initializeFirebase();
+  if (!ok) return;
+
+  onAuthStateChanged(auth, async (userAuth) => {
+    if (userAuth) {
+      const uid = userAuth.uid;
+      console.log("Auth state: logged in UID:", uid);
+
+      const primaryRef = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'data');
+
+      try {
+        let primaryDoc = null;
+        try { primaryDoc = await getDoc(primaryRef); } catch (e) { console.error("primary getDoc error:", e); }
+
+        if (primaryDoc && primaryDoc.exists()) {
+          state.user = { ...primaryDoc.data(), uid };
+          await fetchInitialData();
+          updateHeaderForUser();
+          goTo('home');
+          return;
+        }
+
+        console.warn("No profile at artifacts path; attempting fallback to /users/<uid>");
+        let fallbackDoc = null;
+        try { fallbackDoc = await getDoc(doc(db, 'users', uid)); } catch (e) { console.error("fallback getDoc error:", e); }
+
+        if (fallbackDoc && fallbackDoc.exists()) {
+          const d = fallbackDoc.data();
+          state.user = {
+            uid,
+            email: d.email || userAuth.email || '',
+            displayName: d.name || d.displayName || d.email || 'משתמש',
+            gender: d.gender || 'unknown',
+            avatar: d.avatar || ('https://placehold.co/400x400/2B6CB0/ffffff?text=' + (d.name ? d.name[0] : 'U')),
+            bio: d.bio || '',
+            __rawProfile: d
+          };
+          await fetchInitialData();
+          updateHeaderForUser();
+          goTo('home');
+          return;
+        }
+
+        // nothing found - mark pendingAuth and go to register
+        state.pendingAuth = { uid, email: userAuth.email || '' };
+        showError("נמצאה כניסה אך אין פרופיל משתמש. יש להשלים הרשמה.", false);
+        goTo('register');
+      } catch (err) {
+        console.error("Error resolving user profile:", err);
+        showError("שגיאת טעינת פרופיל. בדוק הרשאות Firestore.", true);
+        state.user = null;
+        goTo('login');
+      }
+
+    } else {
+      console.log("Auth state: logged out.");
+      state.user = null;
+      updateHeaderForUser();
+      if (state.screen !== 'register') goTo('login'); else render();
+    }
+  });
+}
+
+/* Expose helper functions to window for inline onclick attributes */
+window.goTo = goTo;
+window.logout = logout;
+window.showRules = showRules;
+window.hideRules = hideRules;
+window.toggleLike = toggleLike;
+
+/* Start app */
+startApp();
+</script>
+
+<!-- end of part 3 -->
+  <!-- חלק 4/המשך וסיום הקובץ -->
+
+<script>
+// קטן: סקריפטים עזריים שלא יכולים להיות מודולים (נגישות מה־DOM)
+(function attachGlobalShortcuts(){
+  // קיצורי מקלדת פשוטים לדוגמה: H -> Home, F -> Forum, L -> Login
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'h') { goTo('home'); }
+    if (k === 'f') { goTo('forum'); }
+    if (k === 'l') { goTo('login'); }
+  });
+})();
+
+// small helper: auto-rotate daily tip every 12s
+(function rotateDailyTip(){
+  const el = document.getElementById('daily-tip');
+  if (!el) return;
+  setInterval(()=> {
+    try {
+      // fetch tip from state (function defined in module parts)
+      el.textContent = typeof window.getDailyTip === 'function' ? window.getDailyTip() : '';
+    } catch(e) {}
+  }, 12000);
+})();
+
+// expose a safe debug printer for convenience
+window.debugPrintState = function() {
+  console.log("APP STATE:", {
+    screen: state.screen,
+    user: state.user,
+    postsCount: state.posts.length,
+    pendingAuth: state.pendingAuth
+  });
+};
+
+// small UX: collapse mobile nav toggle
+(function mobileNavToggle(){
+  // add small toggle button if needed (only if nav hidden)
+  const header = document.querySelector('header .container');
+  if (!header) return;
+  const btn = document.createElement('button');
+  btn.className = 'md:hidden p-2 ml-2';
+  btn.innerHTML = '<i class="fas fa-bars"></i>';
+  btn.onclick = () => {
+    const nav = document.querySelector('header nav');
+    if (nav) nav.classList.toggle('hidden');
+  };
+  header.querySelector('.flex.items-center')?.prepend(btn);
+})();
+
+/* Final instructions to you (developer) */
+console.log("Kesher app bootstrap complete. If UI is missing parts, check console for errors.");
+</script>
+
+<!-- end of file -->
+  <!-- חלק 5/השלמות ותוספות פונקציונליות -->
+
+<script>
+// Additional utilities and safety checks
+
+// Safe getter for nested properties
+function safeGet(obj, path, fallback = undefined) {
+  try {
+    return path.split('.').reduce((o, k) => (o && o[k] !== undefined) ? o[k] : fallback, obj);
+  } catch (e) {
+    return fallback;
+  }
+}
+
+// Friendly timestamp formatter for templates (exposed globally)
+window.formatTimestamp = formatTimestamp;
+
+// expose daily tip generator to non-module scripts
+window.getDailyTip = function() {
+  const tips = [
+    "שוחח/י עם שכן חדש השבוע — הכרות מקרבת.",
+    "צא/י להליכה של 20 דקות ביום לשיפור מצב הרוח.",
+    "שתף/י זיכרון נחמד בפורום — מישהו מחכה לשמוע.",
+    "בדוק/י את התפריטים הקהילתיים הקרובים.",
+    "קרא/י מדריך קצר על בטיחות באינטרנט."
+  ];
+  window.__dailyTipIndex = (window.__dailyTipIndex === undefined) ? 0 : (window.__dailyTipIndex + 1) % tips.length;
+  return tips[window.__dailyTipIndex];
+};
+
+// UX: show skeleton loaders if network slow
+function showSkeleton(targetSelector, lines = 3) {
+  const container = document.querySelector(targetSelector);
+  if (!container) return;
+  let html = '';
+  for (let i=0;i<lines;i++){
+    html += `<div class="p-4 border-b animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-3 bg-gray-200 rounded w-1/2"></div></div>`;
+  }
+  container.innerHTML = html;
+}
+
+// Basic client-side validation helpers
+function validateEmailFormat(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(String(email).toLowerCase());
+}
+
+// Small helper to scroll into view for messages
+function scrollToTopOfApp() {
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
+}
+
+// Retry helper for transient Firestore reads
+async function retry(fn, attempts = 3, delayMs = 300) {
+  let lastErr;
+  for (let i=0;i<attempts;i++){
+    try { return await fn(); } catch(e) { lastErr = e; await new Promise(r=>setTimeout(r, delayMs)); }
+  }
+  throw lastErr;
+}
+
+/* Extended admin helpers (only visible if user role admin) */
+async function adminListUsersSample() {
+  // This is just a helper to list a sample of root /users docs for admins
+  if (!db || !(state.user && (state.user.role==='admin' || (state.user.__rawProfile && state.user.__rawProfile.role==='admin')))) {
+    showError("אין הרשאה להצגת משתמשים (admin).");
+    return;
+  }
+  try {
+    const usersRef = collection(db, 'users');
+    const snap = await getDocs(usersRef);
+    console.log("Admin: root /users count:", snap.size);
+    snap.docs.slice(0,20).forEach(d => console.log(d.id, d.data()));
+    showError(`טען ${snap.size} משתמשים (קונסול).`, false);
+  } catch(e) {
+    console.error("adminListUsersSample error:", e);
+    showError("שגיאה בטעינת משתמשים (admin).");
+  }
+}
+
+/* Small accessibility improvements */
+(function accessibilityInit(){
+  document.documentElement.setAttribute('lang','he');
+  document.documentElement.setAttribute('dir','rtl');
+  // add skip-to-content
+  const skip = document.createElement('a');
+  skip.href = '#app-container';
+  skip.className = 'sr-only focus:not-sr-only p-2';
+  skip.textContent = 'דילוג לתוכן העיקרי';
+  document.body.prepend(skip);
+})();
+
+/* Feature flag: enableVerboseLogs — useful while debugging */
+window.__KESHER_VERBOSE = false;
+function vlog(...args){ if (window.__KESHER_VERBOSE) console.log(...args); }
+
+/* Tidy up: ensure header state sync after auth */
+(function ensureHeaderSync(){
+  // run every time user changes (poll small)
+  let lastUser = null;
+  setInterval(()=> {
+    if (JSON.stringify(lastUser)!==JSON.stringify(state.user)) {
+      lastUser = JSON.parse(JSON.stringify(state.user || null));
+      try { updateHeaderForUser(); } catch(e){/*ignore*/ }
+    }
+  }, 1000);
+})();
+
+/* Helpful debug command: recreate profile under artifacts path from root /users doc */
+window.adminCreateArtifactProfileFromRoot = async function(uid) {
+  if (!db) { showError("אין חיבור ל‑Firebase."); return; }
+  if (!uid) { showError("נא לספק UID."); return; }
+  try {
+    const rootDoc = await getDoc(doc(db,'users',uid));
+    if (!rootDoc.exists()) { showError("מסמך root/users לא נמצא."); return; }
+    const d = rootDoc.data();
+    const profileRef = doc(db, 'artifacts', appId, 'users', uid, 'profile', 'data');
+    await setDoc(profileRef, {
+      uid,
+      email: d.email || '',
+      displayName: d.name || d.displayName || d.email || 'משתמש',
+      gender: d.gender || 'unknown',
+      avatar: d.avatar || ('https://placehold.co/400x400/2B6CB0/ffffff?text='+(d.name?d.name[0]:'U')),
+      createdAt: serverTimestamp(),
+      lastLogin: serverTimestamp(),
+      bio: d.bio || ''
+    });
+    showError("פרופיל תווסף ל‑artifacts (ראה קונסול).", false);
+    console.log("adminCreateArtifactProfileFromRoot: done for", uid);
+  } catch(e) {
+    console.error("adminCreateArtifactProfileFromRoot error:", e);
+    showError("שגיאה ביצירת פרופיל מה‑root.");
+  }
+};
+
+/* End of part 5 additions */
+</script>
