@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>קהילת קשר — קהילה תומכת 60+</title>
+  <title>קהילה 60+</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <style>
-    /* --- הגדרות עיצוב כלליות --- */
+    /* --- צבעים ועיצוב כללי --- */
     :root{
-      --primary:#2B6CB0; /* כחול כהה - אמין */
-      --accent:#38B2AC; /* טורקיז - מרענן */
-      --bg:#F7FAFC; /* רקע בהיר */
+      --primary:#2B6CB0; /* כחול ראשי */
+      --accent:#38B2AC; /* טורקיז */
+      --bg:#F7FAFC; /* רקע */
       --card:#FFFFFF;
       --muted:#4A5568;
-      --danger: #E53E3E; /* אדום לשגיאות */
+      --danger: #E53E3E; /* שגיאה */
     }
     html,body { height:100%; }
     body{ background:var(--bg); font-family: "Segoe UI", Roboto, Arial, sans-serif; color:#1a202c; -webkit-font-smoothing:antialiased; margin:0; padding:0; }
@@ -29,27 +29,19 @@
     .pill{ padding:.5rem .9rem; border-radius:9999px; font-size:.875rem; font-weight:600; }
     .small-muted{ color:var(--muted); font-size:0.875rem; }
     .text-link{ color:var(--primary); cursor:pointer; text-decoration:underline; font-weight:500; }
-    
-    /* מיקוד וטפסים */
     input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 1px var(--accent);
       outline: none;
     }
-    
-    /* פוסטים - נראות נקייה */
     .post-card { border-bottom: 1px solid #E2E8F0; }
     .post-card:last-child { border-bottom: none; }
-
-    /* תגובות - הזחה ורקע */
     .comment-card { 
         background: #F0F4F8; 
         border-right: 3px solid var(--accent); 
         margin-right: 1.5rem;
     }
     .text-red-500 { color: var(--danger); }
-    
-    /* מודל שגיאות - מופיע מעל הכל */
     #error-message-box { 
         position: fixed; 
         top: 0; 
@@ -61,52 +53,53 @@
         color: white;
         background-color: var(--danger);
         font-weight: bold;
-        display: none; /* התחל מוסתר */
+        display: none;
     }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-<!-- הודעת שגיאה קריטית גלובלית -->
+<!-- תיבת שגיאות גלובלית -->
 <div id="error-message-box">
-  <span id="error-text">שגיאה: התרחשה שגיאה קריטית. אנא נסה/י לרענן את הדף.</span>
+  <span id="error-text">שגיאה: קרתה שגיאה. נא לבדוק.</span>
   <button onclick="hideError()" class="float-left text-white font-bold text-lg mr-4">&times;</button>
 </div>
 
-<!-- גוף האפליקציה המרכזי -->
+<!-- אזור האפליקציה -->
 <div id="app-container" class="flex-grow flex flex-col items-center">
-    <!-- תוכן רנדר דינמי -->
+    <!-- התוכן מוטען דינמית -->
 </div>
-
 
 <script type="module">
     // =========================================================
-    // 1. הגדרות וייבוא ספריות
+    // יבוא Firebase
     // =========================================================
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, serverTimestamp, setLogLevel, getDocs, updateDoc, arrayUnion, arrayRemove, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     
-    // ======= ה‑Firebase config שהדבקת =======
+    // ======= Firebase config - בדוק את הערכים בקונסול של הפרויקט שלך =======
     const firebaseConfig = {
       apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM",
       authDomain: "kesher-bakir.firebaseapp.com",
       projectId: "kesher-bakir",
-      storageBucket: "kesher-bakir.firebasestorage.app",
+      // תוקן: storageBucket תקין לפורמט של Firebase
+      storageBucket: "kesher-bakir.appspot.com",
       messagingSenderId: "671996189455",
       appId: "1:671996189455:web:d8ee089585a852ab38fc7a",
       measurementId: "G-42EWSKFHXP"
     };
-    // ========================================
+    // ========================================================================
 
-    // **הגדרות סביבת Canvas (חובה להשתמש במשתנים הגלובליים)**
+    // אפשרויות התחלה חיצוניות (אם השרת שלך מספק טוקן)
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kesher-app-id';
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-    // **משתנים גלובליים ל-Firebase**
+
+    // משתנים עולמיים ל‑Firebase
     let app, db, auth;
 
     // =========================================================
-    // 2. ניהול מצב (State Management)
+    // State (ניהול מצב פשוט)
     // =========================================================
     const state = {
         screen: 'loading',
@@ -118,11 +111,10 @@
     };
 
     // =========================================================
-    // 3. פונקציות עזר (UI & Utility)
+    // פונקציות עזר להצגת שגיאות וניווט
     // =========================================================
-
     function showError(message, critical = false) {
-        console.error("שגיאה ביישום:", message);
+        console.error("שגיאה פנימית:", message);
         state.error = message;
         
         const errorBox = document.getElementById('error-message-box');
@@ -159,15 +151,15 @@
                 return 'המשתמש נחסם.';
             case 'auth/user-not-found':
             case 'auth/wrong-password':
-                return 'אימייל או סיסמה שגויים.';
+                return 'מייל או סיסמה שגויים.';
             case 'auth/email-already-in-use':
-                return 'כתובת אימייל זו כבר רשומה.';
+                return 'כתובת מייל כבר בשימוש.';
             case 'auth/weak-password':
-                return 'הסיסמה צריכה להיות לפחות 6 תווים.';
+                return 'הסיסמה חלשה (6 תווים מינימום).';
             case 'auth/requires-recent-login':
-                return 'אנא התחבר מחדש לפני ביצוע פעולה זו.';
+                return 'נדרש התחברות מחדש לביצוע פעולה זו.';
             default:
-                return 'שגיאה כללית (קוד: ' + code.replace('auth/', '') + ').';
+                return 'שגיאת אימות: ' + code.replace('auth/', '');
         }
     }
 
@@ -177,7 +169,7 @@
         if (newScreen === 'singlePost' && params.postId) {
             state.currentPost = state.posts.find(p => p.id === params.postId) || null;
             if (!state.currentPost) {
-                showError("הפוסט המבוקש לא נמצא.");
+                showError("הפוסט לא נמצא.");
                 goTo('forum');
                 return;
             }
@@ -188,12 +180,12 @@
     }
     
     function formatTimestamp(timestamp) {
-        if (!timestamp) return 'לא ידוע';
+        if (!timestamp) return 'לא זמין';
         let date = timestamp instanceof Date ? timestamp : (timestamp.toDate ? timestamp.toDate() : new Date(timestamp));
         const now = new Date();
         const diffInSeconds = (now.getTime() - date.getTime()) / 1000;
 
-        if (diffInSeconds < 60) return 'לפני רגע';
+        if (diffInSeconds < 60) return 'הרגע';
         if (diffInSeconds < 3600) return `לפני ${Math.floor(diffInSeconds / 60)} דקות`;
         if (diffInSeconds < 86400) return `לפני ${Math.floor(diffInSeconds / 3600)} שעות`;
 
@@ -202,7 +194,7 @@
     }
     
     // =========================================================
-    // 4. לוגיקת Firebase
+    // Interactions עם Firebase (Auth + Firestore)
     // =========================================================
 
     function showRules() {
@@ -222,22 +214,22 @@
     async function login(email, password) {
         hideError();
         if (!auth) {
-            showError("Firebase לא אותחל. אנא רענן/י את הדף.");
+            showError("Firebase לא אתחל כראוי. בדוק קונפיג.", true);
             return false;
         }
         
         try {
             if (!email || !password) {
-                showError("אנא הזן/י אימייל וסיסמה.");
+                showError("אנא מלא/י אימייל וסיסמה.");
                 return false;
             }
             
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            console.log("התחברות הצליחה עבור:", userCredential.user.email);
+            console.log("התחברות בוצעה בהצלחה:", userCredential.user.email);
             return true;
         } catch (error) {
-            console.error("שגיאת התחברות:", error);
-            showError(`שגיאת התחברות: בדוק/י אימייל וסיסמה. (${getFirebaseErrorMessage(error.code)})`);
+            console.error("שגיאה בכניסה:", error);
+            showError(`שגיאת כניסה: ${getFirebaseErrorMessage(error.code)}`);
             return false;
         }
     }
@@ -245,12 +237,12 @@
     async function register(email, password, displayName, gender) {
         hideError();
         if (!auth || !db) {
-            showError("Firebase לא אותחל. אנא רענן/י את הדף.");
+            showError("Firebase לא אתחל כראוי. בדוק קונפיג.", true);
             return false;
         }
         
         if (password.length < 6) {
-             showError("הסיסמה חייבת להיות לפחות 6 תווים.");
+             showError("אורך סיסמה חייב להיות לפחות 6 תווים.");
              return false;
         }
         
@@ -268,14 +260,14 @@
                 avatar: gender === 'male' ? 'https://placehold.co/400x400/2B6CB0/ffffff?text=M' : 'https://placehold.co/400x400/38B2AC/ffffff?text=F',
                 createdAt: serverTimestamp(),
                 lastLogin: serverTimestamp(),
-                bio: `שלום, אני ${displayName} ואני חלק מקהילת קשר!`
+                bio: `היי, אני ${displayName} בקהילה!`
             });
             
-            console.log("רישום ופרופיל נוצרו בהצלחה עבור:", user.email);
+            console.log("נוצר פרופיל חדש עבור:", user.email);
             return true;
 
         } catch (error) {
-            console.error("שגיאת רישום:", error);
+            console.error("שגיאה בהרשמה:", error);
             showError(`שגיאת רישום: (${getFirebaseErrorMessage(error.code)})`);
             return false;
         }
@@ -302,8 +294,8 @@
             }
             render();
         }, (error) => {
-            console.error("שגיאה במנוי לשינויים בפוסטים:", error);
-            showError("שגיאה באחזור נתוני הפורום. אנא נסה/י שוב.");
+            console.error("שגיאה בעדכון פוסטים:", error);
+            showError("שגיאה בעדכון פוסטים. בדוק חיבור.");
         });
 
         const usersColRef = collection(db, 'artifacts', appId, 'users');
@@ -320,21 +312,21 @@
                         displayName: data.displayName,
                         avatar: data.avatar,
                         gender: data.gender,
-                        bio: data.bio || 'לא נכתב תיאור אישי.',
+                        bio: data.bio || 'אין ביוגרפיה.',
                     };
                 }
             }
             state.allUsers = userMap;
             console.log("Firebase Debug: Users map loaded. Count:", Object.keys(state.allUsers).length);
         } catch (error) {
-            console.error("שגיאה באחזור מפת המשתמשים:", error);
-            showError("שגיאה באחזור פרטי משתמשים.");
+            console.error("שגיאה בטעינת משתמשים:", error);
+            showError("שגיאה בטעינת משתמשים.");
         }
     }
     
     async function addPost(title, content, category) {
         if (!db || !state.user) {
-            showError("לא מחובר/ת או שגיאת Firebase.");
+            showError("אין חיבור ל‑Firebase או המשתמש לא מחובר.");
             return false;
         }
 
@@ -354,7 +346,7 @@
             return true;
         } catch (error) {
             console.error("שגיאה ביצירת פוסט:", error);
-            showError("שגיאה בשמירת הפוסט. אנא נסה/י שוב.");
+            showError("שגיאה ביצירת פוסט. בדוק הרשאות Firestore.");
             return false;
         }
     }
@@ -385,13 +377,13 @@
 
         } catch (error) {
             console.error("שגיאה בהוספת תגובה:", error);
-            showError("שגיאה בשמירת התגובה. אנא נסה/י שוב.");
+            showError("שגיאה בהוספת תגובה.");
         }
     }
     
     async function toggleLike(postId) {
         if (!db || !state.user) {
-            showError("יש להתחבר כדי לבצע לייק.");
+            showError("אין הרשאה לשנות לייקים.");
             return;
         }
 
@@ -408,18 +400,18 @@
                 });
             }
         } catch (error) {
-            console.error("שגיאה בלייק:", error);
-            showError("שגיאה בביצוע לייק/ביטול לייק.");
+            console.error("שגיאה בעדכון לייק:", error);
+            showError("שגיאה בעדכון לייק.");
         }
     }
 
 
     // =========================================================
-    // 5. רכיבי UI
+    // תבניות UI (Cards)
     // =========================================================
 
     function PostCard(post) {
-        const user = state.allUsers[post.userId] || { displayName: 'משתמש נמחק', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
+        const user = state.allUsers[post.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
         const likesCount = post.likes ? post.likes.length : 0;
         const isLiked = post.likes ? (state.user ? post.likes.includes(state.user.uid) : false) : false;
         
@@ -449,7 +441,7 @@
     }
 
     function CommentCard(comment) {
-        const user = state.allUsers[comment.userId] || { displayName: 'משתמש נמחק', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
+        const user = state.allUsers[comment.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
         
         return `
             <div class="comment-card p-4 my-3 rounded-lg flex">
@@ -466,15 +458,15 @@
     }
 
     // =========================================================
-    // 6. תצוגות (Views)
+    // Views (כל המסכים הוצבו חזרה ושומרו)
     // =========================================================
-    
+
     function renderLoading() {
         return `
             <div class="flex flex-col items-center justify-center h-screen w-full">
                 <i class="fas fa-spinner fa-spin text-kesher-primary text-6xl mb-4"></i>
-                <h1 class="text-2xl font-bold text-kesher-text">טוען קהילה...</h1>
-                <p class="small-muted mt-2">בדיקת פרטי התחברות ואחזור נתונים ראשוניים.</p>
+                <h1 class="text-2xl font-bold text-kesher-text">טוען...</h1>
+                <p class="small-muted mt-2">מנסה להתחבר ל‑Firebase.</p>
             </div>
         `;
     }
@@ -483,26 +475,26 @@
         return `
             <div class="flex flex-col items-center justify-center w-full min-h-screen p-4">
                 <div class="card p-8 w-full max-w-md text-center">
-                    <img src="https://placehold.co/150x150/FF6B6B/ffffff?text=K" alt="לוגו קשר" class="mx-auto mb-6 rounded-full shadow-lg">
-                    <h1 class="text-3xl font-extrabold mb-2 text-kesher-primary">ברוך/ה הבא/ה לקהילת קשר</h1>
-                    <p class="small-muted mb-6">כניסה למרכז העזרה הקהילתי 60+</p>
+                    <img src="https://placehold.co/150x150/FF6B6B/ffffff?text=K" alt="לוגו" class="mx-auto mb-6 rounded-full shadow-lg">
+                    <h1 class="text-3xl font-extrabold mb-2 text-kesher-primary">התחבר/י לחשבון</h1>
+                    <p class="small-muted mb-6">קהילת 60+</p>
                     
                     <form id="loginForm" class="space-y-4">
-                        <input type="email" id="loginEmail" placeholder="כתובת אימייל" required 
+                        <input type="email" id="loginEmail" placeholder="אימייל" required 
                                class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr">
                         <input type="password" id="loginPassword" placeholder="סיסמה" required 
                                class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr">
                         
                         <button type="submit" class="btn-primary w-full p-3 rounded-lg font-bold text-lg shadow-md hover:shadow-lg transition">
-                            התחברות <i class="fas fa-sign-in-alt mr-2"></i>
+                            התחבר <i class="fas fa-sign-in-alt mr-2"></i>
                         </button>
                     </form>
                     
                     <p class="mt-6 text-sm">
-                        עוד לא חבר/ה? <span class="text-link" onclick="goTo('register')">להרשמה</span>
+                        אין לך חשבון? <span class="text-link" onclick="goTo('register')">רשום/י</span>
                     </p>
                     <p class="mt-4 text-xs small-muted">
-                        <span class="text-link" onclick="showRules()">תקנון שימוש וקוד התנהגות</span>
+                        <span class="text-link" onclick="showRules()">תנאי שימוש</span>
                     </p>
                 </div>
             </div>
@@ -513,38 +505,38 @@
         return `
             <div class="flex flex-col items-center justify-center w-full min-h-screen p-4">
                 <div class="card p-8 w-full max-w-md text-center">
-                    <h1 class="text-3xl font-extrabold mb-2 text-kesher-secondary">הרשמה לקהילה</h1>
-                    <p class="small-muted mb-6">תהליך מהיר ליצירת פרופיל חדש.</p>
+                    <h1 class="text-3xl font-extrabold mb-2 text-kesher-secondary">הרשמה</h1>
+                    <p class="small-muted mb-6">צור/י חשבון חדש בקהילה.</p>
                     
                     <form id="registerForm" class="space-y-4">
-                        <input type="email" id="registerEmail" placeholder="כתובת אימייל" required 
+                        <input type="email" id="registerEmail" placeholder="אימייל" required 
                                class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr">
-                        <input type="password" id="registerPassword" placeholder="סיסמה (6 תווים ומעלה)" required 
+                        <input type="password" id="registerPassword" placeholder="סיסמה (6 תווים לפחות)" required 
                                class="w-full p-3 border border-gray-300 rounded-lg text-right" dir="ltr">
-                        <input type="text" id="registerDisplayName" placeholder="שם מציג בקהילה" required 
+                        <input type="text" id="registerDisplayName" placeholder="שם תצוגה" required 
                                class="w-full p-3 border border-gray-300 rounded-lg text-right">
                         
                         <div class="flex justify-around bg-gray-100 p-2 rounded-lg">
                             <label class="flex items-center cursor-pointer">
                                 <input type="radio" name="gender" value="male" class="form-radio text-kesher-primary h-5 w-5 ml-2" required>
-                                גבר <i class="fas fa-male mr-1 text-kesher-primary"></i>
+                                זכר <i class="fas fa-male mr-1 text-kesher-primary"></i>
                             </label>
                             <label class="flex items-center cursor-pointer">
                                 <input type="radio" name="gender" value="female" class="form-radio text-kesher-secondary h-5 w-5 ml-2" required checked>
-                                אישה <i class="fas fa-female mr-1 text-kesher-secondary"></i>
+                                נקבה <i class="fas fa-female mr-1 text-kesher-secondary"></i>
                             </label>
                         </div>
 
                         <button type="submit" class="btn-sec w-full p-3 rounded-lg font-bold text-lg shadow-md hover:shadow-lg transition">
-                            הירשם/י עכשיו <i class="fas fa-user-plus mr-2"></i>
+                            צור חשבון <i class="fas fa-user-plus mr-2"></i>
                         </button>
                     </form>
                     
                     <p class="mt-6 text-sm">
-                        כבר יש לך חשבון? <span class="text-link" onclick="goTo('login')">להתחברות</span>
+                        כבר רשום? <span class="text-link" onclick="goTo('login')">התחבר</span>
                     </p>
                     <p class="mt-4 text-xs small-muted">
-                        על ידי הרשמה, אני מאשר/ת את <span class="text-link" onclick="showRules()">תקנון השימוש</span>
+                        בעיות? בדוק את התנאים ב‑<span class="text-link" onclick="showRules()">תנאי השימוש</span>
                     </p>
                 </div>
             </div>
@@ -563,7 +555,7 @@
                     <div class="md:col-span-2 card p-6 bg-white flex items-center shadow-xl">
                         <img src="${user.avatar}" alt="תמונת פרופיל" class="w-20 h-20 rounded-full border-4 border-kesher-accent ml-4 shadow-md">
                         <div>
-                            <p class="text-xl text-gray-500">שלום, וברוך/ה הבא/ה!</p>
+                            <p class="text-xl text-gray-500">שלום, ${user.displayName}!</p>
                             <h2 class="text-3xl font-extrabold text-kesher-primary">${user.displayName}</h2>
                             <p class="small-muted mt-1">${user.bio}</p>
                         </div>
@@ -571,26 +563,26 @@
                     
                     <div class="card p-6 bg-kesher-secondary/10 flex flex-col justify-center items-center cursor-pointer hover:bg-kesher-secondary/20 transition" onclick="goTo('profile')">
                         <i class="fas fa-user-circle text-4xl text-kesher-secondary mb-2"></i>
-                        <h3 class="font-bold text-kesher-secondary">צפייה ועדכון פרופיל</h3>
+                        <h3 class="font-bold text-kesher-secondary">הצג פרופיל</h3>
                     </div>
 
                 </div>
 
                 <h2 class="text-2xl font-bold text-kesher-text mb-4 flex justify-between items-center border-b pb-2">
-                    הפוסטים האחרונים בפורום
+                    פוסטים אחרונים
                     <button class="btn-primary py-2 px-4 rounded-full text-sm flex items-center" onclick="goTo('forum')">
-                        לכל הפורום <i class="fas fa-arrow-left mr-2"></i>
+                        עוד פוסטים <i class="fas fa-arrow-left mr-2"></i>
                     </button>
                 </h2>
                 
                 <div class="card divide-y divide-gray-100">
                     ${state.posts.slice(0, 5).map(post => PostCard(post)).join('')}
-                    ${state.posts.length === 0 ? '<p class="p-4 text-center small-muted">עדיין אין פוסטים בקהילה. היו הראשונים לפרסם!</p>' : ''}
+                    ${state.posts.length === 0 ? '<p class="p-4 text-center small-muted">אין עדיין פוסטים. תתחיל/י לשתף!</p>' : ''}
                 </div>
                 
                 <div class="mt-8 text-center">
                      <button class="btn-sec py-3 px-8 rounded-full text-lg font-bold shadow-xl hover:shadow-2xl transition" onclick="goTo('addPost')">
-                        <i class="fas fa-plus-circle ml-2"></i> פתחו דיון חדש
+                        <i class="fas fa-plus-circle ml-2"></i> יצירת פוסט חדש
                     </button>
                 </div>
             </main>
@@ -602,20 +594,20 @@
         
         const postsContent = state.posts.length > 0
             ? state.posts.map(post => PostCard(post)).join('')
-            : '<p class="p-4 text-center small-muted">אין פוסטים להצגה כרגע.</p>';
+            : '<p class="p-4 text-center small-muted">אין פוסטים להצגה.</p>';
 
         return `
             ${Header()}
             <main class="container mx-auto p-4 flex-grow">
                 <div class="flex justify-between items-center mb-6 border-b pb-4">
-                    <h1 class="text-3xl font-extrabold text-kesher-secondary">מרכז העזרה הקהילתי</h1>
+                    <h1 class="text-3xl font-extrabold text-kesher-secondary">פורום הקהילה</h1>
                     <button class="btn-sec py-2 px-4 rounded-full font-bold shadow-md" onclick="goTo('addPost')">
-                        <i class="fas fa-edit ml-2"></i> פרסם/י פוסט חדש
+                        <i class="fas fa-edit ml-2"></i> פוסט חדש
                     </button>
                 </div>
                 
                 <div class="mb-4 small-muted">
-                    <i class="fas fa-filter ml-2"></i> מוצגים כל הדיונים (סה"כ: ${state.posts.length}).
+                    <i class="fas fa-filter ml-2"></i> סינון (סה״כ פוסטים: ${state.posts.length}).
                 </div>
                 
                 <div class="card divide-y divide-gray-100 shadow-xl">
@@ -629,7 +621,7 @@
         if (!state.user || !state.currentPost) return renderForum();
 
         const post = state.currentPost;
-        const author = state.allUsers[post.userId] || { displayName: 'משתמש נמחק', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
+        const author = state.allUsers[post.userId] || { displayName: 'משתמש', avatar: 'https://placehold.co/400x400/808080/ffffff?text=?' };
         const likesCount = post.likes ? post.likes.length : 0;
         const isLiked = post.likes ? post.likes.includes(state.user.uid) : false;
         
@@ -657,7 +649,7 @@
                     <div class="flex items-center mb-4 border-b pb-4">
                         <img src="${author.avatar}" alt="תמונת ${author.displayName}" class="w-12 h-12 rounded-full border-2 border-kesher-primary ml-3 shadow">
                         <div>
-                            <p class="font-semibold text-kesher-text">${author.displayName} <span class="text-xs small-muted">(מפרסם/מת)</span></p>
+                            <p class="font-semibold text-kesher-text">${author.displayName} <span class="text-xs small-muted">(מחבר)</span></p>
                             <p class="small-muted text-xs">פורסם: ${formatTimestamp(post.createdAt)}</p>
                         </div>
                     </div>
@@ -675,12 +667,12 @@
                 </div>
 
                 <div class="card p-4 mb-6 shadow-lg">
-                    <h4 class="font-bold mb-3 text-kesher-text">הוסף/י תגובה:</h4>
+                    <h4 class="font-bold mb-3 text-kesher-text">הוסף תגובה:</h4>
                     <form id="addCommentForm" onsubmit="event.preventDefault(); handleAddComment('${post.id}')" class="space-y-3">
-                        <textarea id="commentContent" rows="3" placeholder="כתוב/י את תגובתך כאן..." required
+                        <textarea id="commentContent" rows="3" placeholder="כתוב/י תגובה..." required
                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-kesher-accent focus:border-kesher-accent"></textarea>
                         <button type="submit" class="btn-primary py-2 px-6 rounded-lg font-bold float-left">
-                            שלח/י תגובה <i class="fas fa-comment ml-2"></i>
+                            שלח תגובה <i class="fas fa-comment ml-2"></i>
                         </button>
                     </form>
                     <div class="clearfix"></div>
@@ -708,16 +700,16 @@
                 
                 commentsContainer.innerHTML = `
                     <h3 class="text-xl font-bold text-kesher-text mb-4 border-b pb-2">תגובות (${comments.length})</h3>
-                    ${comments.length > 0 ? commentsHtml : '<p class="text-center small-muted p-4 bg-white rounded-lg shadow-sm">עדיין אין תגובות. היו הראשונים להגיב!</p>'}
+                    ${comments.length > 0 ? commentsHtml : '<p class="text-center small-muted p-4 bg-white rounded-lg shadow-sm">אין עדיין תגובות. כתבו את הראשונה!</p>'}
                 `;
             }, (error) => {
-                console.error("שגיאה במנוי לשינויים בתגובות:", error);
+                console.error("שגיאה בטעינת תגובות:", error);
                 commentsContainer.innerHTML = `<p class="text-center text-red-500 p-4">שגיאה בטעינת תגובות: ${error.message}</p>`;
             });
 
         } catch (error) {
-            console.error("שגיאה קריטית בטעינת תגובות:", error);
-            commentsContainer.innerHTML = `<p class="text-center text-red-500 p-4">שגיאה קריטית בטעינת תגובות: ${error.message}</p>`;
+            console.error("שגיאה בקריאה ל־comments:", error);
+            commentsContainer.innerHTML = `<p class="text-center text-red-500 p-4">שגיאה בקריאה: ${error.message}</p>`;
         }
     }
     
@@ -734,19 +726,19 @@
         if (!state.user) return renderLoading();
         
         const categories = [
-            { value: 'health', label: 'בריאות וכושר' },
-            { value: 'finance', label: 'פנסיה ופיננסים' },
-            { value: 'tech', label: 'טכנולוגיה וגאדג\'טים' },
-            { value: 'social', label: 'מפגשים ובילויים' },
-            { value: 'general', label: 'כללי וייעוץ אישי' },
+            { value: 'health', label: 'בריאות' },
+            { value: 'finance', label: 'כספים' },
+            { value: 'tech', label: 'טכנולוגיה' },
+            { value: 'social', label: 'חיי חברה' },
+            { value: 'general', label: 'כללי' },
         ];
 
         return `
             ${Header()}
             <main class="container mx-auto p-4 flex-grow">
                 <div class="card p-8 w-full max-w-3xl mx-auto shadow-xl">
-                    <h1 class="text-3xl font-extrabold text-kesher-secondary mb-4 border-b pb-2">פרסום פוסט חדש</h1>
-                    <p class="small-muted mb-6">שתף/י שאלה או נושא לדיון עם חברי הקהילה. אנא הקפד/י על ניסוח מכבד.</p>
+                    <h1 class="text-3xl font-extrabold text-kesher-secondary mb-4 border-b pb-2">יצירת פוסט חדש</h1>
+                    <p class="small-muted mb-6">שתפו משהו עם הקהילה.</p>
                     
                     <form id="addPostForm" onsubmit="event.preventDefault(); handleAddPostSubmit()" class="space-y-4">
                         
@@ -758,15 +750,15 @@
                         <input type="text" id="postTitle" placeholder="כותרת הפוסט (חובה)" required 
                                class="w-full p-3 border border-gray-300 rounded-lg font-semibold text-lg">
                         
-                        <textarea id="postContent" rows="8" placeholder="תוכן הפוסט המפורט (חובה)" required
+                        <textarea id="postContent" rows="8" placeholder="תוכן הפוסט..." required
                                   class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
 
                         <div class="flex justify-between items-center pt-4">
                             <button type="button" class="btn-sec bg-gray-500 hover:bg-gray-600 py-2 px-6 rounded-lg font-bold" onclick="goTo('forum')">
-                                ביטול <i class="fas fa-times-circle ml-2"></i>
+                                בטל <i class="fas fa-times-circle ml-2"></i>
                             </button>
                             <button type="submit" class="btn-primary py-2 px-6 rounded-lg font-bold">
-                                פרסם/י בקהילה <i class="fas fa-share-square ml-2"></i>
+                                פרסם פוסט <i class="fas fa-share-square ml-2"></i>
                             </button>
                         </div>
                     </form>
@@ -783,7 +775,7 @@
         if (title && content && category) {
             await addPost(title, content, category);
         } else {
-            showError("אנא מלא/י את כל השדות.");
+            showError("נא למלא את כל השדות.");
         }
     }
 
@@ -796,7 +788,7 @@
             ${Header()}
             <main class="container mx-auto p-4 flex-grow">
                 <div class="card p-8 w-full max-w-2xl mx-auto shadow-xl">
-                    <h1 class="text-3xl font-extrabold text-kesher-primary mb-6 border-b pb-2">הפרופיל האישי שלי</h1>
+                    <h1 class="text-3xl font-extrabold text-kesher-primary mb-6 border-b pb-2">פרופיל אישי</h1>
 
                     <div class="flex flex-col items-center mb-6">
                         <img src="${user.avatar}" alt="תמונת פרופיל" class="w-32 h-32 rounded-full border-4 border-kesher-accent shadow-lg mb-4">
@@ -806,15 +798,15 @@
 
                     <div class="space-y-4 text-right">
                         <div>
-                            <label class="block font-semibold text-sm mb-1 text-gray-700">מגדר (לצורך אווטאר):</label>
-                            <p class="p-3 bg-gray-50 rounded-lg">${user.gender === 'male' ? 'גבר' : 'אישה'} <i class="fas fa-user-${user.gender === 'male' ? 'male' : 'female'} mr-1 text-${user.gender === 'male' ? 'kesher-primary' : 'kesher-secondary'}"></i></p>
+                            <label class="block font-semibold text-sm mb-1 text-gray-700">מגדר:</label>
+                            <p class="p-3 bg-gray-50 rounded-lg">${user.gender === 'male' ? 'זכר' : 'נקבה'} <i class="fas fa-user-${user.gender === 'male' ? 'male' : 'female'} mr-1 text-${user.gender === 'male' ? 'kesher-primary' : 'kesher-secondary'}"></i></p>
                         </div>
                         <div>
-                            <label class="block font-semibold text-sm mb-1 text-gray-700">אודותיי:</label>
-                            <p class="p-3 bg-gray-50 rounded-lg whitespace-pre-wrap">${user.bio || 'לא נכתב תיאור אישי.'}</p>
+                            <label class="block font-semibold text-sm mb-1 text-gray-700">ביוגרפיה:</label>
+                            <p class="p-3 bg-gray-50 rounded-lg whitespace-pre-wrap">${user.bio || 'אין ביוגרפיה.'}</p>
                         </div>
                         <div>
-                            <label class="block font-semibold text-sm mb-1 text-gray-700">מזהה משתמש (UID):</label>
+                            <label class="block font-semibold text-sm mb-1 text-gray-700">זיהוי משתמש (UID):</label>
                             <p class="p-3 bg-gray-50 rounded-lg text-xs" dir="ltr">${user.uid}</p>
                         </div>
                     </div>
@@ -824,7 +816,7 @@
                             <i class="fas fa-pencil-alt ml-2"></i> ערוך פרופיל
                         </button>
                         <button class="text-link text-sm text-red-500" onclick="logout()">
-                            <i class="fas fa-sign-out-alt ml-1"></i> יציאה מהמערכת
+                            <i class="fas fa-sign-out-alt ml-1"></i> התנתק
                         </button>
                     </div>
                 </div>
@@ -834,7 +826,7 @@
     
     async function updateProfile(newDisplayName, newBio) {
         if (!db || !state.user) {
-            showError("לא מחובר/ת או שגיאת Firebase.");
+            showError("אין חיבור ל‑Firebase.");
             return false;
         }
 
@@ -857,7 +849,7 @@
             return true;
         } catch (error) {
             console.error("שגיאה בעדכון פרופיל:", error);
-            showError("שגיאה בשמירת השינויים. נסה/י שוב.");
+            showError("שגיאה בעדכון הפרופיל. נסה שוב מאוחר יותר.");
             return false;
         }
     }
@@ -870,33 +862,33 @@
             ${Header()}
             <main class="container mx-auto p-4 flex-grow">
                 <div class="card p-8 w-full max-w-2xl mx-auto shadow-xl">
-                    <h1 class="text-3xl font-extrabold text-kesher-secondary mb-6 border-b pb-2">עריכת הפרופיל האישי</h1>
+                    <h1 class="text-3xl font-extrabold text-kesher-secondary mb-6 border-b pb-2">עריכת פרופיל</h1>
 
                     <form id="editProfileForm" onsubmit="event.preventDefault(); handleEditProfileSubmit()" class="space-y-4">
                         
                         <div class="flex flex-col items-center mb-6">
                             <img src="${user.avatar}" alt="תמונת פרופיל" class="w-32 h-32 rounded-full border-4 border-kesher-accent shadow-lg mb-4">
-                            <p class="small-muted">לא ניתן לשנות אווטאר באופן ישיר. הוא מוגדר לפי המגדר שבחרת ברישום.</p>
+                            <p class="small-muted">כדי לשנות תמונה, עדכן/י ב‑Firestore או שמשתמש מספק תמונה.</p>
                         </div>
                         
                         <div>
-                            <label for="editDisplayName" class="block font-semibold text-sm mb-1 text-gray-700">שם מציג בקהילה:</label>
+                            <label for="editDisplayName" class="block font-semibold text-sm mb-1 text-gray-700">שם תצוגה:</label>
                             <input type="text" id="editDisplayName" value="${user.displayName}" required 
                                class="w-full p-3 border border-gray-300 rounded-lg text-right">
                         </div>
 
                         <div>
-                            <label for="editBio" class="block font-semibold text-sm mb-1 text-gray-700">אודותיי (תיאור אישי):</label>
-                            <textarea id="editBio" rows="5" placeholder="כתוב/י על עצמך..." 
+                            <label for="editBio" class="block font-semibold text-sm mb-1 text-gray-700">ביוגרפיה:</label>
+                            <textarea id="editBio" rows="5" placeholder="כתוב/י קצת על עצמך..." 
                                   class="w-full p-3 border border-gray-300 rounded-lg">${user.bio || ''}</textarea>
                         </div>
 
                         <div class="flex justify-between items-center pt-4">
                             <button type="button" class="btn-sec bg-gray-500 hover:bg-gray-600 py-2 px-6 rounded-lg font-bold" onclick="goTo('profile')">
-                                ביטול <i class="fas fa-times-circle ml-2"></i>
+                                בטל <i class="fas fa-times-circle ml-2"></i>
                             </button>
                             <button type="submit" class="btn-primary py-2 px-6 rounded-lg font-bold">
-                                שמור שינויים <i class="fas fa-save ml-2"></i>
+                                שמור שינויי פרופיל <i class="fas fa-save ml-2"></i>
                             </button>
                         </div>
                     </form>
@@ -912,7 +904,7 @@
         if (newDisplayName) {
             await updateProfile(newDisplayName, newBio);
         } else {
-            showError("שם המשתמש חייב להיות מלא.");
+            showError("שם תצוגה לא יכול להיות ריק.");
         }
     }
 
@@ -928,15 +920,15 @@
                     
                     <div class="flex items-center">
                         <div class="text-2xl font-extrabold text-kesher-primary flex items-center cursor-pointer" onclick="goTo('home')">
-                            <img src="https://placehold.co/30x30/FF6B6B/ffffff?text=K" alt="לוגו קשר" class="rounded-full shadow-sm ml-2">
-                            קהילת קשר
+                            <img src="https://placehold.co/30x30/FF6B6B/ffffff?text=K" alt="לוגו" class="rounded-full shadow-sm ml-2">
+                            קהילת 60+
                         </div>
                         <nav class="hidden md:flex mr-6 space-x-4 space-x-reverse">
                             <a href="#" class="${state.screen === 'home' ? activeClass : baseClass}" onclick="goTo('home')">
-                                <i class="fas fa-home ml-1"></i> עמוד הבית
+                                <i class="fas fa-home ml-1"></i> דף הבית
                             </a>
                             <a href="#" class="${state.screen === 'forum' || state.screen === 'singlePost' || state.screen === 'addPost' ? activeClass : baseClass}" onclick="goTo('forum')">
-                                <i class="fas fa-comments ml-1"></i> פורום קהילה
+                                <i class="fas fa-comments ml-1"></i> פורום
                             </a>
                         </nav>
                     </div>
@@ -958,7 +950,7 @@
 
 
     // =========================================================
-    // 7. לוגיקת הרינדור הראשית
+    // רינדור דינמי ופיזור אירועים
     // =========================================================
 
     function render() {
@@ -999,8 +991,8 @@
                 htmlContent = `
                     ${Header()}
                     <div class="p-8 text-center text-red-500">
-                        <h1 class="text-2xl">שגיאה 404: המסך לא נמצא</h1>
-                        <p class="mt-2">נסה/י לחזור <span class="text-link" onclick="goTo('home')">לעמוד הבית</span></p>
+                        <h1 class="text-2xl">שגיאה 404: מסך לא נמצא</h1>
+                        <p class="mt-2">חזור ל־<span class="text-link" onclick="goTo('home')">דף הבית</span></p>
                     </div>
                 `;
                 break;
@@ -1029,12 +1021,12 @@
 
 
     // =========================================================
-    // 8. אתחול והפעלת האפליקציה
+    // אתחול Firebase ו‑Auth
     // =========================================================
 
     async function initializeFirebase() {
         if (!firebaseConfig) {
-            showError("שגיאה קריטית: הגדרות Firebase חסרות. אנא ודא/י שהסביבה תקינה.", true);
+            showError("חסרה קונפיגורציית Firebase.", true);
             return false;
         }
 
@@ -1042,29 +1034,32 @@
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
-            setLogLevel('debug');
+            // אופציונלי: להפעיל לוג דיבאג (לא חובה)
+            try { setLogLevel('debug'); } catch(e) { /* לא קריטי */ }
             
-            console.log("Firebase Debug: Firebase App Initialized. Starting Auth check...");
+            console.log("Firebase: אתחול הצליח.");
 
-            // אם יש token אתחול ניסיון כניסה
+            // אם יש טוקן מותאם שניתן מהשרת — נסה לעשות בו שימוש
             if (initialAuthToken) {
                 try {
-                    console.log("Firebase Debug: Attempting sign-in with custom token...");
+                    console.log("ניסיון כניסה עם custom token...");
                     await signInWithCustomToken(auth, initialAuthToken);
-                    console.log("Firebase Debug: Custom token sign-in successful.");
+                    console.log("Custom token sign-in הצליח.");
                 } catch (e) {
-                    console.error("שגיאת ק�ונית: כשל בהתחברות עם Token ראשוני.", e);
+                    console.error("כשל כניסה עם custom token:", e);
                     try { await signOut(auth); } catch(_) {}
                 }
             } else {
-                // ניסיון כניסה אנונימית כשאין טוקן
-                try { await signInAnonymously(auth); } catch(e){ /* לא קריטי */ }
+                // חשוב: לא מבצעים signInAnonymously אוטומטית כאן
+                // שכן התחברות אנונימית אוטומטית יכולה "לחסום" את תהליך התחברות ה־Email/Password.
+                // אם תרצה אפשר להפעיל תמיכה באנונימי בתרחיש ספציפי — אפשר להחזיר את הקריאה בשורה הבאה:
+                // await signInAnonymously(auth);
             }
 
             return true;
         } catch (error) {
-            console.error("שגיאה קריטית: כשל באתחול Firebase SDK.", error);
-            showError("שגיאה קריטית באתחול. אנא רענן/י את הדף או בדוק/י את הגדרות הסביבה.", true);
+            console.error("שגיאה באתחול Firebase SDK:", error);
+            showError("שגיאה באתחול Firebase. בדוק את קונפיג ההתחברות.", true);
             return false;
         }
     }
@@ -1099,17 +1094,18 @@
                             render();
                         }
                     } catch (error) {
-                        console.error("שגיאה קריטית באחזור פרופיל משתמש או נתונים (Firebase/Config/Firestore):", error);
+                        console.error("שגיאה פנימית בטעינת פרופיל או נתונים:", error);
                         state.user = null;
                         state.screen = 'login';
-                        showError("שגיאה קריטית באחזור נתונים. נסה להתחבר שוב.", true);
+                        showError("שגיאה בטעינת נתונים. נא לנסות שוב.", true);
                         render();
                     }
                 } else {
-                    console.warn("Firebase Debug: User exists in Auth but not in Firestore profile.");
+                    // המשתמש נמצא ב‑Auth אבל אין לו פרופיל ב־Firestore
+                    console.warn("Firebase Debug: Auth user found but profile missing in Firestore.");
                     try { await signOut(auth); } catch(_) {}
                     state.user = null;
-                    showError("משתמש זה לא הושלם בפרופיל. אנא הירשם/י.", true);
+                    showError("אין פרופיל משתמש ב־Firestore עבור חשבון זה. יש להרשם מחדש.", true);
                     goTo('register');
                 }
             } else {
@@ -1124,29 +1120,26 @@
         });
     }
 
-    // start the app (note: function renamed to avoid collision with imported initializeApp)
+    // start the app
     startApp(); 
 </script>
 
-<!-- Terms modal (simple) -->
+<!-- תנאי שימוש Modal -->
 <div id="rulesModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-60" onclick="if(event.target.id === 'rulesModal') hideRules()">
   <div class="bg-white p-6 rounded-xl w-full max-w-2xl card shadow-2xl">
-    <h3 class="font-bold text-2xl mb-4 text-kesher-primary">תקנון השימוש וקוד התנהגות בקהילה</h3>
+    <h3 class="font-bold text-2xl mb-4 text-kesher-primary">כללי הקהילה ותנאי שימוש</h3>
     <div class="small-muted mb-4 p-3 bg-red-50 border-r-4 border-red-500 rounded">
-      <strong>הערה חשובה:</strong> מרכז העזרה מועבר על בסיס קהילתי בלבד. בעלי האתר אינם מספקים ייעוץ מקצועי ואינם אחראים על התכנים או התוצאות. פניות בתחום משפטי, רפואי או פיננסי מהוות המלצה בלבד ואין לראות בהן תחליף לייעוץ מקצועי.
+      <strong>תשומת לב:</strong> יש להשתמש בפורום בכבוד ובנימוס. אין לפרסם תכנים פוגעניים, מסחריים או מסמכים חסויים.
     </div>
     <ol class="text-sm small-muted list-decimal mr-6 space-y-2 max-h-96 overflow-y-auto">
-      <li><strong>כבוד הדדי:</strong> כבדו פרטיות של חברים — אין לפרסם מידע אישי ללא הסכמה ברורה.</li>
-      <li><strong>איסור על תוכן פוגעני:</strong> אסור לשתף תכנים פוגעניים, גזעניים, קיצוניים, או תכנים שאינם הולמים.</li>
-      <li><strong>פרסום מסחרי:</strong> הימנעו מפרסום ישיר של עסקים או שירותים ללא אישור מפורש מנהלי האתר.</li>
-      <li><strong>דיוק ואמת:</strong> שתפו רק מידע שאתם יודעים שהוא נכון. אם אתם משערים, ציינו זאת בבירור.</li>
-      <li><strong>שמירה על החוק:</strong> אין לפרסם תכנים המהווים עבירה על החוק.</li>
-      <li><strong>הקפדה על שפה:</strong> השתמשו בשפה נקייה ומכבדת.</li>
-      <li><strong>הרחקת תוכן לא רלוונטי:</strong> תגובות ופוסטים שלא קשורים לנושא יימחקו על ידי המנהלים.</li>
+      <li><strong>כבוד לאחרים:</strong> התנהגו בכבוד בכל דיון.</li>
+      <li><strong>תוכן אסור:</strong> אין לפרסם תכנים בעלי אופי פוגעני או מסחרי בלתי מורשה.</li>
+      <li><strong>פרטיות:</strong> הימנעו מפרסום מידע אישי של אחרים ללא הסכמה.</li>
+      <li><strong>דיווח:</strong> מצאתם תוכן בעייתי? דווחו למנהלי האתר.</li>
     </ol>
     <div class="text-center mt-6">
         <button class="btn-primary py-2 px-6 rounded-lg font-bold" onclick="hideRules()">
-            הבנתי ואישור <i class="fas fa-check-circle mr-2"></i>
+            קראתי והסכמתי <i class="fas fa-check-circle mr-2"></i>
         </button>
     </div>
   </div>
