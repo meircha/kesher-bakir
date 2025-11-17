@@ -666,7 +666,7 @@ function hideCreateActivityModal(){ document.getElementById('createActivityModal
 }
 async function createActivity(){ const title = document.getElementById('actTitle').value.trim(); const date = document.getElementById('actDate').value.trim(); const location = document.getElementById('actLocation').value.trim(); const capacity = parseInt(document.getElementById('actCapacity').value) || null; const desc = document.getElementById('actDesc').value.trim(); if(!title || !date || !location || !desc) return alert('מלא את כל השדות');
  const doc = await db.collection('activities').add({ title, date, location, capacity, description: desc, ownerId: state.user ? state.user.id : null, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
- state.activities.unshift({ id: doc.id, title, date, location, capacity, description: desc, ownerId: state.user?state.user.id:null }); hideCreateActivityModal(); render(); } catch(e){ console.error(e); alert('שגיאה ביצירת פעילות');
+state.activities.unshift({ id: doc.id, title, date, location, capacity, description: desc, ownerId: state.user?state.user.id:null }); hideCreateActivityModal(); render(); } catch(e){ console.error(e); alert('שגיאה ביצירת פעילות');
  } }
 async function openActivity(id){ const doc = await db.collection('activities').doc(id).get(); if(!doc.exists) return alert('פעילות לא קיימת'); const data = doc.data();
  const attendeesSnap = await db.collection('activities').doc(id).collection('attendees').get(); const attendees = attendeesSnap.docs.map(d=>({ id:d.id, ...d.data() })); const taken = attendees.length;
