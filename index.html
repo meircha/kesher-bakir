@@ -91,7 +91,7 @@
                 chats: [],
                 helpRequests: []
             },
-            params: {} // להעברת נתונים בין דפים (למשל ID של פורום נבחר)
+            params: {} 
         };
 
         // כתובת המייל של האדמין הראשי
@@ -106,14 +106,12 @@
             window.scrollTo(0, 0);
         }
 
-        // המרה מתאריך Firestore לתצוגה קריאה
         function formatDate(timestamp) {
             if (!timestamp) return '';
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
             return date.toLocaleDateString('he-IL') + ' ' + date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         }
 
-        // פונקציה לקבלת אווטאר (תמונה) לפי שם
         function getAvatar(name) {
             return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=c0aede`;
         }
@@ -122,11 +120,14 @@
 
         // בדיקה והגדרת אדמין בעת התחברות
         async function checkAdminPrivileges(user) {
+            // אם זה המייל הראשי - וודא שהוא אדמין ותמיד פעיל
             if (user.email === MASTER_ADMIN_EMAIL) {
-                await db.collection('users').doc(user.uid).update({ role: 'admin' });
+                await db.collection('users').doc(user.uid).set({ 
+                    role: 'admin',
+                    isActive: true // תיקון אוטומטי לחשבון הנעול
+                }, { merge: true });
                 return 'admin';
             }
-            // שליפת רול קיים
             const doc = await db.collection('users').doc(user.uid).get();
             return doc.exists ? doc.data().role : 'user';
         }
@@ -134,7 +135,7 @@
         async function handleLogin(email, password) {
             try {
                 const cred = await auth.signInWithEmailAndPassword(email, password);
-                const role = await checkAdminPrivileges(cred.user);
+                await checkAdminPrivileges(cred.user);
                 // המשתמש יטען ב-auth listener
             } catch (error) {
                 alert("שגיאה בהתחברות: " + error.message);
@@ -149,7 +150,7 @@
                     email: email,
                     city: city,
                     role: email === MASTER_ADMIN_EMAIL ? 'admin' : 'user',
-                    avatarSeed: avatarType || name, // שימוש בסיד לאווטאר
+                    avatarSeed: avatarType || name,
                     joinDate: firebase.firestore.FieldValue.serverTimestamp(),
                     isActive: true
                 });
@@ -170,7 +171,7 @@
                     ...activityData,
                     creatorId: store.user.uid,
                     creatorName: store.user.name,
-                    attendees: [store.user.uid], // היוצר מצטרף אוטומטית
+                    attendees: [store.user.uid],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 alert("הפעילות נוצרה בהצלחה!");
@@ -191,7 +192,7 @@
                         attendees: firebase.firestore.FieldValue.arrayUnion(uid)
                     });
                 }
-                fetchData(); // רענון נתונים
+                // לא צריך לקרוא ל-fetchData, ה-Listener יעשה את זה
             } catch (e) { console.error(e); }
         }
 
@@ -216,14 +217,13 @@
                 comments: [],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            navigate('forumView', { forumId });
+            navigate('forumView', { forumId, title: store.params.title }); // שמירת שם הפורום
         }
 
         // --- צ'אט ---
         async function sendMessage(recipientId, content) {
             const chatId = [store.user.uid, recipientId].sort().join("_");
             try {
-                // 1. הוספת ההודעה
                 await db.collection('chats').doc(chatId).collection('messages').add({
                     senderId: store.user.uid,
                     content: content,
@@ -231,10 +231,9 @@
                     read: false
                 });
 
-                // 2. עדכון המטא-דאטה של הצ'אט (להצגה ברשימה)
                 await db.collection('chats').doc(chatId).set({
                     participants: [store.user.uid, recipientId],
-                    participantNames: { // שמירת שמות כדי להציג ברשימה בקלות
+                    participantNames: { 
                          [store.user.uid]: store.user.name,
                          [recipientId]: store.data.users.find(u => u.id === recipientId)?.name || 'משתמש'
                     },
@@ -243,10 +242,7 @@
                     [`unread_${recipientId}`]: firebase.firestore.FieldValue.increment(1)
                 }, { merge: true });
                 
-                // רענון מסך הצ'אט הנוכחי
-                if (store.currentPage === 'chatRoom') {
-                    loadChatMessages(recipientId);
-                }
+                // אם אנחנו בתוך חדר הצ'אט, הטעינה היא אוטומטית דרך ה-Listener
             } catch (e) { console.error(e); alert("שגיאה בשליחה"); }
         }
 
@@ -264,7 +260,7 @@
             navigate('help');
         }
 
-        // --- מחיקה גנרית (לאדמין/בכיר) ---
+        // --- מחיקה גנרית ---
         async function deleteItem(collection, id, subCollection = null, parentId = null) {
             if (!confirm("האם אתה בטוח שברצונך למחוק?")) return;
             try {
@@ -274,8 +270,6 @@
                     await db.collection(collection).doc(id).delete();
                 }
                 alert("נמחק בהצלחה");
-                fetchData();
-                render();
             } catch (e) { alert("שגיאה במחיקה: " + e.message); }
         }
 
@@ -285,63 +279,57 @@
         function fetchData() {
             if (!store.user) return;
 
-            // משתמשים
             db.collection('users').onSnapshot(snap => {
                 store.data.users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                render(); // רענון אם אנחנו במסך משתמשים
+                if(store.currentPage === 'users' || store.currentPage === 'admin') render();
             });
 
-            // פורומים
             db.collection('forums').onSnapshot(snap => {
                 store.data.forums = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                render();
+                if(store.currentPage === 'forums') render();
             });
 
-            // פעילויות
             db.collection('activities').orderBy('date', 'asc').onSnapshot(snap => {
                 store.data.activities = snap.docs.map(d => ({ 
                     id: d.id, 
                     ...d.data(),
-                    // המרה בטוחה לתאריך
                     dateObj: d.data().date ? new Date(d.data().date) : new Date()
                 }));
-                render();
+                if(store.currentPage === 'activities' || store.currentPage === 'home') render();
             });
 
-             // בקשות עזרה
              db.collection('helpRequests').orderBy('createdAt', 'desc').onSnapshot(snap => {
                 store.data.helpRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                render();
+                if(store.currentPage === 'help') render();
             });
             
-            // רשימת צ'אטים שלי
             db.collection('chats').where('participants', 'array-contains', store.user.uid)
                 .onSnapshot(snap => {
                     store.data.chats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    render();
+                    render(); // עדכון מונה הודעות בכל מסך
                 });
         }
 
-        // טעינת הודעות ספציפיות כשנכנסים לחדר
         let messageUnsubscribe = null;
         function loadChatMessages(otherUserId) {
             if (messageUnsubscribe) messageUnsubscribe();
             
+            store.currentChatTargetId = otherUserId; // שמירת הנמען הנוכחי
             const chatId = [store.user.uid, otherUserId].sort().join("_");
             
-            // איפוס מונה הודעות שלא נקראו
             db.collection('chats').doc(chatId).update({ [`unread_${store.user.uid}`]: 0 }).catch(e => {});
 
             messageUnsubscribe = db.collection('chats').doc(chatId).collection('messages')
                 .orderBy('timestamp', 'asc')
                 .onSnapshot(snap => {
                     store.data.currentChatMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    render();
-                    // גלילה למטה
-                    setTimeout(() => {
-                        const el = document.getElementById('chat-messages-container');
-                        if(el) el.scrollTop = el.scrollHeight;
-                    }, 100);
+                    if (store.currentPage === 'chatRoom') {
+                        render();
+                        setTimeout(() => {
+                            const el = document.getElementById('chat-messages-container');
+                            if(el) el.scrollTop = el.scrollHeight;
+                        }, 100);
+                    }
                 });
         }
 
@@ -352,20 +340,34 @@
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists) {
                     store.user = { uid: user.uid, ...userDoc.data() };
-                    if (!store.user.isActive) {
+
+                    // ** תיקון קריטי: שחרור חסימה למייל הראשי **
+                    if (store.user.email === MASTER_ADMIN_EMAIL) {
+                        store.user.isActive = true;
+                        store.user.role = 'admin';
+                        // עדכון ה-DB ברקע כדי לתקן לפעמים הבאות
+                        db.collection('users').doc(user.uid).update({ isActive: true, role: 'admin' });
+                    }
+
+                    if (store.user.isActive === false) { // בדיקה מפורשת
                         alert("חשבונך מושהה. אנא פנה למנהל.");
                         auth.signOut();
                         return;
                     }
                     fetchData();
-                    navigate('home');
+                    // אם אנחנו עדיין במסך טעינה או לוגין, נעבור לבית
+                    if (store.currentPage === 'loading' || store.currentPage === 'login') {
+                        navigate('home');
+                    } else {
+                        render();
+                    }
                 } else {
-                    // מקרה קצה: משתמש אותנטיקציה קיים אבל ללא דוקומנט
-                    navigate('login'); // או רישום מחדש
+                    // משתמש קיים באותנטיקציה אבל לא ב-DB (נדיר)
+                    await handleRegister("משתמש משוחזר", user.email, "temp1234", "ישראל", "Felix");
                 }
             } else {
                 store.user = null;
-                navigate('login');
+                if (store.currentPage !== 'register') navigate('login');
             }
         });
 
@@ -375,12 +377,8 @@
         function render() {
             const app = document.getElementById('app');
             
-            if (store.currentPage === 'loading') {
-                // כבר קיים ב-HTML הראשוני
-                return;
-            }
+            if (store.currentPage === 'loading') return;
 
-            // מסכי התחברות/הרשמה
             if (store.currentPage === 'login') {
                 app.innerHTML = renderLogin();
                 return;
@@ -390,7 +388,6 @@
                 return;
             }
 
-            // תבנית ראשית (Header + Content + BottomNav)
             app.innerHTML = `
                 ${renderHeader()}
                 <main class="max-w-4xl mx-auto p-4 pb-24">
@@ -471,7 +468,7 @@
             return `
             <header class="bg-white shadow-md sticky top-0 z-50">
                 <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-                    <div class="flex items-center gap-3" onclick="navigate('home')">
+                    <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('home')">
                         <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
                             <i class="fa-solid fa-heart text-xl"></i>
                         </div>
@@ -492,15 +489,15 @@
 
         function renderBottomNav() {
             const navItem = (page, icon, label) => {
-                const active = store.currentPage.startsWith(page) ? 'text-red-600 scale-110' : 'text-gray-500';
+                const isActivePage = store.currentPage === page || (page === 'chats' && store.currentPage === 'chatRoom') || (page === 'activities' && store.currentPage === 'createActivity');
+                const activeClass = isActivePage ? 'text-red-600 scale-110' : 'text-gray-500';
                 return `
-                <button onclick="navigate('${page}')" class="flex flex-col items-center gap-1 ${active} transition">
+                <button onclick="navigate('${page}')" class="flex flex-col items-center gap-1 ${activeClass} transition">
                     <i class="fa-solid ${icon} text-2xl"></i>
                     <span class="text-xs font-bold">${label}</span>
                 </button>`;
             };
 
-            // חישוב סך הודעות שלא נקראו
             let unread = 0;
             store.data.chats.forEach(c => { unread += (c[`unread_${store.user.uid}`] || 0); });
 
@@ -663,7 +660,6 @@
         // --- מסך פורומים ---
         function renderForums() {
             const isAdmin = store.user.role === 'admin' || store.user.role === 'senior';
-            // קטגוריות קבועות (ניתן להוסיף עוד דינמית)
             const fixedForums = [
                 { title: 'טכנולוגיה ומחשבים', icon: 'fa-laptop' },
                 { title: 'בריאות וכושר', icon: 'fa-heart-pulse' },
@@ -671,9 +667,6 @@
                 { title: 'התנדבות וקהילה', icon: 'fa-hand-holding-heart' }
             ];
 
-            // שילוב הקבועים והדינמיים מה-DB
-            // (ביישום אמיתי הכל יהיה ב-DB, כאן אני מסמלץ שהקבועים תמיד מופיעים)
-            
             return `
             <div class="space-y-4">
                 <div class="bg-blue-600 text-white p-6 rounded-2xl shadow-lg text-center">
@@ -723,20 +716,15 @@
             const forumId = store.params.forumId;
             const forumTitle = store.params.title || 'דיונים';
             
-            // האזנה לפוסטים בפורום הספציפי הזה (תת-אוסף)
-            // הערה: בגלל מבנה הקוד הפשוט, אני שואב את זה כאן ישירות. ביישום גדול זה יהיה ב-fetchData
-            // אני אעשה שאילתה חד פעמית לרענון, או אוסיף ליסנר זמני.
-            // למען הפשטות, נשתמש בליסנר גלובלי לפוסטים של הפורום הנוכחי
-            
             if (!store.currentForumListener || store.currentForumId !== forumId) {
-                if (store.currentForumListener) store.currentForumListener(); // ניקוי קודם
+                if (store.currentForumListener) store.currentForumListener();
                 store.currentForumId = forumId;
-                store.data.currentPosts = []; // איפוס
+                store.data.currentPosts = []; 
                 store.currentForumListener = db.collection('forums').doc(forumId).collection('posts')
                     .orderBy('createdAt', 'desc')
                     .onSnapshot(snap => {
                         store.data.currentPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                        render(); // רינדור מחדש כשיש פוסטים
+                        render(); 
                     });
             }
 
@@ -789,7 +777,6 @@
 
         // --- מסכי צ'אט ---
         function renderChatsList() {
-            // רשימת כל המשתמשים לסינון (למעט אני)
             const allUsers = store.data.users.filter(u => u.id !== store.user.uid);
             
             return `
@@ -808,7 +795,6 @@
                     ${store.data.chats.length === 0 ? '<p class="text-center text-gray-500 mt-10">אין לך שיחות פעילות.<br>בחר משתמש למעלה כדי להתחיל.</p>' : ''}
                     
                     ${store.data.chats.sort((a,b) => b.lastUpdated - a.lastUpdated).map(chat => {
-                        // מציאת השם של הצד השני
                         const otherId = chat.participants.find(id => id !== store.user.uid);
                         const otherName = chat.participantNames[otherId] || 'משתמש';
                         const unread = chat[`unread_${store.user.uid}`] || 0;
@@ -833,13 +819,6 @@
 
         function renderChatRoom() {
             const msgs = store.data.currentChatMessages || [];
-            // מציאת ID של הצד השני מתוך הודעה או מהסטייט (קצת טריקי, נשתמש בזה שאין ב-params, אז צריך להסיק)
-            // בפתרון פשוט: נשמור את ה-Target ב-Store כשאנחנו נכנסים
-            // אבל כבר יש לנו loadChatMessages אז אפשר להניח שהנתונים שם.
-            // כדי להציג שם:
-            const otherUserId = msgs.length > 0 
-                ? (msgs[0].senderId === store.user.uid ? /*קשה לדעת*/ null : msgs[0].senderId) 
-                : null; // זה מגבלה קטנה בקוד פשוט.
             
             return `
             <div class="flex flex-col h-[85vh] bg-white rounded-xl shadow-lg overflow-hidden">
@@ -862,52 +841,13 @@
                 </div>
 
                 <div class="p-3 bg-white border-t">
-                    <form onsubmit="event.preventDefault(); const input = this.querySelector('input'); sendMessage('${store.data.users.find(u => u.id !== store.user.uid /* תיקון פשטני: שולח לראשון שנמצא אם אין אחר */)?.id || '' /* נדרש תיקון לוגיקה פה */ }', input.value); input.value=''; " class="flex gap-2">
-                        <script>
-                            // פונקציה עוטפת פשוטה לשליחה מהירה
-                            function sendCurrentChat(form) {
-                                const input = form.querySelector('input');
-                                // ה-ID נשמר בקלוז'ר של loadChatMessages אבל לא נגיש כאן ב-HTML string.
-                                // נשתמש במשתתפים של הצ'אט האחרון שנטען
-                                const chatId = store.data.currentChatMessages && store.data.currentChatMessages.length > 0 
-                                    ? null // כאן חסר מידע בקוד הפשוט
-                                    : null;
-                                
-                                // פתרון: נדרוש מהמשתמש לבחור נמען או שנשמור ב-store.params
-                                // מכיוון שב-renderChatsList קראנו ל-loadChatMessages(id), ה-Closure שם פעיל, אבל ה-sendMessage צריך ID.
-                                // נוסיף את ה-ID ל-store.params.chatTargetId
-                            }
-                        <\/script>
-                        
+                    <form onsubmit="event.preventDefault(); const input = this.querySelector('input'); if(input.value && store.currentChatTargetId) { sendMessage(store.currentChatTargetId, input.value); input.value=''; }" class="flex gap-2">
                         <input type="text" id="msgInput" placeholder="כתוב הודעה..." class="flex-1 border rounded-full px-4 py-2 bg-gray-100 focus:bg-white transition" autocomplete="off">
-                        <button type="button" onclick="triggerSend()" class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:bg-red-700"><i class="fa-solid fa-paper-plane"></i></button>
+                        <button type="submit" class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:bg-red-700"><i class="fa-solid fa-paper-plane"></i></button>
                     </form>
                 </div>
-            </div>
-            <script>
-                // תיקון קטן ללוגיקת השליחה בתוך ה-Render
-                // אנו נשמור את ה-ID של הנמען הנוכחי בצורה גלובלית כשאנחנו טוענים הודעות
-                window.triggerSend = () => {
-                    // אנחנו מניחים שהפונקציה loadChatMessages עדכנה משתנה גלובלי או שנשתמש ב-URL.
-                    // בגלל המגבלה, נשתמש בחיפוש ה-ID מה-Participants של הצ'אט הראשון ברשימה (אם קיים) או נשתמש בפרמטר
-                    // דרך נקייה יותר: נשמור את currentChatTargetId ב-store
-                     const input = document.getElementById('msgInput');
-                     if(input.value && store.currentChatTargetId) {
-                         sendMessage(store.currentChatTargetId, input.value);
-                         input.value = '';
-                     }
-                }
-            <\/script>
-            `;
+            </div>`;
         }
-
-        // דריסה קטנה לפונקציה loadChatMessages כדי לתמוך בתיקון למעלה
-        const originalLoad = loadChatMessages;
-        loadChatMessages = (otherUserId) => {
-            store.currentChatTargetId = otherUserId; // שמירת הנמען הנוכחי
-            originalLoad(otherUserId);
-        }
-
 
         // --- עזרה לקהילה ---
         function renderHelp() {
@@ -984,10 +924,8 @@
                 return '';
             }
 
-            // פונקציות עזר לאדמין
             window.promoteUser = (uid, currentRole) => {
-                const newRole = currentRole === 'admin' ? 'user' : 'admin'; // toggle demo
-                // במציאות נרצה סלקט, כאן נעשה פשוט קידום לאדמין או הורדה
+                const newRole = currentRole === 'admin' ? 'user' : 'admin'; 
                 const role = confirm("להפוך לאדמין? (ביטול יהפוך למשתמש רגיל)") ? 'admin' : 'user';
                 db.collection('users').doc(uid).update({ role }).then(() => alert("עודכן"));
             };
