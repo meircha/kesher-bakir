@@ -160,12 +160,24 @@ function updateHeader(){
   const greeting = document.getElementById('greetingText');
   if(greeting) greeting.innerText = state.user ? `שלום, ${state.user.name}${state.user.role==='admin' ?
  ' (ADMIN)' : ''}` : '';
+  
   const authBtn = document.getElementById('authBtn');
-  if(authBtn) authBtn.innerText = state.user ? 'התנתק' : 'התחבר';
+  if(authBtn) {
+    authBtn.innerText = state.user ? 'התנתק' : 'התחבר';
+    // *** הוספת ה-Listener הישיר והנכון לכפתור - פותר את בעיית הקונפליקט והלחיצה ***
+    authBtn.onclick = () => {
+      if(state.user) {
+        auth.signOut();
+      } else {
+        goTo('login');
+      }
+    };
+  }
+
   const badge = document.getElementById('unreadBadge');
   if(badge){
     badge.style.display = state.unreadTotal > 0 ? 'inline-flex' : 'none';
- badge.innerText = state.unreadTotal > 99 ? '99+' : (state.unreadTotal || '');
+    badge.innerText = state.unreadTotal > 99 ? '99+' : (state.unreadTotal || '');
   }
 }
 
@@ -678,10 +690,10 @@ async function createActivity(){
     hideCreateActivityModal(); 
     render(); 
   } catch(e){ // <--- כאן ה-catch המקורי
-    console.error(e); 
+    console.error('createActivity error:', e); 
     alert('שגיאה ביצירת פעילות');
   } 
-} // <--- הוספנו סוגר סולסל חסר כאן
+} // <--- הסוגר שהוספנו לתיקון שגיאת התחביר
 
 async function openActivity(id){ const doc = await db.collection('activities').doc(id).get(); if(!doc.exists) return alert('פעילות לא קיימת'); const data = doc.data();
  const attendeesSnap = await db.collection('activities').doc(id).collection('attendees').get(); const attendees = attendeesSnap.docs.map(d=>({ id:d.id, ...d.data() })); const taken = attendees.length;
@@ -756,7 +768,7 @@ async function doRegister(){
     console.error('register error', e); 
     alert(`שגיאה בהרשמה: ${e.message}`); 
   }
-} // <--- הוספנו סוגר סולסל חסר כאן
+} // <--- הסוגר שהוספנו לתיקון שגיאת התחביר
 
 async function doLogin(){ const email = document.getElementById('loginEmail').value.trim(); const pwd = document.getElementById('loginPwd').value; if(!email || !pwd) return alert('הזן אימייל וסיסמה'); try { await auth.signInWithEmailAndPassword(email, pwd); goTo('home'); } catch(e){ console.error('login error', e); alert(`שגיאה בהתחברות: ${e.message}`); }
 }
@@ -775,8 +787,11 @@ auth.onAuthStateChanged(async user=>{ if(user){ // ensure user doc exists const 
  }); window.addEventListener('focus', ()=>{ db.collection('users').doc(user.uid).update({ isOnline: true }).catch(()=>{}); }); // load data await fetchInitial(); // messaging initMessagingForUser(user.uid).catch(()=>{}); state.screen = 'home'; render();
  } else { // user logged out try { if(state.user && state.user.id) await db.collection('users').doc(state.user.id).update({ isOnline: false });
  } catch(e){/*ignore*/ } state.user = null; await fetchInitial(); state.screen = 'login'; render(); } });
-/* logout button handler in header */
-document.addEventListener('click', function(e){ if(e.target && e.target.id === 'authBtn'){ if(state.user) auth.signOut(); else goTo('login'); } });
+
+/* --- הקטע הזה הוסר כדי למנוע קונפליקט עם ה-onclick שנוסף ב-updateHeader ---
+document.addEventListener('click', function(e){ if(e.target && e.target.id === 'authBtn'){ if(state.user) auth.signOut(); else goTo('login'); } }); 
+------------------------------------------------------------------------- */
+
 /* ===================== Messaging (FCM client) ===================== */
 async function initMessagingForUser(uid){ try { const perm = await Notification.requestPermission();
  if(perm !== 'granted'){ console.log('notifications not granted:', perm); return; } const token = await messaging.getToken(); if(token){ console.log('FCM token:', token); await db.collection('users').doc(uid).update({ fcmToken: token }).catch(e=>console.warn('FCM token save failed', e)); } else { console.warn('No FCM token available'); } messaging.onMessage(payload=>{ console.log('Message received. ', payload); if(state.screen==='chat') updateChatBox(); updateUnreadTotal(); });
@@ -847,7 +862,7 @@ async function resolveHelpRequest(id){
 // Initial render will be done by auth.onAuthStateChanged
 // However, if the user is already logged in, the render might be delayed until data loads.
 // We call render once to show initial screen state (usually 'home' or 'login' depending on auth state).
-if(!state.user) goTo('home'); // Ensure some content is shown even before Firebase init if user is not yet loaded
+if(!state.user && state.screen !== 'register') goTo('login'); // *** תיקון: אם לא מחובר, נווט להתחברות (אלא אם נמצא במסך הרשמה) ***
 // Note: auth.onAuthStateChanged handles the final render based on actual auth state.
 
 /* ===================== Cloud Function note (ל־push) =====================
