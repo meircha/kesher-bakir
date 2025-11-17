@@ -228,7 +228,7 @@ function renderHome(){
             </div>
        
          <div>
-              <button id="refreshTipBtnHeader" class="pill btn-primary">טען טיפ אחר</button>
+              <button id="refreshTipBtnHeader" class="pill btn-primary" onclick="cycleTip()">טען טיפ אחר</button>
             </div>
           </div>
         </div>
@@ -664,10 +664,25 @@ async function submitComment(forumId, postId, body){ if(!body.trim() || !state.u
 function showCreateActivityModal(){ document.getElementById('createActivityModal').classList.remove('hidden'); }
 function hideCreateActivityModal(){ document.getElementById('createActivityModal').classList.add('hidden');
 }
-async function createActivity(){ const title = document.getElementById('actTitle').value.trim(); const date = document.getElementById('actDate').value.trim(); const location = document.getElementById('actLocation').value.trim(); const capacity = parseInt(document.getElementById('actCapacity').value) || null; const desc = document.getElementById('actDesc').value.trim(); if(!title || !date || !location || !desc) return alert('מלא את כל השדות');
- const doc = await db.collection('activities').add({ title, date, location, capacity, description: desc, ownerId: state.user ? state.user.id : null, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-state.activities.unshift({ id: doc.id, title, date, location, capacity, description: desc, ownerId: state.user?state.user.id:null }); hideCreateActivityModal(); render(); } catch(e){ console.error(e); alert('שגיאה ביצירת פעילות');
- } }
+async function createActivity(){ 
+  const title = document.getElementById('actTitle').value.trim(); 
+  const date = document.getElementById('actDate').value.trim(); 
+  const location = document.getElementById('actLocation').value.trim(); 
+  const capacity = parseInt(document.getElementById('actCapacity').value) || null; 
+  const desc = document.getElementById('actDesc').value.trim(); 
+  if(!title || !date || !location || !desc) return alert('מלא את כל השדות');
+
+  try { // <--- כאן מתחיל בלוק ה-try
+    const doc = await db.collection('activities').add({ title, date, location, capacity, description: desc, ownerId: state.user ? state.user.id : null, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    state.activities.unshift({ id: doc.id, title, date, location, capacity, description: desc, ownerId: state.user?state.user.id:null }); 
+    hideCreateActivityModal(); 
+    render(); 
+  } catch(e){ // <--- כאן ה-catch המקורי
+    console.error(e); 
+    alert('שגיאה ביצירת פעילות');
+  } 
+} // <--- הוספנו סוגר סולסל חסר כאן
+
 async function openActivity(id){ const doc = await db.collection('activities').doc(id).get(); if(!doc.exists) return alert('פעילות לא קיימת'); const data = doc.data();
  const attendeesSnap = await db.collection('activities').doc(id).collection('attendees').get(); const attendees = attendeesSnap.docs.map(d=>({ id:d.id, ...d.data() })); const taken = attendees.length;
  const spotsText = data.capacity ? `${taken} / ${data.capacity}` : 'ללא הגבלה';
@@ -700,14 +715,49 @@ async function createHelpCategory(){ const name = document.getElementById('newHe
 async function deleteHelpCategory(id){ if(!confirm('מחק קטגוריה?')) return; await db.collection('helpCenter').doc(id).delete(); state.helpCategories = state.helpCategories.filter(c=>c.id!==id); render();
 }
 /* ===================== Registration / Auth ===================== */
-async function doRegister(){ const name = document.getElementById('regName').value.trim(); const username = document.getElementById('regUsername').value.trim();
- const email = document.getElementById('regEmail').value.trim(); const pwd = document.getElementById('regPwd').value; const age = parseInt(document.getElementById('regAge').value); const city = document.getElementById('regCity').value; const agree = document.getElementById('agreeRules').checked;
- if(!name || !email || !pwd || !age || !agree) return alert('מלא את כל השדות והסכום לתקנון');
- const hobbyChecks = Array.from(document.querySelectorAll('#hobbiesList input[type=checkbox]')).filter(i=>i.checked).map(i=>i.value); const hobbyOther = document.getElementById('hobbyOtherChk') && document.getElementById('hobbyOtherChk').checked ? document.getElementById('hobbyOtherText').value.trim() : ''; const hobbies = hobbyOther ?
- [...hobbyChecks.filter(h=>'אחר'!==h), hobbyOther] : hobbyChecks; const contribChecks = Array.from(document.querySelectorAll('#contribList input[type=checkbox]')).filter(i=>i.checked).map(i=>i.value); const contribOther = document.getElementById('contribOtherChk') && document.getElementById('contribOtherChk').checked ? document.getElementById('contribOtherText').value.trim() : '';
- const contributions = contribOther ? [...contribChecks.filter(c=>'אחר'!==c), contribOther] : contribChecks; if(age < 60) return alert('הרשמה מוגבלת לגיל 60 ומעלה. אם יש צורך בשינוי פנה למנהל.');
- try { const cred = await auth.createUserWithEmailAndPassword(email, pwd); const uid = cred.user.uid; await db.collection('users').doc(uid).set({ name, username:username||name, email, age, city, hobbies, contributions, role: (email==='meircha.ai@gmail.com')?'admin':'user', isActive:true, joinDate: firebase.firestore.FieldValue.serverTimestamp() }); goTo('home'); } catch(e){ console.error('register error', e); alert(`שגיאה בהרשמה: ${e.message}`); }
-}
+async function doRegister(){ 
+  const name = document.getElementById('regName').value.trim(); 
+  const username = document.getElementById('regUsername').value.trim();
+  const email = document.getElementById('regEmail').value.trim(); 
+  const pwd = document.getElementById('regPwd').value; 
+  const age = parseInt(document.getElementById('regAge').value); 
+  const city = document.getElementById('regCity').value; 
+  const agree = document.getElementById('agreeRules').checked;
+ 
+  if(!name || !email || !pwd || !age || !agree) return alert('מלא את כל השדות והסכום לתקנון');
+ 
+  const hobbyChecks = Array.from(document.querySelectorAll('#hobbiesList input[type=checkbox]')).filter(i=>i.checked).map(i=>i.value); 
+  const hobbyOther = document.getElementById('hobbyOtherChk') && document.getElementById('hobbyOtherChk').checked ? document.getElementById('hobbyOtherText').value.trim() : ''; 
+  const hobbies = hobbyOther ? [...hobbyChecks.filter(h=>'אחר'!==h), hobbyOther] : hobbyChecks; 
+  
+  const contribChecks = Array.from(document.querySelectorAll('#contribList input[type=checkbox]')).filter(i=>i.checked).map(i=>i.value); 
+  const contribOther = document.getElementById('contribOtherChk') && document.getElementById('contribOtherChk').checked ? document.getElementById('contribOtherText').value.trim() : '';
+  const contributions = contribOther ? [...contribChecks.filter(c=>'אחר'!==c), contribOther] : contribChecks; 
+  
+  if(age < 60) return alert('הרשמה מוגבלת לגיל 60 ומעלה. אם יש צורך בשינוי פנה למנהל.');
+ 
+  try { 
+    const cred = await auth.createUserWithEmailAndPassword(email, pwd); 
+    const uid = cred.user.uid; 
+    await db.collection('users').doc(uid).set({ 
+      name, 
+      username:username||name, 
+      email, 
+      age, 
+      city, 
+      hobbies, 
+      contributions, 
+      role: (email==='meircha.ai@gmail.com')?'admin':'user', 
+      isActive:true, 
+      joinDate: firebase.firestore.FieldValue.serverTimestamp() 
+    }); 
+    goTo('home'); 
+  } catch(e){ 
+    console.error('register error', e); 
+    alert(`שגיאה בהרשמה: ${e.message}`); 
+  }
+} // <--- הוספנו סוגר סולסל חסר כאן
+
 async function doLogin(){ const email = document.getElementById('loginEmail').value.trim(); const pwd = document.getElementById('loginPwd').value; if(!email || !pwd) return alert('הזן אימייל וסיסמה'); try { await auth.signInWithEmailAndPassword(email, pwd); goTo('home'); } catch(e){ console.error('login error', e); alert(`שגיאה בהתחברות: ${e.message}`); }
 }
 function showRules(){ document.getElementById('rulesModal').classList.remove('hidden'); }
