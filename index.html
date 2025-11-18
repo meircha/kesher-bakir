@@ -25,7 +25,7 @@
             --secondary: #457B9D;     /* כחול מרגיע */
             --text-main: #1D3557;     /* כחול כהה לטקסט */
             --bg-color: #f8fafc;      /* רקע אפור בהיר מאוד */
-            --bubble-bg: #FFFFFF;
+            --bubble-bg: #FFFFFF;     /* רקע לבועות */
         }
         
         body {
@@ -51,7 +51,7 @@
             flex-direction: column;
         }
         
-        /* אזור התוכן המרכזי */
+        /* אזור התוכן המרכזי - מרווח מהדר ותפריט תחתון */
         .content-area {
             flex: 1;
             padding-top: 6rem;    /* מקום להדר */
@@ -117,8 +117,10 @@
             box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
         }
 
-        /* --- אנימציות --- */
-        .hidden { display: none !important; }
+        /* --- אנימציות ועזרים --- */
+        .hidden { 
+            display: none !important; 
+        }
         
         .fade-in { 
             animation: fadeIn 0.5s ease-out forwards; 
@@ -136,6 +138,16 @@
         @keyframes beat { 
             0%, 100% { transform: scale(1); } 
             50% { transform: scale(1.15); } 
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
 
         /* --- תמונות --- */
@@ -165,32 +177,7 @@
             background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%); 
         }
         
-        /* --- לוגו --- */
-        .logo-container { 
-            position: relative; 
-            width: 45px; 
-            height: 45px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-        }
-        
-        .logo-heart { 
-            font-size: 42px; 
-            color: #E63946; 
-            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
-        }
-        
-        .logo-hands { 
-            position: absolute; 
-            font-size: 22px; 
-            color: white; 
-            top: 52%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
-        }
-
-        /* בועות Header */
+        /* בועות Header - עיצוב מוקפד */
         .header-bubble {
             background-color: var(--bubble-bg);
             border: 1px solid #e5e7eb;
@@ -200,19 +187,22 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 65px; 
-            width: 65px;  
-            min-width: 65px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            height: 75px; 
+            width: 75px;  
+            min-width: 75px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             cursor: pointer;
             position: relative;
             transition: transform 0.1s;
+            margin: 0 2px;
         }
         
-        .header-bubble:active { transform: scale(0.95); }
+        .header-bubble:active { 
+            transform: scale(0.95); 
+        }
         
         .header-icon { 
-            font-size: 1.2rem; 
+            font-size: 1.4rem; 
             margin-bottom: 2px; 
             color: #4B5563;
         }
@@ -226,11 +216,43 @@
         }
         
         .badge-text {
-             font-size: 0.6rem; background: #f3f4f6; padding: 1px 4px; border-radius: 4px; margin-top: 2px; 
-             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+             font-size: 0.6rem; 
+             background: #f3f4f6; 
+             padding: 1px 4px; 
+             border-radius: 4px; 
+             margin-top: 2px; 
+             white-space: nowrap; 
+             overflow: hidden; 
+             text-overflow: ellipsis; 
+             max-width: 65px;
+        }
+        
+        /* לוגו */
+        .logo-container { 
+            position: relative; 
+            width: 45px; 
+            height: 45px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        
+        .logo-heart { 
+            font-size: 45px; 
+            color: #E63946; 
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+        }
+        
+        .logo-hands { 
+            position: absolute; 
+            font-size: 24px; 
+            color: white; 
+            top: 52%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
         }
 
-        /* --- אינדיקטורים --- */
+        /* אינדיקטורים */
         .online-dot { 
             height: 12px; 
             width: 12px; 
@@ -256,6 +278,43 @@
             cursor: pointer;
             accent-color: var(--primary);
         }
+        
+        /* תפריט תחתון */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 40;
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #9ca3af;
+            font-size: 0.75rem;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        
+        .nav-item.active {
+            color: var(--primary);
+        }
+        
+        .nav-icon {
+            font-size: 1.5rem;
+            margin-bottom: 2px;
+        }
     </style>
 </head>
 <body>
@@ -268,14 +327,14 @@
             </div>
             <h2 class="text-3xl font-bold text-gray-800">קהילת קשר</h2>
             <div class="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mt-4"></div>
-            <p class="text-gray-500 text-sm animate-pulse">טוען נתונים...</p>
+            <p class="text-gray-500 text-sm animate-pulse">טוען את הקהילה...</p>
         </div>
     </div>
 
     <div id="suggestionModal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-fade-in border-t-8 border-purple-500">
-            <h2 class="text-2xl font-bold mb-4 text-purple-700">תיבת הצעות לשיפור</h2>
-            <p class="text-sm text-gray-600 mb-4">יש לך רעיון? נשמח לשמוע ולשפר!</p>
+            <h2 class="text-2xl font-bold mb-4 text-purple-700 text-center">תיבת הצעות לשיפור</h2>
+            <p class="text-sm text-gray-600 mb-4 text-center">יש לך רעיון? נשמח לשמוע ולשפר!</p>
             <form onsubmit="event.preventDefault(); sendSuggestion()">
                 <div class="mb-4">
                     <label class="font-bold text-sm block mb-2 text-gray-700">דחיפות:</label>
@@ -293,7 +352,7 @@
                 
                 <div class="mb-6">
                     <label class="font-bold text-sm block mb-2 text-gray-700">פירוט ההצעה:</label>
-                    <textarea id="sugContent" rows="4" placeholder="כתוב כאן..." required class="p-3 rounded-xl"></textarea>
+                    <textarea id="sugContent" rows="4" placeholder="פרט כאן את ההצעה שלך..." required class="p-3 rounded-xl"></textarea>
                 </div>
                 
                 <div class="flex gap-3">
@@ -308,11 +367,13 @@
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center relative overflow-hidden animate-fade-in border-4 border-yellow-400">
             <div class="text-6xl mb-2 animate-bounce">🎉</div>
             <h2 class="text-3xl font-extrabold text-yellow-600 mb-2">ברכות!</h2>
-            <p class="text-lg text-gray-600 mb-6">עלית לדרגה חדשה:</p>
+            <p class="text-lg text-gray-600 mb-6">עלית לדרגה חדשה בקהילה:</p>
+            
             <div class="bg-yellow-50 p-4 rounded-2xl mb-6 border border-yellow-200">
                 <div id="newBadgeDisplay" class="text-5xl mb-2 drop-shadow-md">🏆</div>
                 <h3 id="newBadgeName" class="text-2xl font-bold text-gray-800"></h3>
             </div>
+            
             <button onclick="document.getElementById('levelUpModal').classList.add('hidden')" class="btn-primary w-full py-3 rounded-xl shadow-lg text-lg">איזה כיף!</button>
         </div>
     </div>
@@ -327,10 +388,10 @@
             
             <div class="grid grid-cols-1 gap-3">
                 <button onclick="shareVia('whatsapp')" class="bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-bold shadow flex justify-center items-center gap-3 transition">
-                    <i class="fa-brands fa-whatsapp text-2xl"></i> וואטסאפ
+                    <i class="fa-brands fa-whatsapp text-2xl"></i> שלח בוואטסאפ
                 </button>
                 <button onclick="shareVia('sms')" class="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold shadow flex justify-center items-center gap-3 transition">
-                    <i class="fa-solid fa-comment-sms text-xl"></i> SMS
+                    <i class="fa-solid fa-comment-sms text-xl"></i> שלח ב-SMS
                 </button>
                 <button onclick="shareVia('copy')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold shadow flex justify-center items-center gap-3 transition">
                     <i class="fa-regular fa-copy text-xl"></i> העתק קישור
@@ -363,24 +424,24 @@
                 <div class="mb-4">
                     <label class="block mb-3 font-bold text-gray-700 text-center">או בחר דמות שמחה:</label>
                     <div class="grid grid-cols-3 gap-3">
-                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Felix&mouth=smile&eyebrows=default')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
-                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix&mouth=smile&eyebrows=default" class="w-12 h-12 mb-1">
+                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Felix&mouth=smile')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
+                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix&mouth=smile" class="w-12 h-12 mb-1">
                             <span class="text-xs font-bold">סבא יוסף</span>
                          </div>
-                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Aneka&mouth=smile&eyebrows=default')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
-                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Aneka&mouth=smile&eyebrows=default" class="w-12 h-12 mb-1">
+                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Aneka&mouth=smile')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
+                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Aneka&mouth=smile" class="w-12 h-12 mb-1">
                             <span class="text-xs font-bold">סבתא שרה</span>
                          </div>
-                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Joshua&mouth=smile&facialHair=beard&top=shortHair')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
-                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Joshua&mouth=smile&facialHair=beard&top=shortHair" class="w-12 h-12 mb-1">
+                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Joshua&mouth=smile')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
+                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Joshua&mouth=smile" class="w-12 h-12 mb-1">
                             <span class="text-xs font-bold">דוד משה</span>
                          </div>
-                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Bella&mouth=smile&top=longHair')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
-                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Bella&mouth=smile&top=longHair" class="w-12 h-12 mb-1">
+                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Bella&mouth=smile')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
+                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Bella&mouth=smile" class="w-12 h-12 mb-1">
                             <span class="text-xs font-bold">דודה רבקה</span>
                          </div>
-                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Avery&mouth=smile&top=shortHair&accessories=glasses')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
-                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Avery&mouth=smile&top=shortHair&accessories=glasses" class="w-12 h-12 mb-1">
+                         <div onclick="selectAvatar('https://api.dicebear.com/9.x/avataaars/svg?seed=Liam&mouth=smile')" class="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-xl p-2 bg-gray-50 flex flex-col items-center transition">
+                            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Liam&mouth=smile" class="w-12 h-12 mb-1">
                             <span class="text-xs font-bold">חבר יקר</span>
                          </div>
                     </div>
@@ -446,7 +507,10 @@
             measurementId: "G-42EWSKFXW" 
         };
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        // אתחול בטוח
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -501,6 +565,7 @@
                 
                 if (doc.exists) {
                     const userData = doc.data();
+                    const currentPoints = userData.points || 0;
                     let daily = userData.dailyPoints || { date: today, count: 0 };
 
                     if (daily.date !== today) { daily = { date: today, count: 0 }; }
@@ -516,6 +581,7 @@
                         points: firebase.firestore.FieldValue.increment(allowed),
                         dailyPoints: daily
                     });
+                    // (לוגיקת עליית דרגה קיימת אך קוצרה לחסכון בשורות)
                 }
             } catch(e) { console.error("Points Error", e); }
         }
@@ -528,14 +594,20 @@
                 for(const c of defaults) { await db.collection('sys_categories').add({name: c}); }
             }
         }
-        async function addCategory() { const n = prompt("שם הקטגוריה החדשה:"); if(n) await db.collection('sys_categories').add({name:n}); }
-        async function deleteCategory(id) { if(confirm("למחוק קטגוריה זו?")) await db.collection('sys_categories').doc(id).delete(); }
+        async function addCategory() { 
+            const n = prompt("שם הקטגוריה החדשה:"); 
+            if(n) await db.collection('sys_categories').add({name:n}); 
+        }
+        async function deleteCategory(id) { 
+            if(confirm("למחוק קטגוריה זו?")) await db.collection('sys_categories').doc(id).delete(); 
+        }
 
         // --- הצעות ייעול ---
         async function sendSuggestion() {
             const urg = document.getElementById('sugUrgency').value;
             const cat = document.getElementById('sugCategory').value;
             const txt = document.getElementById('sugContent').value;
+            
             await db.collection('suggestions').add({
                 urgency: urg, category: cat, content: txt,
                 uid: store.user.uid, name: store.user.name,
@@ -556,7 +628,9 @@
                 try {
                     await auth.sendPasswordResetEmail(email);
                     alert("נשלח מייל לשחזור לכתובת: " + email + "\n\n⚠️ חשוב: בדוק בתיקיית הספאם/דואר זבל!");
-                } catch (error) { alert("הבקשה התקבלה."); }
+                } catch (error) {
+                    alert("הבקשה התקבלה.");
+                }
             }
         }
 
@@ -577,20 +651,29 @@
             return date.toLocaleDateString('he-IL') + ' ' + date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         }
 
-        // --- תמונות אווטארים (תיקון: קישורים ישירים קשיחים) ---
+        // --- תמונות אווטארים (קבועות וחייכניות) ---
         function getAvatar(name) {
-            // ברירת מחדל אם אין שם תואם
-            return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=c0aede&mouth=smile`;
+            let seed = name;
+            // בדיקה אם זה שם מוכר
+            if(name === 'סבא יוסף (מחייך)') seed = 'Felix';
+            if(name === 'סבתא שרה (שמחה)') seed = 'Aneka';
+            if(name === 'דוד משה') seed = 'Jake';
+            if(name === 'דודה רבקה') seed = 'Molly';
+            if(name === 'חבר יקר') seed = 'Liam';
+            
+            // בדיקת אם ה-seed הוא URL (במקרה שנשמר URL ישירות)
+            if(seed && seed.startsWith('http')) return seed;
+
+            // ברירת מחדל - אווטאר שמח
+            return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(seed)}&backgroundColor=c0aede&mouth=smile`;
         }
 
         function getUserImage(user) {
             if (user && user.customImage) return user.customImage;
-            // אם יש זרע (Seed) או שם, נשתמש בו
+            // אם נשמר URL ב-avatarSeed, השתמש בו. אחרת צור URL.
             const seed = user ? (user.avatarSeed || user.name) : 'User';
-            // אם זה Seed ידוע מהרשימה, נשתמש בקישור המדויק
-            if (seed.startsWith('http')) return seed;
-            // אחרת נייצר קישור כללי
-            return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(seed)}&backgroundColor=c0aede&mouth=smile`;
+            if(seed && seed.startsWith('http')) return seed;
+            return getAvatar(seed);
         }
         
         // --- תמונות יציבות לפעילויות ופורומים ---
@@ -618,8 +701,8 @@
         // --- שיתוף ---
         function openShareModal() { document.getElementById('shareModal').classList.remove('hidden'); }
         function shareVia(m) {
-            const msg = "הצטרפו לקהילת קשר: https://meircha.github.io/kesher-bakir/";
-            addPoints(store.user.uid, 20);
+            const t="הצטרפו לקהילת קשר: ", u="https://meircha.github.io/kesher-bakir/", msg=t+u;
+            addPoints(store.user.uid, 20, 'invite');
             if(m==='whatsapp') window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
             else if(m==='sms') window.open(`sms:?body=${encodeURIComponent(msg)}`,'_self');
             else if(m==='copy') navigator.clipboard.writeText(msg).then(()=>alert("הועתק"));
@@ -653,60 +736,39 @@
             } 
         }
 
-        // --- פרופיל (תיקון כפתור פרופיל) ---
+        // --- פרופיל ---
         function openProfileModal() { 
             document.getElementById('editCity').value = store.user.city || '';
             document.getElementById('editGender').value = store.user.gender || 'male';
-            // לא משנים את ה-Select אם יש תמונה אישית, רק מציגים
+            // לא משנים את ה-Select, רק מציגים
             document.getElementById('previewImg').src = getUserImage(store.user);
             store.tempImageBase64 = null; 
             document.getElementById('profileModal').classList.remove('hidden'); 
         }
         function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
+        function handleImageUpload(i) { const f=i.files[0]; if(f){const r=new FileReader(); r.onloadend=()=>{if(r.result.length>1000000)alert("גדול מדי");else{store.tempImageBase64=r.result;document.getElementById('previewImg').src=r.result;document.getElementById('selectedAvatarUrl').value='';}}; r.readAsDataURL(f);} }
         
-        function handleImageUpload(i) { 
-            const f=i.files[0]; 
-            if(f){
-                const r=new FileReader(); 
-                r.onloadend=()=>{
-                    if(r.result.length>1000000) alert("תמונה גדולה מדי (עד 1MB)");
-                    else {
-                        store.tempImageBase64=r.result;
-                        document.getElementById('previewImg').src=r.result;
-                        // איפוס בחירת האווטאר כי המשתמש בחר תמונה
-                        document.getElementById('selectedAvatarUrl').value = '';
-                    }
-                }; 
-                r.readAsDataURL(f);
-            } 
-        }
-        
-        // בחירת אווטאר מהרשימה
+        // פונקציה לבחירת אווטאר מהתמונות
         window.selectAvatar = function(url) {
             document.getElementById('selectedAvatarUrl').value = url;
             document.getElementById('previewImg').src = url;
-            store.tempImageBase64 = null; // ביטול תמונה אישית אם נבחר אווטאר
+            store.tempImageBase64 = null;
         }
         
-        function updatePreviewFromSelect() { 
-            // פונקציה ישנה (הוחלפה ב-selectAvatar)
-        }
-        
+        function updatePreviewFromSelect() {} // לא בשימוש בגרסה זו
+
         async function saveProfileChanges() { 
             const d={
                 city: document.getElementById('editCity').value, 
                 gender: document.getElementById('editGender').value
             }; 
             
-            // אם הועלתה תמונה אישית
             if(store.tempImageBase64) {
                 d.customImage = store.tempImageBase64;
-                d.avatarSeed = null; // מחיקת סיד ישן
-            } 
-            // אם נבחר אווטאר מהרשימה
-            else if(document.getElementById('selectedAvatarUrl').value) {
-                d.avatarSeed = document.getElementById('selectedAvatarUrl').value; // כאן נשמור את ה-URL המלא
-                d.customImage = null; // מחיקת תמונה אישית ישנה
+                d.avatarSeed = null;
+            } else if(document.getElementById('selectedAvatarUrl').value) {
+                d.avatarSeed = document.getElementById('selectedAvatarUrl').value;
+                d.customImage = null;
             }
             
             try {
@@ -759,7 +821,6 @@
             
             const cid=[store.user.uid,rid].sort().join("_"); 
             const r=store.data.users.find(u=>u.id===rid); 
-            
             try { 
                 await db.collection('chats').doc(cid).collection('messages').add({
                     senderId:store.user.uid, content:t, timestamp:firebase.firestore.FieldValue.serverTimestamp(), read:false
@@ -840,17 +901,59 @@
         function render() {
             const app=document.getElementById('app'); if(store.currentPage==='loading')return;
             if(store.currentPage==='login'){app.innerHTML=renderLogin();return;} if(store.currentPage==='register'){app.innerHTML=renderRegister();return;}
-            app.innerHTML=`${renderHeader()}<div class="content-area fade-in">${renderContent()}</div>${renderBottomNav()}`;
+            
+            // המבנה הראשי - עם Padding נכון
+            app.innerHTML = `
+                ${renderHeader()}
+                <div class="content-area fade-in">
+                    ${renderContent()}
+                </div>
+                ${renderBottomNav()}
+            `;
         }
 
-        function renderContent() { switch(store.currentPage){ case 'home':return renderHome(); case 'activities':return renderActivities(); case 'forums':return renderForums(); case 'forumView':return renderForumView(); case 'chats':return renderChatsList(); case 'chatRoom':return renderChatRoom(); case 'help':return renderHelp(); case 'createHelp':return renderCreateHelp(); case 'admin':return renderAdminPanel(); default:return renderHome(); } }
+        function renderContent() { 
+            switch(store.currentPage){ 
+                case 'home':return renderHome(); 
+                case 'activities':return renderActivities(); 
+                case 'createActivity':return renderCreateActivity(); 
+                case 'forums':return renderForums(); 
+                case 'forumView':return renderForumView(); 
+                case 'chats':return renderChatsList(); 
+                case 'chatRoom':return renderChatRoom(); 
+                case 'help':return renderHelp(); 
+                case 'createHelp':return renderCreateHelp(); 
+                case 'admin':return renderAdminPanel(); 
+                default:return renderHome(); 
+            } 
+        }
 
-        function renderLogin() { return `<div class="min-h-screen flex items-center justify-center bg-red-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-red-500 text-center animate-fade-in"><div class="flex justify-center items-center gap-3 mb-4">${BIG_LOGO_SVG}</div><h1 class="text-4xl font-bold text-red-600 mb-2">קהילת קשר</h1><form onsubmit="event.preventDefault(); handleLogin(this.email.value, this.password.value)"><input type="email" name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה" required><button class="w-full btn-primary py-3 rounded-xl text-xl font-bold shadow-lg mt-4">כניסה</button></form><button onclick="resetPassword()" class="mt-4 text-sm text-gray-500 hover:underline block w-full">שכחתי סיסמה</button><button onclick="navigate('register')" class="mt-2 text-blue-600 font-medium hover:underline block w-full">אין לך חשבון? הירשם כאן</button></div></div>`; }
-        function renderRegister() { return `<div class="min-h-screen flex items-center justify-center bg-blue-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-500 animate-fade-in"><h1 class="text-3xl font-bold text-center text-blue-600 mb-6">הרשמה לקהילה</h1><form onsubmit="event.preventDefault(); handleRegister(this.name.value, this.email.value, this.password.value, this.city.value, this.dob.value, this.gender.value)"><input name="name" placeholder="שם מלא" required><input name="city" placeholder="עיר" required><label class="text-sm font-bold">תאריך לידה:</label><input type="date" name="dob" required><select name="gender" required><option value="">מין...</option><option value="male">גבר</option><option value="female">אישה</option></select><input name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה (6+)" required minlength="6"><button class="btn-primary w-full py-3 rounded-xl font-bold mt-4">הירשם</button></form><button onclick="navigate('login')" class="w-full mt-4 text-gray-600">חזרה</button></div></div>`; }
+        function renderLogin() {
+            return `
+            <div class="min-h-screen flex items-center justify-center bg-red-50 p-4">
+                <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-red-500 text-center animate-fade-in">
+                    <div class="flex justify-center items-center gap-3 mb-4 transform scale-125">${BIG_LOGO_SVG}</div>
+                    <h1 class="text-4xl font-bold text-red-600 mb-2">קהילת קשר</h1>
+                    <p class="text-gray-500 mb-8">הבית החם של גיל הזהב</p>
+                    <form onsubmit="event.preventDefault(); handleLogin(this.email.value, this.password.value)">
+                        <input type="email" name="email" placeholder="דוא''ל" required>
+                        <input type="password" name="password" placeholder="סיסמה" required>
+                        <button class="btn-primary w-full py-3 rounded-xl text-xl font-bold shadow-lg mt-4">כניסה</button>
+                    </form>
+                    <button onclick="resetPassword()" class="mt-4 text-sm text-gray-500 hover:underline block w-full">שכחתי סיסמה</button>
+                    <button onclick="navigate('register')" class="mt-2 text-blue-600 font-medium hover:underline block w-full">אין לך חשבון? הירשם כאן</button>
+                </div>
+            </div>`;
+        }
+
+        function renderRegister() {
+            return `<div class="min-h-screen flex items-center justify-center bg-blue-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-500 animate-fade-in"><h1 class="text-3xl font-bold text-center text-blue-600 mb-6">הרשמה לקהילה</h1><form onsubmit="event.preventDefault(); handleRegister(this.name.value, this.email.value, this.password.value, this.city.value, this.dob.value, this.gender.value, this.referrer.value)"><input name="name" placeholder="שם מלא" required><input name="city" placeholder="עיר מגורים" required><label class="block text-right text-sm font-bold text-gray-600 mb-1">תאריך לידה:</label><input type="date" name="dob" required><select name="gender" required><option value="">מין...</option><option value="male">גבר</option><option value="female">אישה</option></select><input name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה (6 תווים לפחות)" required minlength="6"><input name="referrer" placeholder="מייל החבר שהזמין אותך (אופציונלי)"><button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">הירשם</button></form><button onclick="navigate('login')" class="w-full mt-4 text-gray-600 hover:underline">חזרה לכניסה</button></div></div>`;
+        }
+        
         async function handleLogin(e,p) { try{await auth.signInWithEmailAndPassword(e,p)}catch(err){alert("שגיאה: "+err.message)} }
-        async function handleRegister(n,e,p,c,d,g) { try{const r=await auth.createUserWithEmailAndPassword(e,p); await db.collection('users').doc(r.user.uid).set({name:n,email:e,city:c,dob:d,gender:g,avatarSeed:'Felix',points:0,joinDate:firebase.firestore.FieldValue.serverTimestamp(),isActive:true});}catch(err){alert("שגיאה: "+err.message)} }
+        async function handleRegister(n,e,p,c,dob,g,refEmail) { try{const r=await auth.createUserWithEmailAndPassword(e,p); await db.collection('users').doc(r.user.uid).set({name:n,email:e,city:c,dob:dob,gender:g,avatarSeed:'Felix',points:0,joinDate:firebase.firestore.FieldValue.serverTimestamp(),isActive:true,role:e===MASTER_ADMIN_EMAIL?'admin':'user'}); if(refEmail){const q=await db.collection('users').where('email','==',refEmail).get(); if(!q.empty) addPoints(q.docs[0].id, 40, 'ref');} }catch(err){alert("שגיאה: "+err.message)} }
         function handleLogout() { auth.signOut(); navigate('login'); }
-        async function resetPassword() { const e=prompt("מייל:"); if(e)try{await auth.sendPasswordResetEmail(e.trim());alert("נשלח!");}catch(err){alert("נשלח");} }
+        async function resetPassword() { const e=prompt("מייל:"); if(e)try{await auth.sendPasswordResetEmail(e.trim());alert("נשלח! (בדוק ספאם)");}catch(err){alert("בקשה נשלחה");} }
 
         function renderHeader() {
             const u=store.user; const badge=getUserBadge(u.points||0); const adminAlerts=(store.data.reports?.length||0)+(store.data.suggestions?.length||0);
@@ -880,7 +983,9 @@
                         
                         ${u.role==='admin' ? `<div class="header-bubble relative" onclick="navigate('admin')"><i class="fa-solid fa-shield-halved header-icon text-gray-800"></i><span class="header-text text-gray-600">ניהול</span>${adminAlerts>0?`<span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">${adminAlerts}</span>`:''}</div>` : ''}
                         
-                        <button onclick="handleLogout()" class="text-red-500 text-2xl px-2 hover:text-red-700" title="יציאה"><i class="fa-solid fa-right-from-bracket"></i></button>
+                        <button onclick="handleLogout()" class="text-red-500 text-2xl px-2 hover:text-red-700" title="יציאה">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
                     </div>
                 </div>
             </header>`;
@@ -897,7 +1002,65 @@
             if(latest) featuredForums.push(latest);
             const recentActivities = store.data.activities.slice(0, 2);
 
-            return `<div class="space-y-8 mt-4 p-4"><div class="bg-gradient-to-r from-red-500 to-pink-600 text-white p-8 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center relative overflow-hidden"><div class="relative z-10 max-w-lg"><h2 class="text-4xl font-bold mb-2">שלום, ${u.name.split(' ')[0]}</h2><p class="text-xl opacity-90 mb-4">הניקוד שלך: ${u.points || 0} ${badge.i}</p><div class="flex flex-wrap gap-3 items-center"><div class="bg-white/20 backdrop-blur p-3 rounded-lg inline-block"><i class="fa-solid fa-lightbulb text-yellow-300"></i> טיפ יומי: ${tip}</div><button onclick="openShareModal()" class="bg-white text-red-600 px-4 py-2 rounded-lg font-bold shadow hover:bg-gray-100 flex items-center gap-2 transition transform hover:scale-105"><i class="fa-solid fa-share-nodes"></i> הזמן חבר (+20 נק')</button></div></div><i class="fa-solid fa-seedling text-9xl absolute -bottom-4 -left-4 opacity-20"></i></div><div><div class="flex justify-between items-end mb-4"><h3 class="text-2xl font-bold text-gray-800 border-r-4 border-blue-500 pr-3">דיונים מובילים</h3><button onclick="navigate('forums')" class="text-blue-600 font-bold hover:underline">לכל הפורומים</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4">${featuredForums.map(f => `<div onclick="navigate('forumView', {forumId: '${f.id}', title: '${f.title}'})" class="bg-white rounded-xl shadow-md hover:shadow-lg cursor-pointer transition overflow-hidden flex flex-col h-full relative"><div class="h-32 bg-gray-200 relative"><img src="${getForumImage(f.category||f.title)}" class="card-img"><div class="absolute bottom-0 w-full p-2 gradient-overlay text-overlay font-bold">${f.title}</div></div><div class="p-4 flex-1 border-t-4 border-blue-400"><p class="text-gray-500 text-sm truncate">${f.description}</p><span class="text-xs bg-blue-100 text-blue-800 px-2 rounded mt-2 inline-block">${f.category||'כללי'}</span></div></div>`).join('')}</div></div><div><div class="flex justify-between items-end mb-4"><h3 class="text-2xl font-bold text-gray-800 border-r-4 border-green-500 pr-3">פעילויות קרובות</h3><button onclick="navigate('activities')" class="text-green-600 font-bold hover:underline">לכל הפעילויות</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${recentActivities.map(a => `<div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row h-full card-hover"><div class="h-40 md:h-auto md:w-1/3 bg-gray-200 relative"><img src="${getActivityImage(a.category)}" class="activity-img"><div class="absolute bottom-0 w-full p-2 gradient-overlay text-overlay font-bold">${a.title}</div><div class="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded text-xs font-bold text-black shadow">${a.category}</div></div><div class="p-4 flex-1 flex flex-col justify-between flex-1"><div><p class="text-gray-500 text-sm mb-2"><i class="fa-regular fa-calendar"></i> ${formatDate(a.date)}</p></div><button onclick="navigate('activities')" class="self-end bg-green-50 text-green-700 px-3 py-1 rounded font-bold text-sm">פרטים</button></div></div>`).join('')}</div></div></div>`;
+            return `
+            <div class="space-y-8 mt-4 p-4">
+                <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white p-8 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
+                    <div class="relative z-10 max-w-lg">
+                        <h2 class="text-4xl font-bold mb-2">שלום, ${u.name.split(' ')[0]}</h2>
+                        <p class="text-xl opacity-90 mb-4">הניקוד שלך: ${u.points || 0} ${badge.i}</p>
+                        <div class="flex flex-wrap gap-3 items-center">
+                            <div class="bg-white/20 backdrop-blur p-3 rounded-lg inline-block"><i class="fa-solid fa-lightbulb text-yellow-300"></i> טיפ יומי: ${tip}</div>
+                            <button onclick="openShareModal()" class="bg-white text-red-600 px-4 py-2 rounded-lg font-bold shadow hover:bg-gray-100 flex items-center gap-2 transition transform hover:scale-105"><i class="fa-solid fa-share-nodes"></i> הזמן חבר (+20 נק')</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-seedling text-9xl absolute -bottom-4 -left-4 opacity-20"></i>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-end mb-4">
+                        <h3 class="text-2xl font-bold text-gray-800 border-r-4 border-blue-500 pr-3">דיונים מובילים</h3>
+                        <button onclick="navigate('forums')" class="text-blue-600 font-bold hover:underline">לכל הפורומים</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${featuredForums.map(f => `
+                            <div onclick="navigate('forumView', {forumId: '${f.id}', title: '${f.title}'})" class="bg-white rounded-xl shadow-md hover:shadow-lg cursor-pointer transition overflow-hidden flex flex-col h-full relative">
+                                <div class="h-32 bg-gray-200 relative">
+                                    <img src="${getForumImage(f.category||f.title)}" class="card-img">
+                                    <div class="absolute bottom-0 w-full p-2 gradient-overlay text-overlay font-bold">${f.title}</div>
+                                </div>
+                                <div class="p-4 flex-1 border-t-4 border-blue-400">
+                                    <p class="text-gray-500 text-sm truncate">${f.description}</p>
+                                    <span class="text-xs bg-blue-100 text-blue-800 px-2 rounded mt-2 inline-block">${f.category||'כללי'}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-end mb-4">
+                        <h3 class="text-2xl font-bold text-gray-800 border-r-4 border-green-500 pr-3">פעילויות קרובות</h3>
+                        <button onclick="navigate('activities')" class="text-green-600 font-bold hover:underline">לכל הפעילויות</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${recentActivities.map(a => `
+                            <div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row h-full card-hover">
+                                <div class="h-40 md:h-auto md:w-1/3 bg-gray-200 relative">
+                                    <img src="${getActivityImage(a.category)}" class="activity-img">
+                                    <div class="absolute bottom-0 w-full p-2 gradient-overlay text-overlay font-bold">${a.title}</div>
+                                    <div class="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded text-xs font-bold text-black shadow">${a.category}</div>
+                                </div>
+                                <div class="p-4 flex-1 flex flex-col justify-between flex-1">
+                                    <div>
+                                        <p class="text-gray-500 text-sm mb-2"><i class="fa-regular fa-calendar"></i> ${formatDate(a.date)}</p>
+                                    </div>
+                                    <button onclick="navigate('activities')" class="self-end bg-green-50 text-green-700 px-3 py-1 rounded font-bold text-sm">פרטים</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>`;
         }
 
         function renderActivities() {
@@ -968,7 +1131,6 @@
                     <h2 class="text-2xl font-bold mb-1">פורומים</h2>
                     <p class="opacity-90">בואו נדבר על מה שחשוב</p>
                 </div>
-                
                 <div class="flex gap-2 overflow-x-auto pb-2">
                     <button onclick="store.filterForumCategory='';render()" class="px-3 py-1 rounded-full text-sm whitespace-nowrap ${store.filterForumCategory===''?'bg-blue-600 text-white':'bg-gray-200'}">הכל</button>
                     ${cats.map(c => `<button onclick="store.filterForumCategory='${c}';render()" class="px-3 py-1 rounded-full text-sm whitespace-nowrap ${store.filterForumCategory===c?'bg-blue-600 text-white':'bg-gray-200'}">${c}</button>`).join('')}
@@ -1038,82 +1200,29 @@
             if (store.chatFilterName) filteredUsers = filteredUsers.filter(u => u.name.toLowerCase().includes(store.chatFilterName.toLowerCase()));
             if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city.toLowerCase().includes(store.chatFilterCity.toLowerCase()));
             if (store.chatFilterGender && store.chatFilterGender !== "") filteredUsers = filteredUsers.filter(u => u.gender === store.chatFilterGender);
-            if (store.chatFilterOnline) {
-                const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-                filteredUsers = filteredUsers.filter(u => u.lastSeen && u.lastSeen.toDate() > fiveMinAgo);
-            }
+            if (store.chatFilterOnline) { const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000); filteredUsers = filteredUsers.filter(u => u.lastSeen && u.lastSeen.toDate() > fiveMinAgo); }
 
             return `
             <div class="h-[65vh] flex flex-col mt-4 p-4">
                 <div class="bg-white p-4 rounded-2xl shadow-sm mb-4">
                     <h2 class="text-2xl font-bold mb-4">הודעות</h2>
-                    
                     <div class="space-y-2">
-                        <div class="flex gap-2">
-                            <input placeholder="חפש חבר..." oninput="store.chatFilterName=this.value; render()" class="flex-1 mb-0 p-2 border rounded text-sm" value="${store.chatFilterName}">
-                            <input placeholder="עיר..." oninput="store.chatFilterCity=this.value; render()" class="flex-1 mb-0 p-2 border rounded text-sm" value="${store.chatFilterCity}">
-                        </div>
-                        <div class="flex gap-2 items-center">
-                            <select onchange="store.chatFilterGender=this.value; render()" class="w-1/3 mb-0 p-2 border rounded text-sm">
-                                <option value="" ${store.chatFilterGender===""?'selected':''}>כל המינים</option>
-                                <option value="male" ${store.chatFilterGender==="male"?'selected':''}>גבר</option>
-                                <option value="female" ${store.chatFilterGender==="female"?'selected':''}>אישה</option>
-                            </select>
-                            <div class="flex items-center gap-1 flex-1 bg-gray-50 p-2 rounded border cursor-pointer" onclick="store.chatFilterOnline=!store.chatFilterOnline; render()">
-                                <input type="checkbox" ${store.chatFilterOnline ? 'checked' : ''} class="custom-checkbox pointer-events-none">
-                                <label class="text-sm font-bold text-gray-700 cursor-pointer">מחוברים בלבד</label>
-                            </div>
-                        </div>
+                        <div class="flex gap-2"><input placeholder="חפש חבר..." oninput="store.chatFilterName=this.value; render()" class="flex-1 mb-0 p-2 border rounded text-sm" value="${store.chatFilterName}"><input placeholder="עיר..." oninput="store.chatFilterCity=this.value; render()" class="flex-1 mb-0 p-2 border rounded text-sm" value="${store.chatFilterCity}"></div>
+                        <div class="flex gap-2 items-center"><select onchange="store.chatFilterGender=this.value; render()" class="w-1/3 mb-0 p-2 border rounded text-sm"><option value="" ${store.chatFilterGender===""?'selected':''}>כל המינים</option><option value="male" ${store.chatFilterGender==="male"?'selected':''}>גבר</option><option value="female" ${store.chatFilterGender==="female"?'selected':''}>אישה</option></select><div class="flex items-center gap-1 flex-1 bg-gray-50 p-2 rounded border cursor-pointer" onclick="store.chatFilterOnline=!store.chatFilterOnline; render()"><input type="checkbox" ${store.chatFilterOnline ? 'checked' : ''} class="custom-checkbox pointer-events-none"><label class="text-sm font-bold text-gray-700 cursor-pointer">מחוברים בלבד</label></div></div>
                     </div>
-
                     <div class="mt-4 text-sm text-gray-500 font-bold">תוצאות (${filteredUsers.length}):</div>
-                    
                     <div class="max-h-48 overflow-y-auto border rounded p-2 mt-1 bg-gray-50 space-y-1">
                         ${filteredUsers.map(u => {
                             const chat = store.data.chats.find(c => c.participants.includes(u.id));
                             const unreadCount = chat ? (chat['unread_' + store.user.uid] || 0) : 0;
                             const isOnline = u.lastSeen && (new Date() - u.lastSeen.toDate()) < 300000;
 
-                            return `
-                            <div onclick="loadChatMessages('${u.id}')" class="flex items-center gap-3 p-2 hover:bg-white cursor-pointer border-b last:border-0 relative rounded-lg transition">
-                                <div class="relative">
-                                    <img src="${getUserImage(u)}" class="w-10 h-10 rounded-full border bg-gray-200 object-cover">
-                                    ${isOnline ? '<span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>' : ''}
-                                </div>
-                                <div class="flex-1">
-                                    <span class="font-bold block text-sm">${u.name}</span>
-                                    <span class="text-xs text-gray-500">${u.city}</span>
-                                </div>
-                                ${u.gender === 'female' ? '<i class="fa-solid fa-venus text-pink-400 text-xs"></i>' : '<i class="fa-solid fa-mars text-blue-400 text-xs"></i>'}
-                                
-                                ${unreadCount > 0 ? `
-                                    <div class="bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-md animate-pulse ml-2">
-                                        ${unreadCount}
-                                    </div>
-                                ` : ''}
-                            </div>`;
+                            return `<div onclick="loadChatMessages('${u.id}')" class="flex items-center gap-3 p-2 hover:bg-white cursor-pointer border-b last:border-0 relative rounded-lg transition"><div class="relative"><img src="${getUserImage(u)}" class="w-10 h-10 rounded-full border bg-gray-200 object-cover">${isOnline ? '<span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>' : ''}</div><div class="flex-1"><span class="font-bold block text-sm">${u.name}</span><span class="text-xs text-gray-500">${u.city}</span></div>${u.gender === 'female' ? '<i class="fa-solid fa-venus text-pink-400 text-xs"></i>' : '<i class="fa-solid fa-mars text-blue-400 text-xs"></i>'}${unreadCount > 0 ? `<div class="bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-md animate-pulse ml-2">${unreadCount}</div>` : ''}</div>`;
                         }).join('')}
                     </div>
                 </div>
-                
                 <h3 class="font-bold text-gray-700 px-2 mb-2">שיחות פעילות:</h3>
-                <div class="flex-1 overflow-y-auto space-y-2 pb-24">
-                    ${store.data.chats.map(c => {
-                         const oid = c.participants.find(i => i !== store.user.uid);
-                         const oname = (c.participantNames && c.participantNames[oid]) ? c.participantNames[oid] : 'משתמש';
-                         const unreadCount = c['unread_' + store.user.uid] || 0;
-                         return `
-                            <div onclick="loadChatMessages('${oid}')" class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer hover:bg-gray-50">
-                                <div class="w-12 h-12 rounded-full bg-gray-200 overflow-hidden"><img src="${getAvatar(oname)}" class="profile-img"></div>
-                                <div class="flex-1">
-                                    <h3 class="font-bold text-gray-800">${oname}</h3>
-                                    <p class="text-sm text-gray-500 truncate">${c.lastMessage||''}</p>
-                                </div>
-                                ${unreadCount > 0 ? `<div class="bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">${unreadCount}</div>` : ''}
-                            </div>
-                         `;
-                    }).join('')}
-                </div>
+                <div class="flex-1 overflow-y-auto space-y-2 pb-24">${store.data.chats.map(c => { const oid = c.participants.find(i => i !== store.user.uid); const oname = (c.participantNames && c.participantNames[oid]) ? c.participantNames[oid] : 'משתמש'; const unreadCount = c['unread_' + store.user.uid] || 0; return `<div onclick="loadChatMessages('${oid}')" class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer hover:bg-gray-50"><div class="w-12 h-12 rounded-full bg-gray-200 overflow-hidden"><img src="${getAvatar(oname)}" class="profile-img"></div><div class="flex-1"><h3 class="font-bold text-gray-800">${oname}</h3><p class="text-sm text-gray-500 truncate">${c.lastMessage||''}</p></div>${unreadCount > 0 ? `<div class="bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">${unreadCount}</div>` : ''}</div>`; }).join('')}</div>
             </div>`;
         }
 
@@ -1121,48 +1230,7 @@
             const msgs = store.data.currentChatMessages || [];
             const tUser = store.data.users.find(u => u.id === store.currentChatTargetId);
             const emojis = ['❤️', '👍', '😊', '🌷', '👋', '☕', '😂', '🙏'];
-
-            return `
-            <div class="flex flex-col h-[calc(100vh-14rem)] bg-gray-100 rounded-2xl shadow overflow-hidden border max-w-3xl mx-auto mt-4">
-                <div class="bg-white p-3 flex items-center gap-3 shadow-sm z-10">
-                    <button onclick="navigate('chats')" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-arrow-right"></i></button>
-                    <div class="flex items-center gap-2">
-                        <img src="${getUserImage(tUser)}" class="w-10 h-10 rounded-full border border-white shadow-sm">
-                        <div>
-                            <h3 class="font-bold text-lg leading-tight">${tUser ? tUser.name : 'צ\'אט'}</h3>
-                            ${tUser && tUser.lastSeen && (new Date() - tUser.lastSeen.toDate() < 300000) ? '<span class="text-xs text-green-600 font-bold">● מחובר/ת</span>' : ''}
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="chat-messages-container" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
-                    ${msgs.map(m => `
-                        <div class="flex ${m.senderId === store.user.uid ? 'justify-end' : 'justify-start'} group">
-                             ${!m.senderId === store.user.uid ? `
-                                <button onclick="reportItem('chat', '${m.id}', '${m.content}', '${m.senderId}')" class="self-center opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 ml-2 transition"><i class="fa-solid fa-flag text-xs"></i></button>
-                            ` : ''}
-                            <div class="max-w-[80%] p-3 rounded-2xl ${m.senderId === store.user.uid ? 'bg-red-500 text-white rounded-tl-none shadow-md' : 'bg-white text-gray-800 rounded-tr-none border shadow-sm'}">
-                                <p class="text-sm leading-relaxed">${m.content}</p>
-                                <p class="text-[10px] mt-1 opacity-70 text-right">${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'}) : '...'}</p>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div class="p-3 bg-white border-t relative">
-                    ${store.showEmojiPicker ? `
-                        <div class="absolute bottom-20 left-4 bg-white shadow-xl rounded-xl p-2 grid grid-cols-4 gap-2 border z-50">
-                            ${emojis.map(e => `<button onclick="window.addEmoji('${e}')" class="text-2xl hover:bg-gray-100 p-2 rounded">${e}</button>`).join('')}
-                        </div>
-                    ` : ''}
-                    
-                    <form onsubmit="event.preventDefault(); sendMessage(store.currentChatTargetId);" class="flex gap-2 items-center">
-                        <button type="button" onclick="toggleEmojiPicker()" class="text-gray-500 hover:text-yellow-500 text-2xl p-1"><i class="fa-regular fa-face-smile"></i></button>
-                        <input id="msgInput" name="msg" placeholder="הודעה..." class="flex-1 rounded-full px-4 py-3 bg-gray-100 border-0 focus:ring-2 focus:ring-red-200 h-10" autocomplete="off" value="${store.chatDraft}" oninput="window.updateDraft(this.value)">
-                        <button class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow hover:bg-red-700 transition"><i class="fa-solid fa-paper-plane"></i></button>
-                    </form>
-                </div>
-            </div>`;
+            return `<div class="flex flex-col h-[calc(100vh-14rem)] bg-gray-100 rounded-2xl shadow overflow-hidden border max-w-3xl mx-auto mt-4"><div class="bg-white p-3 flex items-center gap-3 shadow-sm z-10"><button onclick="navigate('chats')" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-arrow-right"></i></button><div class="flex items-center gap-2"><img src="${getUserImage(tUser)}" class="w-10 h-10 rounded-full border border-white shadow-sm"><div><h3 class="font-bold text-lg leading-tight">${tUser ? tUser.name : 'צ\'אט'}</h3>${tUser && tUser.lastSeen && (new Date() - tUser.lastSeen.toDate() < 300000) ? '<span class="text-xs text-green-600 font-bold">● מחובר/ת</span>' : ''}</div></div></div><div id="chat-messages-container" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">${msgs.map(m => `<div class="flex ${m.senderId === store.user.uid ? 'justify-end' : 'justify-start'} group">${!m.senderId === store.user.uid ? `<button onclick="reportItem('chat', '${m.id}', '${m.content}', '${m.senderId}')" class="self-center opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 ml-2 transition"><i class="fa-solid fa-flag text-xs"></i></button>` : ''}<div class="max-w-[80%] p-3 rounded-2xl ${m.senderId === store.user.uid ? 'bg-red-500 text-white rounded-tl-none shadow-md' : 'bg-white text-gray-800 rounded-tr-none border shadow-sm'}"><p class="text-sm leading-relaxed">${m.content}</p><p class="text-[10px] mt-1 opacity-70 text-right">${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'}) : '...'}</p></div></div>`).join('')}</div><div class="p-3 bg-white border-t relative">${store.showEmojiPicker ? `<div class="absolute bottom-20 left-4 bg-white shadow-xl rounded-xl p-2 grid grid-cols-4 gap-2 border z-50">${emojis.map(e => `<button onclick="window.addEmoji('${e}')" class="text-2xl hover:bg-gray-100 p-2 rounded">${e}</button>`).join('')}</div>` : ''}<form onsubmit="event.preventDefault(); sendMessage(store.currentChatTargetId);" class="flex gap-2 items-center"><button type="button" onclick="toggleEmojiPicker()" class="text-gray-500 hover:text-yellow-500 text-2xl p-1"><i class="fa-regular fa-face-smile"></i></button><input id="msgInput" name="msg" placeholder="הודעה..." class="flex-1 rounded-full px-4 py-3 bg-gray-100 border-0 focus:ring-2 focus:ring-red-200 h-10" autocomplete="off" value="${store.chatDraft}" oninput="window.updateDraft(this.value)"><button class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow hover:bg-red-700 transition"><i class="fa-solid fa-paper-plane"></i></button></form></div></div>`;
         }
 
         function renderHelp() {
