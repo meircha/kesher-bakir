@@ -7,9 +7,6 @@
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#E63946">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/833/833472.png">
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/833/833472.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -19,26 +16,33 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
     <style>
-        /* --- הגדרות עיצוב גלובליות --- */
+        /* --- עיצוב גלובלי --- */
         :root {
-            --primary: #E63946;       /* אדום חם - צבע ראשי */
-            --primary-hover: #C81D2A; /* אדום כהה למעבר עכבר */
-            --secondary: #457B9D;     /* כחול מרגיע */
-            --accent: #F1FAEE;        /* לבן שמנת */
-            --text-main: #1D3557;     /* כחול כהה לטקסט */
-            --bg-color: #f8fafc;      /* רקע כללי בהיר */
+            --primary: #E63946; 
+            --primary-hover: #C81D2A;
+            --text-main: #1D3557; 
         }
         
         body {
-            background-color: var(--bg-color);
+            background-color: #f3f4f6; /* רקע אפור בהיר */
             color: var(--text-main);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: 16px;
+            margin: 0;
+            padding: 0;
             -webkit-tap-highlight-color: transparent;
-            padding-bottom: 100px; /* מרווח לתפריט התחתון */
         }
-        
-        /* --- כפתורים --- */
+
+        /* מיכל ראשי למניעת "בריחת" אלמנטים */
+        .main-container {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 1rem;
+            padding-top: 6rem; /* מקום להדר */
+            padding-bottom: 6rem; /* מקום לתפריט תחתון */
+        }
+
+        /* כפתורים */
         .btn-primary {
             background-color: var(--primary);
             color: white;
@@ -48,489 +52,118 @@
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            border: none;
         }
-        
         .btn-primary:hover {
             background-color: var(--primary-hover);
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        .btn-secondary {
-            background-color: white;
-            color: var(--primary);
-            border: 1px solid var(--primary);
-            transition: all 0.2s;
-            font-weight: bold;
-        }
-
-        .btn-secondary:hover {
-            background-color: #fff5f5;
-        }
-
-        /* --- שדות קלט (Inputs) --- */
+        /* שדות טופס */
         input, select, textarea {
             font-size: 16px !important;
-            padding: 14px !important;
+            padding: 12px !important;
             border-radius: 0.75rem !important;
             border: 1px solid #cbd5e1 !important;
             width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             background-color: white;
-            transition: border-color 0.2s;
+            display: block; /* מבטיח שכל שדה יהיה בשורה נפרדת */
         }
 
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--primary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
-        }
+        /* אנימציות */
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .heart-beat { animation: beat 1.5s infinite; }
+        @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 
-        /* צ'קבוקס מותאם אישית (גדול וברור) */
-        .custom-checkbox {
-            appearance: none;
-            background-color: #fff;
-            margin: 0;
-            font: inherit;
-            color: currentColor;
-            width: 1.5em;
-            height: 1.5em;
-            border: 2px solid #cbd5e1;
-            border-radius: 0.35em;
-            display: grid;
-            place-content: center;
-            cursor: pointer;
-        }
-
-        .custom-checkbox::before {
-            content: "";
-            width: 0.85em;
-            height: 0.85em;
-            transform: scale(0);
-            transition: 120ms transform ease-in-out;
-            box-shadow: inset 1em 1em var(--primary);
-            transform-origin: center;
-            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
-        }
-
-        .custom-checkbox:checked::before {
-            transform: scale(1);
-        }
-
-        /* --- אנימציות --- */
-        .fade-in { 
-            animation: fadeIn 0.5s ease-out forwards; 
-        }
+        /* תמונות */
+        .profile-img { object-fit: cover; width: 100%; height: 100%; }
+        .card-img { object-fit: cover; width: 100%; height: 100%; transition: transform 0.5s; }
+        .card-hover:hover .card-img { transform: scale(1.05); }
         
-        @keyframes fadeIn { 
-            from { opacity: 0; transform: translateY(15px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-        
-        .heart-beat { 
-            animation: beat 1.5s infinite ease-in-out; 
-        }
-        
-        @keyframes beat { 
-            0%, 100% { transform: scale(1); } 
-            50% { transform: scale(1.15); } 
-        }
-
-        /* --- תמונות --- */
-        .profile-img { 
-            object-fit: cover; 
-            width: 100%; 
-            height: 100%; 
-        }
-        
-        .card-img { 
-            object-fit: cover; 
-            width: 100%; 
-            height: 100%; 
-            transition: transform 0.5s ease; 
-        }
-        
-        .card-hover:hover .card-img { 
-            transform: scale(1.08); 
-        }
-        
-        .text-overlay { 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.9); 
-            color: white; 
-        }
-        
-        .gradient-overlay { 
-            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%); 
-        }
-        
-        /* --- לוגו --- */
-        .logo-container { 
-            position: relative; 
-            width: 45px; 
-            height: 45px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-        }
-        
-        .logo-heart { 
-            font-size: 45px; 
-            color: #E63946; 
-        }
-        
-        .logo-hands { 
-            position: absolute; 
-            font-size: 22px; 
-            color: white; 
-            top: 53%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
-        }
-
-        /* --- בועות כותרת (Header Bubbles) - עיצוב סימטרי --- */
-        .header-bubble {
-            background-color: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 1rem;
-            padding: 4px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 72px; 
-            width: 72px;  
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            transition: transform 0.1s, background-color 0.2s;
-            cursor: pointer;
-            position: relative;
-            z-index: 20; /* חשוב: מוודא שהבועה תמיד לחיצה */
-        }
-        
-        .header-bubble:active { 
-            transform: scale(0.95); 
-            background-color: #f3f4f6;
-        }
-        
-        .header-icon { 
-            font-size: 1.4rem; 
-            margin-bottom: 4px; 
-            color: #4B5563;
-        }
-        
-        .header-text { 
-            font-size: 0.7rem; 
-            font-weight: 700; 
-            text-align: center; 
-            line-height: 1.1;
-            color: #1D3557;
-        }
-        
-        /* תג דרגה בתוך בועה */
-        .badge-text {
-             font-size: 0.6rem;
-             background: #f3f4f6;
-             padding: 1px 6px;
-             border-radius: 10px;
-             margin-top: 2px;
-             white-space: nowrap;
-             overflow: hidden;
-             text-overflow: ellipsis;
-             max-width: 65px;
-             border: 1px solid #e5e7eb;
-        }
-
-        /* אינדיקטורים לסטטוס (צ'אט) */
-        .online-dot { 
-            width: 12px; 
-            height: 12px; 
-            background: #22c55e; 
-            border-radius: 50%; 
-            display: inline-block; 
-            margin-left: 6px;
-            border: 2px solid white;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-        
-        .offline-dot { 
-            width: 12px; 
-            height: 12px; 
-            background: #d1d5db; 
-            border-radius: 50%; 
-            display: inline-block; 
-            margin-left: 6px;
-            border: 2px solid white;
-        }
-
-        /* תווית התראה לאדמין */
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: #ef4444;
-            color: white;
-            font-size: 0.7rem;
-            font-weight: bold;
-            height: 20px;
-            min-width: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 9999px;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            padding: 0 4px;
-            z-index: 30;
-        }
+        .text-overlay { text-shadow: 0 2px 4px rgba(0,0,0,0.8); color: white; }
+        .gradient-overlay { background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); }
     </style>
 </head>
 <body>
 
     <div id="app">
-        <div class="flex justify-center items-center h-screen flex-col gap-6 bg-gray-50">
-            <div class="w-20 h-20 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-            <h2 class="text-3xl font-bold text-gray-700">טוען את הקהילה...</h2>
-            <p class="text-gray-500">מיד נכנסים</p>
+        <div class="flex justify-center items-center h-screen flex-col gap-4 bg-gray-50">
+            <div class="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+            <h2 class="text-2xl font-bold text-gray-600">טוען את הקהילה...</h2>
         </div>
     </div>
-
 
     <div id="suggestionModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in border-t-8 border-purple-500 relative">
-            <button onclick="document.getElementById('suggestionModal').classList.add('hidden')" class="absolute top-4 left-4 text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-2xl"></i>
-            </button>
-            
-            <h2 class="text-2xl font-bold mb-2 text-purple-700 text-center">
-                <i class="fa-regular fa-lightbulb"></i> תיבת הצעות לשיפור
-            </h2>
-            <p class="text-sm text-gray-600 mb-6 text-center">יש לך רעיון? נשמח לשמוע ולשפר את הקהילה!</p>
-            
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in border-t-8 border-purple-500">
+            <h2 class="text-2xl font-bold mb-4 text-purple-700">תיבת הצעות לשיפור</h2>
             <form onsubmit="event.preventDefault(); sendSuggestion()">
-                <div class="mb-4">
-                    <label class="block font-bold text-sm mb-1 text-gray-700">רמת דחיפות:</label>
-                    <select id="sugUrgency" class="w-full border bg-gray-50 focus:bg-white">
-                        <option value="רגיל">רגיל 💡</option>
-                        <option value="חשוב">חשוב ⚠️</option>
-                        <option value="קריטי">קריטי 🔥</option>
-                    </select>
-                </div>
+                <label class="font-bold text-sm block mb-1">דחיפות:</label>
+                <select id="sugUrgency" class="w-full">
+                    <option value="רגיל">רגיל 💡</option>
+                    <option value="חשוב">חשוב ⚠️</option>
+                    <option value="קריטי">קריטי 🔥</option>
+                </select>
                 
-                <div class="mb-4">
-                    <label class="block font-bold text-sm mb-1 text-gray-700">נושא / קטגוריה:</label>
-                    <input id="sugCategory" placeholder="לדוגמה: עיצוב, באג, רעיון חדש..." class="bg-gray-50 focus:bg-white" required>
-                </div>
+                <label class="font-bold text-sm block mb-1">נושא:</label>
+                <input id="sugCategory" required class="w-full">
                 
-                <div class="mb-6">
-                    <label class="block font-bold text-sm mb-1 text-gray-700">פירוט ההצעה:</label>
-                    <textarea id="sugContent" rows="5" placeholder="כתוב כאן את ההצעה שלך בפירוט..." class="bg-gray-50 focus:bg-white" required></textarea>
-                </div>
+                <label class="font-bold text-sm block mb-1">פירוט:</label>
+                <textarea id="sugContent" rows="4" required class="w-full"></textarea>
                 
-                <div class="flex gap-3">
-                    <button type="button" onclick="document.getElementById('suggestionModal').classList.add('hidden')" class="flex-1 bg-gray-200 text-gray-800 py-3 rounded-xl font-bold hover:bg-gray-300 transition">ביטול</button>
-                    <button type="submit" class="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-purple-700 transition">שלח הצעה</button>
+                <div class="flex gap-3 mt-4">
+                    <button type="button" onclick="document.getElementById('suggestionModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2 rounded-lg font-bold">ביטול</button>
+                    <button type="submit" class="flex-1 bg-purple-600 text-white py-2 rounded-lg font-bold">שלח</button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <div id="editActivityModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in border-t-8 border-blue-500 overflow-y-auto max-h-[90vh]">
-            <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">עריכת פרטי פעילות</h2>
-            
-            <form onsubmit="event.preventDefault(); saveActivityChanges()">
-                <input type="hidden" id="editActId">
-                
-                <div class="mb-4">
-                    <label class="block font-bold text-sm mb-1 text-gray-700">כותרת הפעילות:</label>
-                    <input id="editActTitle" class="bg-gray-50" required>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block font-bold text-sm mb-1 text-gray-700">קטגוריה:</label>
-                    <select id="editActCategory" class="bg-gray-50"></select>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block font-bold text-sm mb-1 text-gray-700">תאריך ושעה:</label>
-                        <input type="datetime-local" id="editActDate" class="bg-gray-50" required>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-sm mb-1 text-gray-700">מקס' משתתפים:</label>
-                        <input type="number" id="editActMax" class="bg-gray-50">
-                    </div>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block font-bold text-sm mb-1 text-gray-700">מיקום:</label>
-                    <input id="editActLocation" class="bg-gray-50" required>
-                </div>
-                
-                <div class="mb-6">
-                    <label class="block font-bold text-sm mb-1 text-gray-700">תיאור מלא:</label>
-                    <textarea id="editActDesc" rows="4" class="bg-gray-50" required></textarea>
-                </div>
-                
-                <div class="flex gap-3">
-                    <button type="button" onclick="document.getElementById('editActivityModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">ביטול</button>
-                    <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700">שמור שינויים</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="levelUpModal" class="fixed inset-0 bg-black bg-opacity-70 hidden z-[90] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center relative overflow-hidden animate-fade-in border-4 border-yellow-400">
-            <div class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-10 bg-[url('https://www.transparenttextures.com/patterns/confetti.png')]"></div>
-            
-            <h2 class="text-4xl font-extrabold text-yellow-500 mb-2 drop-shadow-sm">ברכות! 🎉</h2>
-            <p class="text-xl text-gray-600 mb-6 font-bold">עלית לדרגה חדשה בקהילה:</p>
-            
-            <div id="newBadgeDisplay" class="text-8xl mb-6 drop-shadow-lg transform hover:scale-110 transition duration-300 cursor-pointer">🏆</div>
-            
-            <h3 id="newBadgeName" class="text-3xl font-bold text-gray-800 mb-8 bg-yellow-50 inline-block px-4 py-2 rounded-lg border border-yellow-200"></h3>
-            
-            <button onclick="document.getElementById('levelUpModal').classList.add('hidden')" class="btn-primary w-full py-4 rounded-xl shadow-lg text-xl bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white border-none">
-                איזה כיף! תודה
-            </button>
         </div>
     </div>
 
     <div id="shareModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center animate-fade-in relative">
-            <button onclick="document.getElementById('shareModal').classList.add('hidden')" class="absolute top-4 left-4 text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-2xl"></i>
-            </button>
-            
-            <h2 class="text-3xl font-bold mb-2 text-gray-800">הזמן חבר</h2>
-            <p class="text-gray-500 mb-6">שתף את הקהילה עם חברים וצבור נקודות!</p>
-            
-            <div class="grid grid-cols-1 gap-4">
-                <button onclick="shareVia('whatsapp')" class="bg-[#25D366] hover:bg-[#20bd5a] text-white py-4 rounded-xl font-bold shadow flex justify-center items-center gap-3 transition transform hover:scale-105">
-                    <i class="fa-brands fa-whatsapp text-2xl"></i> שלח בוואטסאפ
-                </button>
-                <button onclick="shareVia('sms')" class="bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl font-bold shadow flex justify-center items-center gap-3 transition transform hover:scale-105">
-                    <i class="fa-solid fa-comment-sms text-2xl"></i> שלח ב-SMS
-                </button>
-                <button onclick="shareVia('copy')" class="bg-gray-200 text-gray-700 hover:bg-gray-300 py-4 rounded-xl font-bold shadow flex justify-center items-center gap-3 transition">
-                    <i class="fa-regular fa-copy text-2xl"></i> העתק קישור
-                </button>
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center animate-fade-in">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">הזמן חבר</h2>
+            <div class="grid grid-cols-1 gap-3">
+                <button onclick="shareVia('whatsapp')" class="bg-[#25D366] text-white py-3 rounded-xl font-bold shadow flex justify-center items-center gap-2 w-full"><i class="fa-brands fa-whatsapp text-xl"></i> וואטסאפ</button>
+                <button onclick="shareVia('sms')" class="bg-blue-500 text-white py-3 rounded-xl font-bold shadow flex justify-center items-center gap-2 w-full"><i class="fa-solid fa-comment-sms text-xl"></i> SMS</button>
+                <button onclick="shareVia('copy')" class="bg-gray-200 text-gray-700 py-3 rounded-xl font-bold shadow flex justify-center items-center gap-2 w-full"><i class="fa-regular fa-copy text-xl"></i> העתק קישור</button>
             </div>
+            <button onclick="document.getElementById('shareModal').classList.add('hidden')" class="mt-6 text-red-500 font-bold w-full">סגור</button>
         </div>
     </div>
 
-    <div id="birthdayModal" class="fixed inset-0 bg-black bg-opacity-70 hidden z-[95] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center relative animate-bounce border-4 border-pink-400">
-             <div class="text-7xl mb-4">🎂🎈</div>
-             <h2 class="text-4xl font-extrabold text-pink-600 mb-2">יום הולדת שמח!</h2>
-             <p class="text-lg text-gray-700 mb-8 font-medium">קהילת קשר מאחלת לך המון אושר, בריאות, נחת ופעילות מהנה!</p>
-             <button onclick="document.getElementById('birthdayModal').classList.add('hidden')" class="bg-pink-500 text-white w-full py-3 rounded-xl font-bold shadow-lg hover:bg-pink-600 transition text-xl">תודה רבה!</button>
-        </div>
-    </div>
-
-    <div id="missingInfoModal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[90] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl text-center border-t-8 border-orange-500">
-            <h2 class="text-3xl font-bold mb-4 text-gray-800">עדכון פרטים חשוב</h2>
-            <p class="text-gray-600 mb-8 text-lg">כדי שנוכל להתאים לך חברים, פעילויות ולחגוג איתך, נא להשלים את הפרטים החסרים.</p>
-            <form onsubmit="event.preventDefault(); updateMissingInfo()">
-                <div class="mb-6 text-right">
-                    <label class="block mb-2 font-bold text-gray-700 text-lg">אני:</label>
-                    <select id="missingGender" class="w-full border-2 border-gray-300 p-3 rounded-xl bg-gray-50 focus:border-orange-500 text-lg" required>
-                        <option value="">בחר/י...</option>
-                        <option value="male">גבר</option>
-                        <option value="female">אישה</option>
-                    </select>
-                </div>
-
-                <div class="mb-8 text-right">
-                    <label class="block mb-2 font-bold text-gray-700 text-lg">תאריך לידה:</label>
-                    <input type="date" id="missingDob" class="w-full border-2 border-gray-300 p-3 rounded-xl bg-gray-50 focus:border-orange-500 text-lg" required>
-                </div>
-
-                <button class="btn-primary w-full py-4 rounded-xl font-bold text-xl shadow-lg bg-orange-500 hover:bg-orange-600">עדכן והמשך לאתר</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="welcomePointsModal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[90] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center relative animate-fade-in border-4 border-yellow-400">
-            <h2 class="text-4xl font-extrabold text-primary mb-4">ברוכים הבאים! 👋</h2>
-            <p class="text-lg text-gray-700 mb-6">שמחים שהצטרפת לקהילת קשר.</p>
-            
-            <div class="bg-yellow-50 p-5 rounded-xl text-right mb-6 border border-yellow-200 shadow-inner">
-                <h3 class="font-bold text-xl mb-3 text-yellow-800 flex items-center gap-2"><i class="fa-solid fa-trophy"></i> איך מרוויחים פרסים?</h3>
-                <ul class="list-none space-y-2 text-base text-gray-800">
-                    <li><i class="fa-solid fa-check text-green-500 ml-2"></i> תגובה בפורום: <strong>1 נקודה</strong></li>
-                    <li><i class="fa-solid fa-check text-green-500 ml-2"></i> פתיחת נושא/פעילות: <strong>10 נקודות</strong></li>
-                    <li><i class="fa-solid fa-check text-green-500 ml-2"></i> הזמנת חבר: <strong>20 נקודות</strong></li>
-                    <li><i class="fa-solid fa-check text-green-500 ml-2"></i> חבר שנרשם דרכך: <strong>40 נקודות</strong></li>
-                </ul>
-            </div>
-            
-            <p class="font-bold text-lg mb-6 text-primary">לאות הערכה, קבל מאיתנו את הנקודה הראשונה ואת תג "חבר מתחיל"! 🎖️</p>
-            
-            <button onclick="acceptWelcomePoints()" class="btn-primary w-full py-4 rounded-xl shadow-lg text-xl bg-yellow-500 hover:bg-yellow-600 text-white">תודה, הבנתי!</button>
-        </div>
-    </div>
-
-    <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-[95] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border-t-8 border-red-500 animate-fade-in overflow-y-auto max-h-[90vh]">
-            <div class="flex justify-between items-center mb-6">
-                 <h2 class="text-3xl font-bold text-gray-800">הפרופיל שלי</h2>
-                 <button onclick="closeProfileModal()" class="text-gray-400 hover:text-red-500 text-2xl"><i class="fa-solid fa-times"></i></button>
-            </div>
-
+    <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border-t-8 border-red-500 animate-fade-in">
+            <h2 class="text-2xl font-bold mb-4 text-center">פרופיל</h2>
             <form onsubmit="event.preventDefault(); saveProfileChanges()">
-                <div class="mb-6 text-center">
-                    <div id="avatarPreview" class="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-red-100 shadow-lg bg-gray-100">
-                        <img src="" id="previewImg" class="profile-img">
-                    </div>
-                    
-                    <label class="block w-full cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg border border-gray-300 transition mb-2">
-                        <i class="fa-solid fa-camera"></i> העלה תמונה מהמכשיר
-                        <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
-                    </label>
-                    
-                    <p class="text-sm text-gray-500 mb-2 font-bold">- או בחר דמות שמחה: -</p>
-                    <select id="editAvatar" onchange="updatePreviewFromSelect()" class="bg-white border-2 border-gray-200 p-2 rounded w-full">
-                         <option value="Sarah">שרה</option>
-                         <option value="David">דוד</option>
-                         <option value="Rachel">רחל</option>
-                         <option value="Yossi">יוסי</option>
-                         <option value="Miriam">מרים</option>
-                         <option value="Moshe">משה</option>
-                         <option value="Rivka">רבקה</option>
-                         <option value="Eli">אלי</option>
-                    </select>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block font-bold text-gray-700 mb-1">עיר מגורים:</label>
-                        <input type="text" id="editCity" class="bg-gray-50 border-2 border-gray-200 focus:border-red-500" required>
-                    </div>
-                    
-                    <div>
-                        <label class="block font-bold text-gray-700 mb-1">מגדר:</label>
-                        <select id="editGender" class="bg-gray-50 border-2 border-gray-200 focus:border-red-500">
-                            <option value="male">גבר</option>
-                            <option value="female">אישה</option>
-                        </select>
-                    </div>
-                </div>
+                <label class="block mb-1 font-bold text-gray-700">תמונה אישית</label>
+                <input type="file" id="fileInput" accept="image/*" class="bg-gray-100 border-gray-300" onchange="handleImageUpload(this)">
+                <div id="avatarPreview" class="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border-4 border-red-100 shadow-md"><img src="" id="previewImg" class="profile-img"></div>
                 
-                <div class="flex gap-3 mt-8">
-                    <button type="button" onclick="closeProfileModal()" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition">ביטול</button>
-                    <button type="submit" class="flex-1 btn-primary py-3 rounded-xl font-bold shadow-lg">שמור שינויים</button>
+                <label class="block mb-1 font-bold text-gray-700">עיר מגורים</label>
+                <input type="text" id="editCity" required class="w-full">
+                
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeProfileModal()" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold hover:bg-gray-300">ביטול</button>
+                    <button type="submit" class="flex-1 btn-primary py-3 rounded-xl font-bold">שמור</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <div id="levelUpModal" class="fixed inset-0 bg-black bg-opacity-70 hidden z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center relative overflow-hidden animate-fade-in border-4 border-yellow-400">
+            <h2 class="text-3xl font-extrabold text-primary mb-2">ברכות! 🎉</h2>
+            <p class="text-lg text-gray-600 mb-4">עלית לדרגה:</p>
+            <div id="newBadgeDisplay" class="text-6xl mb-4 drop-shadow-md">🏆</div>
+            <h3 id="newBadgeName" class="text-2xl font-bold text-gray-800 mb-6"></h3>
+            <button onclick="document.getElementById('levelUpModal').classList.add('hidden')" class="btn-primary w-full py-3 rounded-xl shadow-lg">איזה כיף!</button>
+        </div>
+    </div>
 
     <script>
-        // --- 1. הגדרות Firebase ---
+        // --- הגדרות Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM", 
             authDomain: "kesher-bakir.firebaseapp.com",
@@ -541,14 +174,14 @@
             measurementId: "G-42EWSKFXW" 
         };
 
-        // אתחול רק אם טרם בוצע
+        // אתחול בטוח
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- ניהול מצב (Global State) ---
+        // --- ניהול מצב (State) ---
         const store = {
             user: null,
             currentPage: 'loading',
@@ -557,56 +190,32 @@
             showEmojiPicker: false,
             openReplyId: null,
             chatDraft: "",
-            
-            // מסננים גלובליים
             filterCategory: "", 
             filterCity: "",     
-            filterForumCategory: "",
-            
-            // מסנני צ'אט - חשוב לאתחול
-            chatFilterName: "", 
-            chatFilterCity: "", 
-            chatFilterGender: "", 
-            chatFilterOnline: false,
-            
-            // מאגר נתונים מקומי
+            filterForumCategory: "", 
             data: { 
-                users: [], 
-                forums: [], 
-                activities: [], 
-                chats: [], 
-                helpRequests: [], 
-                reports: [], 
-                suggestions: [], 
-                sysCategories: [], 
-                currentChatMessages: [] 
+                users: [], forums: [], activities: [], chats: [], helpRequests: [], reports: [], suggestions: [], sysCategories: [], currentChatMessages: [] 
             },
             params: {} 
         };
-
         const MASTER_ADMIN_EMAIL = "meircha.ai@gmail.com";
 
-        // --- קבועים (לוגו, תגים) ---
+        // --- לוגו ---
         const LOGO_SVG = `<div class="logo-container"><i class="fa-solid fa-heart logo-heart"></i><i class="fa-solid fa-handshake logo-hands"></i></div>`;
         const BIG_LOGO_SVG = `<div class="relative w-24 h-24 flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-heart text-red-600 text-7xl heart-beat"></i><i class="fa-solid fa-handshake text-white absolute text-3xl" style="top: 55%; left: 50%; transform: translate(-50%, -50%);"></i></div>`;
 
+        // --- מערכת ניקוד ---
         const BADGES = [
-            { min: 0, name: 'חבר מתחיל', icon: '' }, 
-            { min: 1, name: 'חבר מתחיל', icon: '<span class="text-blue-500 font-bold">⭐</span>' },
-            { min: 101, name: 'איש המאה', icon: '<span class="text-amber-600 font-bold">🥉</span>' },
-            { min: 1000, name: 'מדליית כסף', icon: '<span class="text-gray-500 font-bold">🥈</span>' },
-            { min: 5000, name: 'מדליית זהב', icon: '<span class="text-yellow-500 font-bold">🥇</span>' }
+            { min: 0, name: 'מתחיל', icon: '' },
+            { min: 100, name: 'איש המאה 🥉', icon: '<span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-full border border-amber-500">🥉 איש המאה</span>' },
+            { min: 1000, name: 'מדליית כסף 🥈', icon: '<span class="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-1 rounded-full border border-gray-500">🥈 מדליית כסף</span>' }
         ];
 
-        // --- פונקציות עזר ---
-
         function getUserBadge(points) {
-            const p = points || 0;
-            return BADGES.slice().reverse().find(b => p >= b.min) || BADGES[0];
+            return BADGES.slice().reverse().find(b => points >= b.min) || BADGES[0];
         }
 
-        // הוספת נקודות ובדיקת עליית דרגה
-        async function addPoints(uid, amount, reason) {
+        async function addPoints(uid, amount) {
             try {
                 const today = new Date().toISOString().split('T')[0]; 
                 const userRef = db.collection('users').doc(uid);
@@ -614,21 +223,17 @@
                 
                 if (doc.exists) {
                     const userData = doc.data();
-                    const currentPoints = userData.points || 0;
                     let daily = userData.dailyPoints || { date: today, count: 0 };
-
-                    // איפוס מונה יומי אם התאריך השתנה
                     if (daily.date !== today) { daily = { date: today, count: 0 }; }
-
-                    // הגבלת צבירה יומית ל-101
                     if (daily.count >= 101) return; 
                     
                     const allowed = Math.min(amount, 101 - daily.count);
                     if (allowed <= 0) return;
 
                     daily.count += allowed;
+                    const currentPoints = userData.points || 0;
                     const newTotal = currentPoints + allowed;
-
+                    
                     const oldBadge = getUserBadge(currentPoints);
                     const newBadge = getUserBadge(newTotal);
 
@@ -637,99 +242,50 @@
                         dailyPoints: daily
                     });
 
-                    // הצגת מודל חגיגה אם עלה דרגה
                     if (uid === store.user.uid && newBadge.min > oldBadge.min) {
-                        document.getElementById('newBadgeDisplay').innerHTML = newBadge.icon;
+                        document.getElementById('newBadgeDisplay').innerHTML = newBadge.name.includes('🥉') ? '🥉' : '🥈';
                         document.getElementById('newBadgeName').innerText = newBadge.name;
                         document.getElementById('levelUpModal').classList.remove('hidden');
                     }
                 }
             } catch(e) { console.error("Points Error", e); }
         }
-        
-        // אישור נקודות "ברוכים הבאים"
-        async function acceptWelcomePoints() {
-            await addPoints(store.user.uid, 1, 'welcome'); 
-            await db.collection('users').doc(store.user.uid).update({ hasSeenWelcome: true });
-            store.user.hasSeenWelcome = true;
-            document.getElementById('welcomePointsModal').classList.add('hidden');
-            render(); 
-        }
 
-        // בדיקת יום הולדת
-        function checkBirthday() {
-            if (store.user && store.user.dob) {
-                const today = new Date();
-                const dob = new Date(store.user.dob);
-                // בדיקה אם היום והחודש זהים
-                if (today.getDate() === dob.getDate() && today.getMonth() === dob.getMonth()) {
-                    const key = `bday_${store.user.uid}_${today.getFullYear()}`;
-                    // הצגת ברכה פעם אחת בשנה
-                    if (!localStorage.getItem(key)) {
-                        document.getElementById('birthdayModal').classList.remove('hidden');
-                        localStorage.setItem(key, 'true');
-                    }
-                }
-            }
-        }
-
-        // --- ניהול קטגוריות דינמי (Firestore) ---
+        // --- פונקציות תשתית ---
         async function ensureCategories() {
             const snap = await db.collection('sys_categories').get();
             if(snap.empty) {
                 const defaults = ['זכויות ומשפט', 'בריאות ואיכות חיים', 'טכנולוגיה ודיגיטל', 'תרבות ופנאי', 'אקטואליה', 'ספורט', 'בישול ומתכונים', 'משפחה'];
-                for(const c of defaults) {
-                    await db.collection('sys_categories').add({name: c});
-                }
+                for(const c of defaults) { await db.collection('sys_categories').add({name: c}); }
             }
         }
-        
-        async function addCategory() { 
-            const n = prompt("שם הקטגוריה החדשה:"); 
-            if(n) await db.collection('sys_categories').add({name:n}); 
-        }
-        
-        async function deleteCategory(id) { 
-            if(confirm("למחוק קטגוריה זו?")) await db.collection('sys_categories').doc(id).delete(); 
-        }
+        async function addCategory() { const n = prompt("שם קטגוריה:"); if(n) await db.collection('sys_categories').add({name:n}); }
+        async function deleteCategory(id) { if(confirm("למחוק?")) await db.collection('sys_categories').doc(id).delete(); }
 
-        // --- הצעות ייעול ---
         async function sendSuggestion() {
-            const urg = document.getElementById('sugUrgency').value;
-            const cat = document.getElementById('sugCategory').value;
-            const txt = document.getElementById('sugContent').value;
-            
             await db.collection('suggestions').add({
-                urgency: urg,
-                category: cat,
-                content: txt,
-                uid: store.user.uid,
-                name: store.user.name,
+                urgency: document.getElementById('sugUrgency').value,
+                category: document.getElementById('sugCategory').value,
+                content: document.getElementById('sugContent').value,
+                uid: store.user.uid, name: store.user.name,
                 date: firebase.firestore.FieldValue.serverTimestamp()
             });
             document.getElementById('suggestionModal').classList.add('hidden');
-            alert("ההצעה נשלחה בהצלחה! תודה על תרומתך.");
+            alert("ההצעה נשלחה!");
         }
-        
-        async function deleteSuggestion(id) {
-            if(confirm("למחוק הצעה זו?")) await db.collection('suggestions').doc(id).delete();
-        }
+        async function deleteSuggestion(id) { if(confirm("למחוק?")) await db.collection('suggestions').doc(id).delete(); }
 
-        // --- שחזור סיסמה ---
         async function resetPassword() {
-            let email = prompt("הכנס את כתובת המייל שלך לשחזור סיסמה:");
+            let email = prompt("הכנס את המייל לשחזור:");
             if (email) {
-                email = email.trim(); 
                 try {
-                    await auth.sendPasswordResetEmail(email);
-                    alert("קישור לאיפוס סיסמה נשלח לכתובת: " + email + "\n\n⚠️ חשוב מאוד: נא לבדוק בתיקיית הספאם/דואר זבל!");
-                } catch (error) {
-                    alert("הבקשה התקבלה. אם המייל קיים במערכת, יישלח אליו קישור.");
-                }
+                    await auth.sendPasswordResetEmail(email.trim());
+                    alert("נשלח מייל לשחזור ל: " + email + "\nנא לבדוק בספאם!");
+                } catch (error) { alert("בקשה נשלחה."); }
             }
         }
 
-        // --- ניווט ועדכון ---
+        // --- ניווט ופורמט ---
         function navigate(page, params = {}) {
             store.currentPage = page;
             store.params = params;
@@ -737,7 +293,6 @@
             store.openReplyId = null;
             render();
             window.scrollTo(0, 0);
-            updatePresence();
         }
 
         function formatDate(timestamp) {
@@ -746,11 +301,8 @@
             return date.toLocaleDateString('he-IL') + ' ' + date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         }
 
-        // *** אווטארים חדשים ויפים ***
         function getAvatar(name) {
-            // שימוש ב-DiceBear עם הבעות פנים שמחות
-            const seed = name || 'User';
-            return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}&backgroundColor=c0aede&mouth=smile,default&eyes=happy,default&eyebrows=default,raisedExcited`;
+            return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name || 'User')}&backgroundColor=c0aede`;
         }
 
         function getUserImage(user) {
@@ -758,17 +310,6 @@
             return getAvatar(user.avatarSeed || user.name);
         }
         
-        // עדכון נוכחות (Online Status)
-        function updatePresence() {
-            if(store.user && store.user.uid) {
-                db.collection('users').doc(store.user.uid).update({
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                }).catch(e=>{});
-            }
-        }
-        setInterval(updatePresence, 60000); 
-
-        // --- תמונות (קבועות ויציבות) ---
         function getActivityImage(category) {
             const map = {
                 'טיול': 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=400&fit=crop&q=80',
@@ -786,17 +327,14 @@
             if(title.includes('טכנולוגיה')) return 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&h=400&fit=crop&q=80';
             if(title.includes('משפט')) return 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=600&h=400&fit=crop&q=80';
             if(title.includes('תרבות')) return 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=600&h=400&fit=crop&q=80';
-            if(title.includes('בישול')) return 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?w=600&h=400&fit=crop&q=80';
             return 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop&q=80';
         }
 
         // --- שיתוף ---
         function openShareModal() { document.getElementById('shareModal').classList.remove('hidden'); }
         function shareVia(m) {
-            const t="הצטרפו לקהילת קשר: ", u="https://meircha.github.io/kesher-bakir/";
-            const msg = t + u;
-            addPoints(store.user.uid, 20, 'invite');
-            
+            const t="הצטרפו לקהילת קשר: ", u="https://meircha.github.io/kesher-bakir/", msg=t+u;
+            addPoints(store.user.uid, 20);
             if(m==='whatsapp') window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
             else if(m==='sms') window.open(`sms:?body=${encodeURIComponent(msg)}`,'_self');
             else if(m==='copy') navigator.clipboard.writeText(msg).then(()=>alert("הועתק"));
@@ -804,417 +342,161 @@
         }
 
         // --- ניהול משתמשים ותוכן ---
-        async function updateUserRole(uid, role) { 
-            if(uid===store.user.uid) return alert("לא ניתן לשנות לעצמך את הדרגה"); 
-            try { await db.collection('users').doc(uid).update({role}); alert("עודכן בהצלחה"); } catch(e){alert("שגיאה");} 
-        }
+        async function updateUserRole(uid, role) { if(uid===store.user.uid)return alert("לא ניתן לשנות לעצמך"); try{await db.collection('users').doc(uid).update({role});alert("עודכן");}catch(e){alert("שגיאה");} }
+        async function reportItem(type, itemId, content, reportedUserId) { if(!confirm("לדווח?"))return; const off=store.data.users.find(u=>u.id===reportedUserId); try { await db.collection('reports').add({type,itemId,content,reportedUserId,reportedUserName:off?off.name:'?',reporterId:store.user.uid,reporterName:store.user.name,timestamp:firebase.firestore.FieldValue.serverTimestamp(),status:'new'}); alert("דיווח נשלח"); } catch(e){alert("שגיאה");} }
+        async function deleteReport(rid) { if(confirm("למחוק דיווח?")) await db.collection('reports').doc(rid).delete(); }
+        async function editItem(col, id, txt, field, sub, pid) { const n=prompt("ערוך:",txt); if(n&&n!==txt) try{ (sub?db.collection(col).doc(pid).collection(sub).doc(id):db.collection(col).doc(id)).update({[field]:n}); } catch(e){alert(e.message)} }
+        async function deleteItem(col, id, sub, pid) { if(confirm("למחוק?")) try{ (sub?db.collection(col).doc(pid).collection(sub).doc(id):db.collection(col).doc(id)).delete(); } catch(e){alert(e.message)} }
+        async function toggleJoin(actId) { const a=store.data.activities.find(x=>x.id===actId); if(a) db.collection('activities').doc(actId).update({attendees: a.attendees.includes(store.user.uid)?firebase.firestore.FieldValue.arrayRemove(store.user.uid):firebase.firestore.FieldValue.arrayUnion(store.user.uid)}); }
         
-        async function reportItem(type, itemId, content, reportedUserId) { 
-            if(!confirm("לדווח על תוכן זה?")) return; 
-            const off = store.data.users.find(u=>u.id===reportedUserId); 
-            try { 
-                await db.collection('reports').add({
-                    type, itemId, content, reportedUserId,
-                    reportedUserName: off ? off.name : '?',
-                    reporterId: store.user.uid,
-                    reporterName: store.user.name,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'new'
-                }); 
-                alert("דיווח נשלח לטיפול"); 
-            } catch(e){alert("שגיאה");} 
-        }
-        
-        async function deleteReport(rid) { 
-            if(confirm("למחוק את הדיווח?")) await db.collection('reports').doc(rid).delete(); 
-        }
-        
-        async function editItem(col, id, txt, field, sub, pid) { 
-            const n=prompt("ערוך את התוכן:",txt); 
-            if(n && n!==txt) {
-                try { 
-                    (sub ? db.collection(col).doc(pid).collection(sub).doc(id) : db.collection(col).doc(id)).update({[field]:n}); 
-                } catch(e){alert(e.message)} 
-            }
-        }
-        
-        async function deleteItem(col, id, sub, pid) { 
-            if(confirm("האם למחוק? פעולה זו בלתי הפיכה.")) {
-                try { 
-                    (sub ? db.collection(col).doc(pid).collection(sub).doc(id) : db.collection(col).doc(id)).delete(); 
-                } catch(e){alert(e.message)} 
-            }
-        }
-        
-        async function toggleJoin(actId) { 
-            const a = store.data.activities.find(x=>x.id===actId); 
-            if(a) {
-                db.collection('activities').doc(actId).update({
-                    attendees: a.attendees.includes(store.user.uid)
-                        ? firebase.firestore.FieldValue.arrayRemove(store.user.uid)
-                        : firebase.firestore.FieldValue.arrayUnion(store.user.uid)
-                }); 
-            }
-        }
-        
+        // --- אתחול פורומים קבועים ---
         async function initFixedForums() { 
-            if(confirm("ליצור מחדש את 4 הפורומים הקבועים?")) { 
-                const fs=[
-                    {t:"זכויות ומשפט", c:"זכויות ומשפט"},
-                    {t:"בריאות ואיכות חיים", c:"בריאות ואיכות חיים"},
-                    {t:"טכנולוגיה ודיגיטל", c:"טכנולוגיה ודיגיטל"},
-                    {t:"תרבות ופנאי", c:"תרבות ופנאי"}
-                ]; 
-                for(const f of fs) { 
-                    await db.collection('forums').add({
-                        title: f.t, category: f.c, description: "פורום בנושא "+f.t, 
-                        creatorId: store.user.uid, isFixed: true, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }); 
-                } 
+            if(confirm("ליצור 4 פורומים?")) { 
+                const fs=[{t:"זכויות ומשפט", c:"זכויות ומשפט"},{t:"בריאות ואיכות חיים", c:"בריאות ואיכות חיים"},{t:"טכנולוגיה ודיגיטל", c:"טכנולוגיה ודיגיטל"},{t:"תרבות ופנאי", c:"תרבות ופנאי"}]; 
+                for(const f of fs) await db.collection('forums').add({title: f.t, category: f.c, description:"פורום בנושא "+f.t, creatorId:store.user.uid, isFixed:true, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); 
                 navigate('forums'); 
             } 
         }
 
-        // --- ניהול פרופיל ---
-        
-        // **תוקן: פונקציית פתיחת המודל**
-        function openProfileModal() { 
-            document.getElementById('editCity').value = store.user.city || '';
-            document.getElementById('editAvatar').value = store.user.avatarSeed || 'Felix';
-            document.getElementById('editGender').value = store.user.gender || 'male';
-            document.getElementById('previewImg').src = getUserImage(store.user); 
-            store.tempImageBase64 = null; 
-            document.getElementById('profileModal').classList.remove('hidden'); 
-        }
-        
+        // --- פרופיל ---
+        function openProfileModal() { document.getElementById('editCity').value=store.user.city||''; document.getElementById('previewImg').src=getUserImage(store.user); store.tempImageBase64=null; document.getElementById('profileModal').classList.remove('hidden'); }
         function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
-        
-        function handleImageUpload(i) { 
-            const f = i.files[0]; 
-            if(f) {
-                const r = new FileReader(); 
-                r.onloadend = () => {
-                    if(r.result.length > 1000000) alert("התמונה גדולה מדי (מקסימום 1MB).");
-                    else {
-                        store.tempImageBase64 = r.result;
-                        document.getElementById('previewImg').src = r.result;
-                    }
-                }; 
-                r.readAsDataURL(f);
-            } 
-        }
-        
-        function updatePreviewFromSelect() { 
-            if(!store.tempImageBase64) document.getElementById('previewImg').src = getAvatar(document.getElementById('editAvatar').value); 
-        }
-        
-        async function saveProfileChanges() { 
-            const d = {
-                city: document.getElementById('editCity').value, 
-                avatarSeed: document.getElementById('editAvatar').value, 
-                gender: document.getElementById('editGender').value
-            }; 
-            if(store.tempImageBase64) d.customImage = store.tempImageBase64; 
-            
-            try {
-                await db.collection('users').doc(store.user.uid).update(d); 
-                store.user = {...store.user, ...d}; 
-                closeProfileModal(); 
-                render(); 
-            } catch(e) { alert("שגיאה בשמירה"); }
-        }
-        
-        async function updateMissingInfo() { 
-            const g = document.getElementById('missingGender').value;
-            const d = document.getElementById('missingDob').value; 
-            if(g && d) {
-                await db.collection('users').doc(store.user.uid).update({gender:g, dob:d}); 
-                store.user.gender = g; store.user.dob = d; 
-                document.getElementById('missingInfoModal').classList.add('hidden'); 
-                if(!store.user.hasSeenWelcome) document.getElementById('welcomePointsModal').classList.remove('hidden'); 
-                else render();
-            } 
-        }
-
-        // --- עריכת פעילות ---
-        function openEditActivityModal(actId) {
-            const act = store.data.activities.find(a => a.id === actId);
-            if(!act) return;
-            
-            document.getElementById('editActId').value = actId;
-            document.getElementById('editActTitle').value = act.title;
-            document.getElementById('editActLocation').value = act.location;
-            document.getElementById('editActDesc').value = act.description;
-            document.getElementById('editActMax').value = act.maxParticipants || '';
-            
-            if(act.date) {
-                const d = new Date(act.date);
-                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                document.getElementById('editActDate').value = d.toISOString().slice(0,16);
-            }
-            
-            const cats = (store.data.sysCategories||[]).map(c=>c.name);
-            const sel = document.getElementById('editActCategory');
-            sel.innerHTML = cats.map(c => `<option value="${c}" ${c===act.category?'selected':''}>${c}</option>`).join('');
-            
-            document.getElementById('editActivityModal').classList.remove('hidden');
-        }
-
-        async function saveActivityChanges() {
-            const id = document.getElementById('editActId').value;
-            const data = {
-                title: document.getElementById('editActTitle').value,
-                category: document.getElementById('editActCategory').value,
-                location: document.getElementById('editActLocation').value,
-                description: document.getElementById('editActDesc').value,
-                maxParticipants: parseInt(document.getElementById('editActMax').value) || 0,
-                date: document.getElementById('editActDate').value
-            };
-            
-            try {
-                await db.collection('activities').doc(id).update(data);
-                document.getElementById('editActivityModal').classList.add('hidden');
-                alert("הפעילות עודכנה בהצלחה");
-            } catch(e) { alert("שגיאה בעדכון"); }
-        }
+        function handleImageUpload(i) { const f=i.files[0]; if(f){const r=new FileReader(); r.onloadend=()=>{if(r.result.length>1000000)alert("גדול מדי");else{store.tempImageBase64=r.result;document.getElementById('previewImg').src=r.result;}}; r.readAsDataURL(f);} }
+        function updatePreviewFromSelect() { if(!store.tempImageBase64)document.getElementById('previewImg').src=getAvatar(document.getElementById('editAvatar').value); }
+        async function saveProfileChanges() { const d={city:document.getElementById('editCity').value}; if(store.tempImageBase64)d.customImage=store.tempImageBase64; await db.collection('users').doc(store.user.uid).update(d); store.user={...store.user,...d}; closeProfileModal(); render(); }
 
         // --- צ'אט ---
-        window.addEmoji = function(e) { 
-            store.chatDraft += e; 
-            store.showEmojiPicker = false; 
-            render(); 
-            setTimeout(() => {
-                const i = document.getElementById('msgInput');
-                if(i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
-            }, 50); 
-        }
-        
-        window.updateDraft = function(v) { store.chatDraft = v; }
-        function toggleEmojiPicker() { store.showEmojiPicker = !store.showEmojiPicker; render(); }
-        
-        let msgSub = null;
-        function loadChatMessages(oid) { 
-            if(msgSub) msgSub(); 
-            store.currentChatTargetId = oid; 
-            store.chatDraft = ""; 
-            const cid = [store.user.uid, oid].sort().join("_"); 
-            
-            // איפוס מונה הודעות
-            db.collection('chats').doc(cid).update({['unread_'+store.user.uid]:0}).catch(()=>{}); 
-            
-            msgSub = db.collection('chats').doc(cid).collection('messages')
-                .orderBy('timestamp','asc')
-                .onSnapshot(s => {
-                    store.data.currentChatMessages = s.docs.map(d => ({id:d.id, ...d.data()})); 
-                    if(store.currentPage === 'chatRoom') {
-                        render(); 
-                        setTimeout(() => document.getElementById('chat-messages-container').scrollTop = 99999, 100);
-                    }
-                }); 
-            navigate('chatRoom'); 
-        }
-        
-        async function sendMessage(rid) { 
-            const t = store.chatDraft; 
-            if(!rid || !t.trim()) return; 
-            
-            store.chatDraft = ""; 
-            store.showEmojiPicker = false; 
-            render(); 
-            
-            const cid = [store.user.uid, rid].sort().join("_"); 
-            const r = store.data.users.find(u => u.id === rid); 
-            
-            try { 
-                await db.collection('chats').doc(cid).collection('messages').add({
-                    senderId: store.user.uid,
-                    content: t,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    read: false
-                }); 
-                await db.collection('chats').doc(cid).set({
-                    participants: [store.user.uid, rid],
-                    participantNames: { [store.user.uid]: store.user.name, [rid]: r ? r.name : 'משתמש' },
-                    lastMessage: t,
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                    ['unread_'+rid]: firebase.firestore.FieldValue.increment(1)
-                }, {merge: true}); 
-            } catch(e){console.error(e)} 
-        }
+        window.addEmoji = function(e) { store.chatDraft+=e; store.showEmojiPicker=false; render(); setTimeout(()=>{const i=document.getElementById('msgInput');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},50); }
+        window.updateDraft = function(v) { store.chatDraft=v; }
+        function toggleEmojiPicker() { store.showEmojiPicker=!store.showEmojiPicker; render(); }
+        let msgSub=null;
+        function loadChatMessages(oid) { if(msgSub)msgSub(); store.currentChatTargetId=oid; store.chatDraft=""; const cid=[store.user.uid,oid].sort().join("_"); db.collection('chats').doc(cid).update({['unread_'+store.user.uid]:0}).catch(()=>{}); msgSub=db.collection('chats').doc(cid).collection('messages').orderBy('timestamp','asc').onSnapshot(s=>{store.data.currentChatMessages=s.docs.map(d=>({id:d.id,...d.data()})); if(store.currentPage==='chatRoom'){render(); setTimeout(()=>document.getElementById('chat-messages-container').scrollTop=99999,100);}}); navigate('chatRoom'); }
+        async function sendMessage(rid) { const t=store.chatDraft; if(!rid||!t.trim())return; store.chatDraft=""; store.showEmojiPicker=false; render(); const cid=[store.user.uid,rid].sort().join("_"); const r=store.data.users.find(u=>u.id===rid); try { await db.collection('chats').doc(cid).collection('messages').add({senderId:store.user.uid,content:t,timestamp:firebase.firestore.FieldValue.serverTimestamp(),read:false}); await db.collection('chats').doc(cid).set({participants:[store.user.uid,rid],participantNames:{[store.user.uid]:store.user.name,[rid]:r?r.name:'משתמש'},lastMessage:t,lastUpdated:firebase.firestore.FieldValue.serverTimestamp(),['unread_'+rid]:firebase.firestore.FieldValue.increment(1)},{merge:true}); } catch(e){console.error(e)} }
 
         // --- יצירת תכנים ---
-        async function createPost(fid, t, c) { 
-            await db.collection('forums').doc(fid).collection('posts').add({
-                title: t, content: c, 
-                creatorId: store.user.uid, creatorName: store.user.name, creatorAvatar: store.user.avatarSeed, 
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(), replies: []
-            }); 
-            await db.collection('forums').doc(fid).update({
-                postCount: firebase.firestore.FieldValue.increment(1), 
-                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-            }); 
-            addPoints(store.user.uid, 10, 'post'); 
-        }
-        
-        async function addReply(fid, pid, txt) { 
-            if(!txt.trim()) return; 
-            const r = {
-                id: Date.now().toString(), content: txt, 
-                creatorId: store.user.uid, creatorName: store.user.name, 
-                createdAt: new Date()
-            }; 
-            await db.collection('forums').doc(fid).collection('posts').doc(pid).update({
-                replies: firebase.firestore.FieldValue.arrayUnion(r)
-            }); 
-            await db.collection('forums').doc(fid).update({
-                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-            }); 
-            addPoints(store.user.uid, 1, 'reply'); 
-            store.openReplyId = null; 
-        }
-        
-        function toggleReplyBox(pid) { 
-            store.openReplyId = store.openReplyId === pid ? null : pid; 
-            render(); 
-        }
-        
-        async function createActivity(d) { 
-            const has = store.data.activities.some(a => a.creatorId === store.user.uid); 
-            if(has) return alert("מותרת פעילות אחת בו זמנית"); 
-            await db.collection('activities').add({
-                ...d, 
-                creatorId: store.user.uid, creatorName: store.user.name, 
-                attendees: [store.user.uid], 
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }); 
-            addPoints(store.user.uid, 10, 'act'); 
-            navigate('activities'); 
-        }
-        
-        async function createForum(cat, t, d) { 
-            if(!t || !d || !cat) return alert("חסרים פרטים"); 
-            await db.collection('forums').add({
-                category: cat, title: t, description: d, 
-                creatorId: store.user.uid, 
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }); 
-            addPoints(store.user.uid, 10, 'forum'); 
-            navigate('forums'); 
-        }
+        async function createPost(fid, t, c) { await db.collection('forums').doc(fid).collection('posts').add({title:t, content:c, creatorId:store.user.uid, creatorName:store.user.name, creatorAvatar:store.user.avatarSeed, createdAt:firebase.firestore.FieldValue.serverTimestamp(), replies:[]}); await db.collection('forums').doc(fid).update({postCount:firebase.firestore.FieldValue.increment(1), lastActivity:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10); }
+        async function addReply(fid, pid, txt) { if(!txt.trim())return; const r={id:Date.now().toString(),content:txt,creatorId:store.user.uid,creatorName:store.user.name,createdAt:new Date()}; await db.collection('forums').doc(fid).collection('posts').doc(pid).update({replies:firebase.firestore.FieldValue.arrayUnion(r)}); await db.collection('forums').doc(fid).update({lastActivity:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 1); store.openReplyId=null; }
+        function toggleReplyBox(pid) { store.openReplyId=store.openReplyId===pid?null:pid; render(); }
+        async function createActivity(d) { const has=store.data.activities.some(a=>a.creatorId===store.user.uid); if(has)return alert("רק פעילות אחת מותרת"); await db.collection('activities').add({...d, creatorId:store.user.uid, creatorName:store.user.name, attendees:[store.user.uid], createdAt:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10); navigate('activities'); }
+        async function createForum(cat, t, d) { if(!t||!d||!cat)return alert("חסר מידע"); await db.collection('forums').add({category:cat, title:t, description:d, creatorId:store.user.uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10); navigate('forums'); }
 
-        // --- טעינת נתונים ---
+        // --- טעינה ---
         function fetchData() {
-            if(!store.user) return;
-            
+            if(!store.user)return;
             ensureCategories();
-            
-            db.collection('sys_categories').onSnapshot(s => {
-                store.data.sysCategories = s.docs.map(d => ({id: d.id, ...d.data()})); 
-                if(['admin','activities','forums','createActivity'].includes(store.currentPage)) render();
-            });
-            
-            db.collection('users').onSnapshot(s => {
-                store.data.users = s.docs.map(d => ({id: d.id, ...d.data()}));
-                if(['chats','admin'].includes(store.currentPage)) render();
-            });
-            
-            db.collection('forums').orderBy('createdAt','desc').onSnapshot(s => {
-                store.data.forums = s.docs.map(d => ({id: d.id, ...d.data()}));
-                if(['forums','home'].includes(store.currentPage)) render();
-            });
-            
-            db.collection('activities').orderBy('date','asc').onSnapshot(s => {
-                store.data.activities = s.docs.map(d => ({id: d.id, ...d.data(), dateObj: d.data().date ? new Date(d.data().date) : new Date()}));
-                if(['activities','home'].includes(store.currentPage)) render();
-            });
-            
-            db.collection('chats').where('participants','array-contains',store.user.uid).onSnapshot(s => {
-                store.data.chats = s.docs.map(d => ({id: d.id, ...d.data()}));
-                render();
-            });
-            
-            db.collection('helpRequests').orderBy('createdAt','desc').onSnapshot(s => {
-                store.data.helpRequests = s.docs.map(d => ({id: d.id, ...d.data()}));
-                if(store.currentPage === 'help') render();
-            });
-            
+            db.collection('sys_categories').onSnapshot(s=>{store.data.sysCategories=s.docs.map(d=>({id:d.id,...d.data()})); if(['admin','activities','forums','createActivity'].includes(store.currentPage)) render();});
+            db.collection('users').onSnapshot(s=>{store.data.users=s.docs.map(d=>({id:d.id,...d.data()}));if(['chats','admin'].includes(store.currentPage))render();});
+            db.collection('forums').orderBy('createdAt','desc').onSnapshot(s=>{store.data.forums=s.docs.map(d=>({id:d.id,...d.data()}));if(['forums','home'].includes(store.currentPage))render();});
+            db.collection('activities').orderBy('date','asc').onSnapshot(s=>{store.data.activities=s.docs.map(d=>({id:d.id,...d.data(),dateObj:d.data().date?new Date(d.data().date):new Date()}));if(['activities','home'].includes(store.currentPage))render();});
+            db.collection('chats').where('participants','array-contains',store.user.uid).onSnapshot(s=>{store.data.chats=s.docs.map(d=>({id:d.id,...d.data()}));render();});
+            db.collection('helpRequests').orderBy('createdAt','desc').onSnapshot(s=>{store.data.helpRequests=s.docs.map(d=>({id:d.id,...d.data()}));if(store.currentPage==='help')render();});
             if(['admin','senior'].includes(store.user.role)) {
-                db.collection('reports').orderBy('timestamp','desc').onSnapshot(s => {
-                    store.data.reports = s.docs.map(d => ({id: d.id, ...d.data()}));
-                    render(); 
-                });
-                db.collection('suggestions').orderBy('date','desc').onSnapshot(s => {
-                    store.data.suggestions = s.docs.map(d => ({id: d.id, ...d.data()}));
-                    render();
-                });
+                db.collection('reports').orderBy('timestamp','desc').onSnapshot(s=>{store.data.reports=s.docs.map(d=>({id:d.id,...d.data()}));if(store.currentPage==='admin')render();});
+                db.collection('suggestions').orderBy('date','desc').onSnapshot(s=>{store.data.suggestions=s.docs.map(d=>({id:d.id,...d.data()}));if(store.currentPage==='admin')render();});
             }
         }
 
-        auth.onAuthStateChanged(async u => {
-            if(u) { 
-                if(u.email === MASTER_ADMIN_EMAIL) await db.collection('users').doc(u.uid).set({role:'admin',isActive:true}, {merge:true});
-                
-                const d = await db.collection('users').doc(u.uid).get(); 
-                if(d.exists) { 
-                    store.user = {uid: u.uid, ...d.data()}; 
-                    if(!store.user.role) store.user.role = 'user'; 
-                    if(!store.user.points) store.user.points = 0; 
-                    if(store.user.isActive === false) { auth.signOut(); return alert("חשבונך מושהה"); } 
-                    
-                    if(!store.user.gender || !store.user.dob) { document.getElementById('missingInfoModal').classList.remove('hidden'); } 
-                    else if(!store.user.hasSeenWelcome) { document.getElementById('welcomePointsModal').classList.remove('hidden'); } 
-                    
-                    checkBirthday(); 
+        auth.onAuthStateChanged(async u=>{
+            if(u){ 
+                if(u.email===MASTER_ADMIN_EMAIL) await db.collection('users').doc(u.uid).set({role:'admin',isActive:true},{merge:true});
+                const d=await db.collection('users').doc(u.uid).get(); 
+                if(d.exists){ 
+                    store.user={uid:u.uid,...d.data()}; 
+                    if(!store.user.role) store.user.role='user'; 
+                    if(store.user.isActive===false){auth.signOut();return alert("חסום");} 
                     fetchData(); 
-                    
-                    if(['loading','login','register'].includes(store.currentPage)) navigate('home'); 
-                    else render(); 
-                } else {
-                    auth.signOut(); 
-                }
-            } else {
-                store.user = null;
-                if(store.currentPage !== 'register') navigate('login');
+                    if(['loading','login','register'].includes(store.currentPage)) navigate('home'); else render(); 
+                } else auth.signOut(); 
+            } else{
+                store.user=null;
+                if(store.currentPage!=='register') navigate('login');
             }
         });
 
-        // --- פונקציות RENDER ---
-
+        // --- RENDER ---
         function render() {
-            const app = document.getElementById('app'); 
-            if(store.currentPage === 'loading') return;
-            if(store.currentPage === 'login') { app.innerHTML = renderLogin(); return; }
-            if(store.currentPage === 'register') { app.innerHTML = renderRegister(); return; }
-            
-            app.innerHTML = `${renderHeader()}<main class="max-w-5xl mx-auto p-4 fade-in">${renderContent()}</main>${renderBottomNav()}`;
+            const app=document.getElementById('app'); if(store.currentPage==='loading')return;
+            if(store.currentPage==='login'){app.innerHTML=renderLogin();return;} if(store.currentPage==='register'){app.innerHTML=renderRegister();return;}
+            app.innerHTML=`${renderHeader()}<main class="main-container fade-in">${renderContent()}</main>${renderBottomNav()}`;
         }
 
         function renderContent() { 
             switch(store.currentPage){ 
-                case 'home': return renderHome(); 
-                case 'activities': return renderActivities(); 
-                case 'createActivity': return renderCreateActivity(); 
-                case 'forums': return renderForums(); 
-                case 'forumView': return renderForumView(); 
-                case 'chats': return renderChatsList(); 
-                case 'chatRoom': return renderChatRoom(); 
-                case 'help': return renderHelp(); 
-                case 'createHelp': return renderCreateHelp(); 
-                case 'admin': return renderAdminPanel(); 
-                default: return renderHome(); 
+                case 'home':return renderHome(); 
+                case 'activities':return renderActivities(); 
+                case 'createActivity':return renderCreateActivity(); 
+                case 'forums':return renderForums(); 
+                case 'forumView':return renderForumView(); 
+                case 'chats':return renderChatsList(); 
+                case 'chatRoom':return renderChatRoom(); 
+                case 'help':return renderHelp(); 
+                case 'createHelp':return renderCreateHelp(); 
+                case 'admin':return renderAdminPanel(); 
+                default:return renderHome(); 
             } 
         }
 
+        // --- תבניות HTML (Views) ---
+
         function renderLogin() {
-            return `<div class="min-h-screen flex items-center justify-center bg-red-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-red-500 text-center animate-fade-in"><div class="flex justify-center items-center gap-3 mb-4">${BIG_LOGO_SVG}</div><h1 class="text-4xl font-bold text-red-600 mb-2">קהילת קשר</h1><p class="text-gray-500 mb-8">הבית החם של גיל הזהב</p><form onsubmit="event.preventDefault(); handleLogin(this.email.value, this.password.value)"><input type="email" name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה" required><button class="w-full btn-primary py-3 rounded-xl text-xl font-bold shadow-lg">כניסה</button></form><button onclick="resetPassword()" class="mt-4 text-sm text-gray-500 hover:underline block w-full">שכחתי סיסמה</button><button onclick="navigate('register')" class="mt-2 text-blue-600 font-medium hover:underline block w-full">אין לך חשבון? הירשם כאן</button></div></div>`;
+            return `
+            <div class="min-h-screen flex items-center justify-center bg-white p-4">
+                <div class="w-full max-w-md text-center">
+                    <div class="flex justify-center items-center gap-3 mb-6">${BIG_LOGO_SVG}</div>
+                    <h1 class="text-4xl font-bold text-red-600 mb-2">קהילת קשר</h1>
+                    <p class="text-gray-500 mb-8 text-lg">הבית החם של גיל הזהב</p>
+                    <form onsubmit="event.preventDefault(); handleLogin(this.email.value, this.password.value)">
+                        <input type="email" name="email" placeholder="דוא''ל" required class="border-2 border-gray-200 focus:border-red-500">
+                        <input type="password" name="password" placeholder="סיסמה" required class="border-2 border-gray-200 focus:border-red-500">
+                        <button class="btn-primary w-full py-4 rounded-xl text-xl shadow-lg mt-4">כניסה למערכת</button>
+                    </form>
+                    <div class="mt-6 space-y-3">
+                        <button onclick="resetPassword()" class="text-gray-500 hover:text-red-500 block w-full">שכחתי סיסמה</button>
+                        <button onclick="navigate('register')" class="text-blue-600 font-bold hover:underline block w-full">אין לך חשבון? הירשם כאן</button>
+                    </div>
+                </div>
+            </div>`;
         }
 
         function renderRegister() {
-            return `<div class="min-h-screen flex items-center justify-center bg-blue-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-500 animate-fade-in"><h1 class="text-3xl font-bold text-center text-blue-600 mb-6">הרשמה לקהילה</h1><form onsubmit="event.preventDefault(); handleRegister(this.name.value, this.email.value, this.password.value, this.city.value, this.referrer.value, this.gender.value, this.dob.value)"><input name="name" placeholder="שם מלא" required><input name="city" placeholder="עיר מגורים" required><input name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה (6 תווים לפחות)" required minlength="6"><input name="referrer" placeholder="מייל החבר שהזמין אותך (אופציונלי)"><button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">הירשם</button></form><button onclick="navigate('login')" class="w-full mt-4 text-gray-600 hover:underline">חזרה לכניסה</button></div></div>`;
+            return `
+            <div class="min-h-screen flex items-center justify-center bg-white p-4">
+                <div class="w-full max-w-md text-center">
+                    <h1 class="text-3xl font-bold text-blue-600 mb-6">הרשמה לקהילה</h1>
+                    <form onsubmit="event.preventDefault(); handleRegister(this.name.value, this.email.value, this.password.value, this.city.value, this.dob.value, this.referrer.value)">
+                        <input name="name" placeholder="שם מלא" required>
+                        <input name="city" placeholder="עיר מגורים" required>
+                        <label class="block text-right text-sm font-bold text-gray-600 mb-1">תאריך לידה:</label>
+                        <input type="date" name="dob" required>
+                        <input name="email" placeholder="דוא''ל" required>
+                        <input type="password" name="password" placeholder="סיסמה (6 תווים לפחות)" required minlength="6">
+                        <input name="referrer" placeholder="מייל החבר שהזמין (אופציונלי)">
+                        <button class="btn-primary w-full py-4 rounded-xl text-lg mt-4 bg-blue-600 hover:bg-blue-700">הירשם</button>
+                    </form>
+                    <button onclick="navigate('login')" class="w-full mt-6 text-gray-500">חזרה לכניסה</button>
+                </div>
+            </div>`;
         }
         
         async function handleLogin(e,p) { try{await auth.signInWithEmailAndPassword(e,p)}catch(err){alert("שגיאה: "+err.message)} }
-        async function handleRegister(n,e,p,c,refEmail,g,dob) { try{const r=await auth.createUserWithEmailAndPassword(e,p); await db.collection('users').doc(r.user.uid).set({name:n,email:e,city:c,gender:g,dob:dob,avatarSeed:'Felix',points:0,joinDate:firebase.firestore.FieldValue.serverTimestamp(),isActive:true,role:e===MASTER_ADMIN_EMAIL?'admin':'user'}); if(refEmail){const q=await db.collection('users').where('email','==',refEmail).get(); if(!q.empty) addPoints(q.docs[0].id, 40, 'ref');} }catch(err){alert("שגיאה: "+err.message)} }
+        
+        // פונקציית הרשמה מעודכנת עם תאריך לידה
+        async function handleRegister(n,e,p,c,dob,refEmail) { 
+            try {
+                const r = await auth.createUserWithEmailAndPassword(e,p); 
+                await db.collection('users').doc(r.user.uid).set({
+                    name:n, email:e, city:c, dob:dob, // שמירת תאריך לידה
+                    avatarSeed:'Felix', points:0,
+                    joinDate:firebase.firestore.FieldValue.serverTimestamp(), isActive:true, 
+                    role: e===MASTER_ADMIN_EMAIL ? 'admin' : 'user'
+                }); 
+                if(refEmail){
+                    const q = await db.collection('users').where('email','==',refEmail).get(); 
+                    if(!q.empty) addPoints(q.docs[0].id, 40);
+                } 
+            } catch(err){alert("שגיאה: "+err.message)} 
+        }
+
         function handleLogout() { auth.signOut(); navigate('login'); }
 
         function renderHeader() {
@@ -1224,44 +506,30 @@
             const adminAlerts = (store.data.reports?.length || 0) + (store.data.suggestions?.length || 0);
             
             return `
-            <header class="bg-white shadow-md sticky top-0 z-40">
-                <div class="max-w-5xl mx-auto px-4 py-2 flex justify-between items-center">
-                    
-                    <div class="flex items-center gap-2 w-1/3">
-                        <div class="header-bubble" onclick="document.getElementById('suggestionModal').classList.remove('hidden')">
-                            <i class="fa-regular fa-lightbulb header-icon text-yellow-600"></i>
-                            <span class="header-text text-gray-600">הצעות<br>ייעול</span>
-                        </div>
-                        
-                        <div class="header-bubble">
-                            <span class="header-icon text-blue-600 font-bold text-sm">${u.points || 0}</span>
-                            <div class="badge-text text-gray-500">${badge.icon}</div>
-                        </div>
-                    </div>
+            <header class="bg-white shadow-md fixed top-0 left-0 right-0 z-50 h-20 flex items-center px-4 justify-between">
+                <div class="flex items-center gap-2 cursor-pointer" onclick="navigate('home')">
+                    ${LOGO_SVG}
+                    <span class="text-xl font-bold text-gray-800 hidden sm:block mr-2">קהילת קשר</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="document.getElementById('suggestionModal').classList.remove('hidden')" class="flex items-center gap-1 bg-yellow-50 text-yellow-600 px-2 py-1 rounded-full border border-yellow-200 text-xs font-bold hover:bg-yellow-100">
+                        <i class="fa-regular fa-lightbulb"></i> הצעת ייעול
+                    </button>
 
-                    <div class="flex flex-col items-center justify-center w-1/3 cursor-pointer" onclick="navigate('home')">
-                        ${LOGO_SVG}
-                        <span class="text-sm font-bold text-gray-700">קהילת קשר</span>
+                    <div class="hidden sm:flex flex-col items-end mr-2">
+                        <span class="text-xs font-bold text-blue-600">${u.points || 0} נק'</span>
+                        ${badge.icon}
                     </div>
                     
-                    <div class="flex items-center gap-2 w-1/3 justify-end">
-                        <div class="header-bubble" onclick="openProfileModal()" style="z-index: 50;">
-                            <div class="w-6 h-6 rounded-full overflow-hidden border border-gray-300 header-icon"><img src="${getUserImage(u)}" class="profile-img"></div>
-                            <span class="header-text text-gray-600">הפרופיל<br>שלי</span>
-                        </div>
-                        
-                        ${canAdmin ? `
-                            <div class="header-bubble relative" onclick="navigate('admin')">
-                                <i class="fa-solid fa-shield-halved header-icon text-gray-800"></i>
-                                <span class="header-text text-gray-600">ניהול</span>
-                                ${adminAlerts > 0 ? `<span class="notification-badge">${adminAlerts}</span>` : ''}
-                            </div>
-                        ` : ''}
-                        
-                        <button onclick="handleLogout()" class="text-red-500 text-xl px-2 hover:text-red-700 ml-1" title="יציאה">
-                            <i class="fa-solid fa-right-from-bracket"></i>
+                    <button onclick="openProfileModal()" class="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200"><img src="${getUserImage(u)}" class="profile-img"></button>
+
+                    ${canAdmin ? `
+                        <button onclick="navigate('admin')" class="relative bg-black text-white w-10 h-10 rounded-full shadow hover:bg-gray-800 flex items-center justify-center" title="ניהול">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            ${adminAlerts > 0 ? `<span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">${adminAlerts}</span>` : ''}
                         </button>
-                    </div>
+                    ` : ''}
+                    <button onclick="handleLogout()" class="text-red-500 text-2xl px-2 hover:text-red-700"><i class="fa-solid fa-right-from-bracket"></i></button>
                 </div>
             </header>`;
         }
@@ -1270,15 +538,17 @@
             const u = store.user;
             const badge = getUserBadge(u.points || 0);
             const tip = ["שתו מים!", "צאו לשמש!", "חייכו!", "דברו עם חבר", "התקשרו לנכדים"][Math.floor(Math.random()*5)];
+            const recentActivities = store.data.activities.slice(0, 2);
+            
+            // לוגיקה חכמה לפורומים
             let forumsCopy = [...store.data.forums];
             const topActive = forumsCopy.sort((a,b) => (b.postCount||0) - (a.postCount||0)).slice(0, 2);
             const latest = forumsCopy.sort((a,b) => (b.lastActivity?.seconds||0) - (a.lastActivity?.seconds||0)).find(f => !topActive.includes(f));
             const featuredForums = [...topActive];
             if(latest) featuredForums.push(latest);
-            const recentActivities = store.data.activities.slice(0, 2);
 
             return `
-            <div class="space-y-8 mt-4">
+            <div class="space-y-8">
                 <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white p-8 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
                     <div class="relative z-10 max-w-lg">
                         <h2 class="text-4xl font-bold mb-2">שלום, ${u.name.split(' ')[0]}</h2>
@@ -1352,7 +622,7 @@
             });
             
             return `
-            <div class="space-y-6 mt-4">
+            <div class="space-y-6">
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm">
                     <h2 class="text-2xl font-bold text-gray-800">לוח פעילויות</h2>
                     <div class="flex gap-2 w-full md:w-auto">
@@ -1387,7 +657,7 @@
                             </div>
                             ${canEdit ? `
                                 <div class="absolute top-12 left-2 flex gap-2">
-                                    <button onclick="openEditActivityModal('${act.id}')" class="bg-white p-2 rounded-full shadow hover:text-blue-600"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="editItem('activities','${act.id}','${act.description}','description')" class="bg-white p-2 rounded-full shadow hover:text-blue-600"><i class="fa-solid fa-pen"></i></button>
                                     <button onclick="deleteItem('activities','${act.id}')" class="bg-white p-2 rounded-full shadow hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
                                 </div>` : ''}
                         </div>`;
@@ -1400,8 +670,9 @@
             const isAdmin = store.user.role === 'admin';
             const cats=(store.data.sysCategories||[]).map(c=>c.name);
             const filtered = store.data.forums.filter(f => !store.filterForumCategory || f.category === store.filterForumCategory);
+            
             return `
-            <div class="space-y-6 mt-4">
+            <div class="space-y-6">
                 <div class="bg-blue-600 text-white p-6 rounded-2xl shadow-lg text-center">
                     <h2 class="text-2xl font-bold mb-1">פורומים</h2>
                     <p class="opacity-90">בואו נדבר על מה שחשוב</p>
@@ -1446,6 +717,7 @@
             const fid = store.params.forumId;
             const isAdmin = store.user.role === 'admin';
             const isSenior = store.user.role === 'senior';
+            
             if (!store.currentForumId || store.currentForumId !== fid) {
                 store.currentForumId = fid;
                 store.data.currentPosts = [];
@@ -1453,85 +725,102 @@
                     .onSnapshot(s => { store.data.currentPosts = s.docs.map(d => ({id:d.id, ...d.data()})); render(); });
             }
             const posts = store.data.currentPosts || [];
-            return `<div class="space-y-6 mt-4"><div class="flex items-center gap-3 bg-white p-4 rounded-xl shadow-sm"><button onclick="navigate('forums')" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-arrow-right"></i></button><h2 class="text-2xl font-bold">${store.params.title}</h2></div><div class="space-y-4 pb-24">${posts.map(p => {
-                const canEdit = isAdmin || p.creatorId === store.user.uid || isSenior;
-                const replies = p.replies || [];
-                return `<div class="bg-white p-5 rounded-xl shadow-sm relative group"><div class="flex gap-3 mb-3"><div class="w-10 h-10 rounded-full overflow-hidden border bg-gray-100"><img src="${getAvatar(p.creatorAvatar || p.creatorName)}" class="profile-img"></div><div class="flex-1"><div class="flex justify-between items-start"><h4 class="font-bold text-gray-900">${p.title}</h4>${p.creatorId !== store.user.uid ? `<button onclick="reportItem('forum', '${p.id}', '${p.title}', '${p.creatorId}')" class="text-gray-400 hover:text-red-600 text-sm" title="דווח"><i class="fa-solid fa-flag"></i></button>` : ''}</div><p class="text-xs text-gray-500">${p.creatorName} • ${formatDate(p.createdAt)}</p></div></div><p class="text-gray-700 whitespace-pre-wrap text-lg leading-relaxed mb-4">${p.content}</p>${replies.length > 0 ? `<div class="bg-gray-50 rounded-lg p-3 space-y-3 mb-3 border-r-2 border-gray-200">${replies.map(r => `<div class="text-sm"><span class="font-bold text-gray-800">${r.creatorName}:</span> <span class="text-gray-700">${r.content}</span></div>`).join('')}</div>` : ''}<div class="flex gap-3 items-center"><button onclick="toggleReplyBox('${p.id}')" class="text-blue-600 text-sm font-bold hover:underline bg-blue-50 px-3 py-1 rounded"><i class="fa-solid fa-reply"></i> הגב</button>${canEdit ? `<button onclick="editItem('forums', '${p.id}', '${p.content.replace(/\n/g,' ')}', 'content', 'posts', '${fid}')" class="text-gray-400 hover:text-blue-600"><i class="fa-solid fa-pen"></i></button>${isAdmin ? `<button onclick="deleteItem('forums', '${p.id}', 'posts', '${fid}')" class="text-gray-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>` : ''}` : ''}</div>${store.openReplyId === p.id ? `<form onsubmit="event.preventDefault(); addReply('${fid}','${p.id}',this.reply.value);" class="mt-3 flex gap-2 animate-fade-in"><input name="reply" placeholder="כתוב תגובה..." class="bg-white text-sm mb-0 border-blue-300 focus:ring-2 ring-blue-200" required><button class="bg-blue-600 text-white px-4 rounded-lg text-sm font-bold">שלח</button></form>` : ''}</div>`;
-            }).join('')}${posts.length === 0 ? '<div class="text-center py-10 text-gray-400"><p>אין הודעות. היה הראשון!</p></div>' : ''}</div><div class="fixed bottom-16 left-0 right-0 bg-white p-3 shadow-[0_-4px_6px_rgba(0,0,0,0.1)] z-30 border-t border-gray-200 md:relative md:bottom-auto md:shadow-md md:rounded-xl md:border-t-4 md:border-red-500 md:mt-6 max-w-5xl mx-auto"><form onsubmit="event.preventDefault(); createPost('${fid}', this.title.value, this.content.value); this.reset();" class="flex gap-2 items-start"><div class="flex-1 space-y-2"><input name="title" placeholder="נושא ההודעה" class="w-full bg-gray-50 text-sm" required><textarea name="content" placeholder="תוכן..." class="w-full bg-gray-50 text-sm" rows="1" required></textarea></div><button class="bg-red-600 text-white px-4 py-4 rounded-lg font-bold shadow hover:bg-red-700 h-full self-stretch flex items-center"><i class="fa-solid fa-paper-plane"></i></button></form></div></div>`;
+
+            return `
+            <div class="space-y-6">
+                <div class="flex items-center gap-3 bg-white p-4 rounded-xl shadow-sm">
+                    <button onclick="navigate('forums')" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200"><i class="fa-solid fa-arrow-right"></i></button>
+                    <h2 class="text-2xl font-bold">${store.params.title}</h2>
+                </div>
+
+                <div class="space-y-4 pb-24">
+                    ${posts.map(p => {
+                        const canEdit = isAdmin || p.creatorId === store.user.uid || isSenior;
+                        const replies = p.replies || [];
+                        return `
+                        <div class="bg-white p-5 rounded-xl shadow-sm relative group">
+                            <div class="flex gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-full overflow-hidden border bg-gray-100">
+                                    <img src="${getAvatar(p.creatorAvatar || p.creatorName)}" class="profile-img">
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-900">${p.title}</h4>
+                                    <p class="text-xs text-gray-500">${p.creatorName} • ${formatDate(p.createdAt)}</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-700 whitespace-pre-wrap text-lg leading-relaxed mb-4">${p.content}</p>
+                            
+                            ${replies.length > 0 ? `
+                                <div class="bg-gray-50 rounded-lg p-3 space-y-3 mb-3 border-r-2 border-gray-200">
+                                    ${replies.map(r => `
+                                        <div class="text-sm">
+                                            <span class="font-bold text-gray-800">${r.creatorName}:</span> 
+                                            <span class="text-gray-700">${r.content}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                            
+                            <div class="flex gap-3 items-center">
+                                <button onclick="toggleReplyBox('${p.id}')" class="text-blue-600 text-sm font-bold hover:underline bg-blue-50 px-3 py-1 rounded"><i class="fa-solid fa-reply"></i> הגב</button>
+                                ${canEdit ? `
+                                    <button onclick="editItem('forums', '${p.id}', '${p.content.replace(/\n/g,' ')}', 'content', 'posts', '${fid}')" class="text-gray-400 hover:text-blue-600"><i class="fa-solid fa-pen"></i></button>
+                                    ${isAdmin ? `<button onclick="deleteItem('forums', '${p.id}', 'posts', '${fid}')" class="text-gray-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>` : ''}
+                                ` : ''}
+                            </div>
+
+                            ${store.openReplyId === p.id ? `
+                                <form onsubmit="event.preventDefault(); addReply('${fid}','${p.id}',this.reply.value);" class="mt-3 flex gap-2 animate-fade-in">
+                                    <input name="reply" placeholder="כתוב תגובה..." class="bg-white text-sm mb-0 border-blue-300 focus:ring-2 ring-blue-200" required>
+                                    <button class="bg-blue-600 text-white px-4 rounded-lg text-sm font-bold">שלח</button>
+                                </form>
+                            ` : ''}
+                        </div>`;
+                    }).join('')}
+                    ${posts.length === 0 ? '<div class="text-center py-10 text-gray-400"><p>אין הודעות. היה הראשון!</p></div>' : ''}
+                </div>
+
+                <div class="fixed bottom-16 left-0 right-0 bg-white p-3 shadow-[0_-4px_6px_rgba(0,0,0,0.1)] z-30 border-t border-gray-200 md:relative md:bottom-auto md:shadow-md md:rounded-xl md:border-t-4 md:border-red-500 md:mt-6 max-w-5xl mx-auto">
+                    <form onsubmit="event.preventDefault(); createPost('${fid}', this.title.value, this.content.value); this.reset();" class="flex gap-2 items-start">
+                        <div class="flex-1 space-y-2">
+                            <input name="title" placeholder="נושא ההודעה" class="w-full bg-gray-50 text-sm" required>
+                            <textarea name="content" placeholder="תוכן..." class="w-full bg-gray-50 text-sm" rows="1" required></textarea>
+                        </div>
+                        <button class="bg-red-600 text-white px-4 py-4 rounded-lg font-bold shadow hover:bg-red-700 h-full self-stretch flex items-center"><i class="fa-solid fa-paper-plane"></i></button>
+                    </form>
+                </div>
+            </div>`;
         }
 
         function renderAdminPanel() {
             if (store.user.role !== 'admin' && store.user.role !== 'senior') { setTimeout(() => navigate('home'), 0); return ''; }
             const isAdmin = store.user.role === 'admin';
-            return `<div class="space-y-6 pb-20 mt-4"><div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg flex justify-between items-center"><h2 class="text-2xl font-bold">ניהול מערכת</h2></div><div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-red-500"><div class="bg-gray-100 p-4 font-bold border-b flex justify-between"><span><i class="fa-solid fa-triangle-exclamation text-red-500"></i> דיווחים</span><span class="bg-red-100 text-red-600 px-2 rounded text-xs">${store.data.reports ? store.data.reports.length : 0}</span></div><div class="divide-y max-h-64 overflow-y-auto">${(store.data.reports || []).map(r => `<div class="p-4 hover:bg-gray-50 text-sm"><p class="font-bold text-red-700">דיווח על ${r.type === 'chat' ? 'צ\'אט' : 'פורום'}</p><p class="text-gray-800 mt-1">"${r.content}"</p><div class="flex justify-between mt-2 text-xs text-gray-500"><span>מדווח: ${r.reporterName} | על: ${r.reportedUserName}</span><button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline">מחק</button></div></div>`).join('')}${(!store.data.reports || store.data.reports.length === 0) ? '<div class="p-4 text-gray-500 text-center">אין דיווחים חדשים.</div>' : ''}</div></div><div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-purple-500"><div class="bg-gray-100 p-4 font-bold border-b">הצעות ייעול (${store.data.suggestions ? store.data.suggestions.length : 0})</div><div class="divide-y max-h-64 overflow-y-auto">${(store.data.suggestions || []).map(s => `<div class="p-4 hover:bg-gray-50 text-sm flex justify-between"><div><span class="font-bold ${s.urgency === 'קריטי' ? 'text-red-600' : s.urgency === 'חשוב' ? 'text-orange-500' : 'text-green-600'}">${s.urgency}</span> <span class="font-bold text-gray-700">${s.category}</span><p>${s.content}</p><p class="text-xs text-gray-400">${s.name}</p></div><button onclick="deleteSuggestion('${s.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div></div>${isAdmin ? `<div class="bg-white p-6 rounded-xl shadow"><h3 class="font-bold text-lg mb-2">ניהול קטגוריות מערכת</h3><div class="flex gap-2 mb-4"><button onclick="addCategory()" class="bg-green-600 text-white px-3 py-1 rounded text-sm">הוסף חדשה +</button></div><div class="flex flex-wrap gap-2">${(store.data.sysCategories || []).map(c => `<span class="bg-gray-100 px-3 py-1 rounded-full text-sm border flex items-center gap-2">${c.name} <button onclick="deleteCategory('${c.id}')" class="text-red-500 font-bold hover:bg-red-100 rounded-full w-5 h-5 flex items-center justify-center">x</button></span>`).join('')}</div></div><div class="bg-white rounded-xl shadow overflow-hidden"><div class="bg-gray-100 p-4 font-bold border-b">ניהול משתמשים</div><div class="divide-y">${store.data.users.map(u => `<div class="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-gray-50 gap-3"><div class="flex items-center gap-3 w-full md:w-auto"><div class="w-10 h-10 rounded-full overflow-hidden bg-gray-200"><img src="${getUserImage(u)}" class="profile-img"></div><div><p class="font-bold">${u.name}</p><p class="text-xs text-gray-500">${u.email}</p></div></div><div class="flex gap-2 items-center w-full md:w-auto justify-end"><select onchange="updateUserRole('${u.id}', this.value)" class="text-sm border-gray-300 rounded py-1 px-2 bg-white"><option value="user" ${u.role === 'user' ? 'selected' : ''}>רגיל</option><option value="senior" ${u.role === 'senior' ? 'selected' : ''}>בכיר</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל</option></select>${u.id !== store.user.uid ? `<button onclick="deleteItem('users', '${u.id}')" class="bg-red-50 text-red-700 px-3 py-1.5 rounded hover:bg-red-100"><i class="fa-solid fa-trash"></i></button>` : ''}</div></div>`).join('')}</div></div><div class="bg-white p-6 rounded-xl shadow mt-6 flex justify-between items-center"><div><h3 class="font-bold text-lg">שחזור הגדרות</h3><p class="text-gray-500 text-sm">צור מחדש את הפורומים הראשיים</p></div><button onclick="initFixedForums()" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-700">שחזר פורומים</button></div>` : ''}</div>`;
+            return `<div class="space-y-6 pb-20"><div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg flex justify-between items-center"><h2 class="text-2xl font-bold">ניהול מערכת</h2></div><div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-red-500"><div class="bg-gray-100 p-4 font-bold border-b flex justify-between"><span><i class="fa-solid fa-triangle-exclamation text-red-500"></i> דיווחים</span><span class="bg-red-100 text-red-600 px-2 rounded text-xs">${store.data.reports ? store.data.reports.length : 0}</span></div><div class="divide-y max-h-64 overflow-y-auto">${(store.data.reports || []).map(r => `<div class="p-4 hover:bg-gray-50 text-sm"><p class="font-bold text-red-700">דיווח על ${r.type === 'chat' ? 'צ\'אט' : 'פורום'}</p><p class="text-gray-800 mt-1">"${r.content}"</p><div class="flex justify-between mt-2 text-xs text-gray-500"><span>מדווח: ${r.reporterName} | על: ${r.reportedUserName}</span><button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline">מחק</button></div></div>`).join('')}${(!store.data.reports || store.data.reports.length === 0) ? '<div class="p-4 text-gray-500 text-center">אין דיווחים חדשים.</div>' : ''}</div></div><div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-purple-500"><div class="bg-gray-100 p-4 font-bold border-b">הצעות ייעול (${store.data.suggestions ? store.data.suggestions.length : 0})</div><div class="divide-y max-h-64 overflow-y-auto">${(store.data.suggestions || []).map(s => `<div class="p-4 hover:bg-gray-50 text-sm flex justify-between"><div><span class="font-bold ${s.urgency === 'קריטי' ? 'text-red-600' : s.urgency === 'חשוב' ? 'text-orange-500' : 'text-green-600'}">${s.urgency}</span> <span class="font-bold text-gray-700">${s.category}</span><p>${s.content}</p><p class="text-xs text-gray-400">${s.name}</p></div><button onclick="deleteSuggestion('${s.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div></div>${isAdmin ? `<div class="bg-white p-6 rounded-xl shadow"><h3 class="font-bold text-lg mb-2">ניהול קטגוריות מערכת</h3><div class="flex gap-2 mb-4"><button onclick="addCategory()" class="bg-green-600 text-white px-3 py-1 rounded text-sm">הוסף חדשה +</button></div><div class="flex flex-wrap gap-2">${(store.data.sysCategories || []).map(c => `<span class="bg-gray-100 px-3 py-1 rounded-full text-sm border flex items-center gap-2">${c.name} <button onclick="deleteCategory('${c.id}')" class="text-red-500 font-bold hover:bg-red-100 rounded-full w-5 h-5 flex items-center justify-center">x</button></span>`).join('')}</div></div><div class="bg-white rounded-xl shadow overflow-hidden"><div class="bg-gray-100 p-4 font-bold border-b">ניהול משתמשים</div><div class="divide-y">${store.data.users.map(u => `<div class="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-gray-50 gap-3"><div class="flex items-center gap-3 w-full md:w-auto"><div class="w-10 h-10 rounded-full overflow-hidden bg-gray-200"><img src="${getUserImage(u)}" class="profile-img"></div><div><p class="font-bold">${u.name}</p><p class="text-xs text-gray-500">${u.email}</p></div></div><div class="flex gap-2 items-center w-full md:w-auto justify-end"><select onchange="updateUserRole('${u.id}', this.value)" class="text-sm border-gray-300 rounded py-1 px-2 bg-white"><option value="user" ${u.role === 'user' ? 'selected' : ''}>רגיל</option><option value="senior" ${u.role === 'senior' ? 'selected' : ''}>בכיר</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל</option></select>${u.id !== store.user.uid ? `<button onclick="deleteItem('users', '${u.id}')" class="bg-red-50 text-red-700 px-3 py-1.5 rounded hover:bg-red-100"><i class="fa-solid fa-trash"></i></button>` : ''}</div></div>`).join('')}</div></div>` : ''}</div>`;
         }
 
         function renderCreateActivity() {
             const cats=(store.data.sysCategories||[]).map(c=>c.name);
-            return `<div class="bg-white p-6 rounded-2xl shadow-lg"><div class="flex justify-between mb-6"><h2 class="text-2xl font-bold">יצירת פעילות</h2><button onclick="navigate('activities')" class="text-gray-400"><i class="fa-solid fa-xmark text-2xl"></i></button></div><form onsubmit="event.preventDefault(); createActivity({title:this.title.value,description:this.description.value,category:this.category.value,date:this.date.value,location:this.location.value,maxParticipants:parseInt(this.max.value)||0})"><div class="space-y-4"><input name="title" placeholder="כותרת" required><select name="category">${cats.map(c=>`<option>${c}</option>`).join('')}</select><div class="grid grid-cols-2 gap-4"><input type="datetime-local" name="date" required><input type="number" name="max" placeholder="מקס' משתתפים"></div><input name="location" placeholder="מיקום" required><textarea name="description" rows="4" placeholder="תיאור..." required></textarea><button class="btn-primary w-full py-3 rounded-xl font-bold">פרסם</button></div></form></div>`;
+            return `<div class="bg-white p-6 rounded-2xl shadow-lg"><div class="flex justify-between mb-6"><h2 class="text-2xl font-bold">יצירת פעילות</h2><button onclick="navigate('activities')" class="text-gray-400"><i class="fa-solid fa-xmark text-2xl"></i></button></div><form onsubmit="event.preventDefault(); createActivity({title:this.title.value,description:this.description.value,category:this.category.value,date:this.date.value,location:this.location.value,maxParticipants:parseInt(this.max.value)||0})"><div class="space-y-4"><input name="title" placeholder="כותרת" required><select name="category">${cats.map(c=>`<option>${c}</option>`).join('')}</select><div class="grid grid-cols-2 gap-4"><input type="datetime-local" name="date" required><input type="number" name="max" placeholder="מקס' משתתפים"></div><input name="location" placeholder="מיקום" required><textarea name="description" rows="4" placeholder="תיאור..." required></textarea><button class="btn-primary w-full py-3 rounded-xl font-bold">פרסם</button></div></form></div>`; 
         }
 
-        // --- תיקון צ'קבוקס מחוברים ---
         function renderChatsList() {
-            let filteredUsers = store.data.users.filter(u => u.id !== store.user.uid);
-            if (store.chatFilterName) filteredUsers = filteredUsers.filter(u => u.name.toLowerCase().includes(store.chatFilterName.toLowerCase()));
-            if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city.toLowerCase().includes(store.chatFilterCity.toLowerCase()));
-            if (store.chatFilterGender && store.chatFilterGender !== "") filteredUsers = filteredUsers.filter(u => u.gender === store.chatFilterGender);
-            if (store.chatFilterOnline) {
-                const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-                filteredUsers = filteredUsers.filter(u => u.lastSeen && u.lastSeen.toDate() > fiveMinAgo);
-            }
-
-            return `
-            <div class="h-[65vh] flex flex-col mt-4">
-                <div class="bg-white p-4 rounded-2xl shadow-sm mb-4">
-                    <h2 class="text-2xl font-bold mb-4">הודעות</h2>
-                    <div class="space-y-2">
-                        <div class="flex gap-2">
-                            <input placeholder="חפש חבר..." value="${store.chatFilterName}" oninput="store.chatFilterName=this.value; render()" class="flex-1 mb-0 p-2 border rounded">
-                            <input placeholder="עיר..." value="${store.chatFilterCity}" oninput="store.chatFilterCity=this.value; render()" class="flex-1 mb-0 p-2 border rounded">
-                        </div>
-                        <div class="flex gap-2 items-center">
-                            <select onchange="store.chatFilterGender=this.value; render()" class="w-1/3 mb-0 p-2 border rounded">
-                                <option value="" ${store.chatFilterGender===""?'selected':''}>כל המינים</option>
-                                <option value="male" ${store.chatFilterGender==="male"?'selected':''}>גבר</option>
-                                <option value="female" ${store.chatFilterGender==="female"?'selected':''}>אישה</option>
-                            </select>
-                            
-                            <div class="flex items-center gap-2 flex-1 bg-gray-50 p-2 rounded border cursor-pointer" onclick="store.chatFilterOnline = !store.chatFilterOnline; render()">
-                                <input type="checkbox" class="custom-checkbox" ${store.chatFilterOnline ? 'checked' : ''} onclick="event.stopPropagation(); store.chatFilterOnline = this.checked; render()">
-                                <span class="text-sm select-none">מחוברים בלבד</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 text-sm text-gray-500 font-bold">תוצאות (${filteredUsers.length}):</div>
-                    <div class="max-h-32 overflow-y-auto border rounded p-2 mt-1 bg-gray-50">
-                         ${filteredUsers.map(u => {
-                            const isOnline = u.lastSeen && (new Date() - u.lastSeen.toDate()) < 5 * 60 * 1000;
-                            return `<div onclick="loadChatMessages('${u.id}')" class="flex items-center gap-2 p-2 hover:bg-white cursor-pointer border-b last:border-0"><div class="w-8 h-8 rounded-full overflow-hidden bg-gray-200"><img src="${getUserImage(u)}" class="profile-img"></div><div class="flex-1"><span class="font-bold">${u.name}</span><span class="text-xs text-gray-500">(${u.city})</span></div>${isOnline?'<span class="online-dot" title="מחובר"></span>':'<span class="offline-dot" title="לא מחובר"></span>'}${u.gender==='female'?'<i class="fa-solid fa-venus text-pink-400"></i>':'<i class="fa-solid fa-mars text-blue-400"></i>'}</div>`;
-                         }).join('')}
-                    </div>
-                </div>
-                <h3 class="font-bold text-gray-700 px-2 mb-2">שיחות אחרונות:</h3>
-                <div class="flex-1 overflow-y-auto space-y-2 pb-24">
-                    ${store.data.chats.map(c => { const oid = c.participants.find(i => i !== store.user.uid); const oname = (c.participantNames && c.participantNames[oid]) ? c.participantNames[oid] : 'משתמש'; return `<div onclick="loadChatMessages('${oid}')" class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer hover:bg-gray-50"><div class="w-12 h-12 rounded-full bg-gray-200 overflow-hidden"><img src="${getAvatar(oname)}" class="profile-img"></div><div class="flex-1"><h3 class="font-bold">${oname}</h3><p class="text-sm text-gray-500 truncate">${c.lastMessage||''}</p></div>${c['unread_'+store.user.uid]>0 ? `<div class="bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">${c['unread_'+store.user.uid]}</div>` : ''}</div>` }).join('')}
-                </div>
-            </div>`;
+            const others = store.data.users.filter(u => u.id !== store.user.uid);
+            return `<div class="h-[65vh] flex flex-col"><div class="bg-white p-4 rounded-2xl shadow-sm mb-4"><h2 class="text-2xl font-bold mb-4">הודעות</h2><select onchange="if(this.value){loadChatMessages(this.value);}" class="w-full"><option value="">התחל שיחה חדשה...</option>${others.map(u => `<option value="${u.id}">${u.name}</option>`).join('')}</select></div><div class="flex-1 overflow-y-auto space-y-2 pb-24">${store.data.chats.map(c => { const oid = c.participants.find(i => i !== store.user.uid); const oname = (c.participantNames && c.participantNames[oid]) ? c.participantNames[oid] : 'משתמש'; return `<div onclick="loadChatMessages('${oid}')" class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer hover:bg-gray-50"><div class="w-12 h-12 rounded-full bg-gray-200 overflow-hidden"><img src="${getAvatar(oname)}" class="profile-img"></div><div class="flex-1"><h3 class="font-bold">${oname}</h3><p class="text-sm text-gray-500 truncate">${c.lastMessage||''}</p></div>${c['unread_'+store.user.uid]>0 ? `<div class="bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">${c['unread_'+store.user.uid]}</div>` : ''}</div>` }).join('')}</div></div>`;
         }
 
         function renderChatRoom() {
             const msgs = store.data.currentChatMessages || [];
             const tUser = store.data.users.find(u => u.id === store.currentChatTargetId);
             const emojis = ['❤️', '👍', '😊', '🌷', '👋', '☕', '😂', '🙏'];
-            return `<div class="flex flex-col h-[65vh] bg-gray-100 rounded-2xl shadow overflow-hidden border max-w-3xl mx-auto mt-4"><div class="bg-white p-3 flex items-center gap-3 shadow-sm z-10"><button onclick="navigate('chats')" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-right"></i></button><h3 class="font-bold text-lg">${tUser ? tUser.name : 'צ\'אט'}</h3></div><div id="chat-messages-container" class="flex-1 overflow-y-auto p-4 space-y-3">${msgs.map(m => `<div class="flex ${m.senderId === store.user.uid ? 'justify-end' : 'justify-start'} group">${!m.senderId === store.user.uid ? `<button onclick="reportItem('chat', '${m.id}', '${m.content}', '${m.senderId}')" class="self-center opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 ml-2 transition"><i class="fa-solid fa-flag text-xs"></i></button>` : ''}<div class="max-w-[80%] p-3 rounded-2xl ${m.senderId === store.user.uid ? 'bg-red-500 text-white rounded-tl-none' : 'bg-white text-gray-800 rounded-tr-none border'}"><p>${m.content}</p></div></div>`).join('')}</div><div class="p-3 bg-white border-t relative">${store.showEmojiPicker ? `<div class="absolute bottom-20 left-4 bg-white shadow-xl rounded-xl p-2 grid grid-cols-4 gap-2 border z-50">${emojis.map(e => `<button onclick="window.addEmoji('${e}')" class="text-2xl hover:bg-gray-100 p-2 rounded">${e}</button>`).join('')}</div>` : ''}<form onsubmit="event.preventDefault(); sendMessage(store.currentChatTargetId);" class="flex gap-2 items-center"><button type="button" onclick="toggleEmojiPicker()" class="text-gray-500 hover:text-yellow-500 text-2xl"><i class="fa-regular fa-face-smile"></i></button><input id="msgInput" name="msg" placeholder="הודעה..." class="flex-1 rounded-full px-4 bg-gray-100" autocomplete="off" value="${store.chatDraft}" oninput="window.updateDraft(this.value)"><button class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button></form></div></div>`;
+            return `<div class="flex flex-col h-[65vh] bg-gray-100 rounded-2xl shadow overflow-hidden border max-w-3xl mx-auto"><div class="bg-white p-3 flex items-center gap-3 shadow-sm z-10"><button onclick="navigate('chats')" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-right"></i></button><h3 class="font-bold text-lg">${tUser ? tUser.name : 'צ\'אט'}</h3></div><div id="chat-messages-container" class="flex-1 overflow-y-auto p-4 space-y-3">${msgs.map(m => `<div class="flex ${m.senderId === store.user.uid ? 'justify-end' : 'justify-start'} group">${!m.senderId === store.user.uid ? `<button onclick="reportItem('chat', '${m.id}', '${m.content}', '${m.senderId}')" class="self-center opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 ml-2 transition"><i class="fa-solid fa-flag text-xs"></i></button>` : ''}<div class="max-w-[80%] p-3 rounded-2xl ${m.senderId === store.user.uid ? 'bg-red-500 text-white rounded-tl-none' : 'bg-white text-gray-800 rounded-tr-none border'}"><p>${m.content}</p></div></div>`).join('')}</div><div class="p-3 bg-white border-t relative">${store.showEmojiPicker ? `<div class="absolute bottom-20 left-4 bg-white shadow-xl rounded-xl p-2 grid grid-cols-4 gap-2 border z-50">${emojis.map(e => `<button onclick="window.addEmoji('${e}')" class="text-2xl hover:bg-gray-100 p-2 rounded">${e}</button>`).join('')}</div>` : ''}<form onsubmit="event.preventDefault(); sendMessage(store.currentChatTargetId);" class="flex gap-2 items-center"><button type="button" onclick="toggleEmojiPicker()" class="text-gray-500 hover:text-yellow-500 text-2xl"><i class="fa-regular fa-face-smile"></i></button><input id="msgInput" name="msg" placeholder="הודעה..." class="flex-1 rounded-full px-4 bg-gray-100" autocomplete="off" value="${store.chatDraft}" oninput="window.updateDraft(this.value)"><button class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button></form></div></div>`;
         }
 
         function renderHelp() {
             const isAdmin = store.user.role === 'admin';
-            return `<div class="space-y-4 mt-4"><div class="bg-purple-600 text-white p-6 rounded-2xl shadow flex justify-between items-center"><div><h2 class="text-2xl font-bold">עזרה לקהילה</h2><p>סיוע הדדי</p></div><button onclick="navigate('createHelp')" class="bg-white text-purple-600 px-4 py-2 rounded-xl font-bold">בקש עזרה</button></div><div class="grid gap-4">${store.data.helpRequests.map(r => `<div class="bg-white p-5 rounded-xl shadow border-r-4 border-purple-500"><div class="flex justify-between mb-2"><span class="text-purple-700 font-bold bg-purple-100 px-2 rounded text-sm">${r.category}</span><span class="text-gray-400 text-xs">${formatDate(r.createdAt)}</span></div><p class="text-lg font-medium mb-2">${r.description}</p><div class="flex justify-between text-sm text-gray-500"><span><i class="fa-solid fa-user"></i> ${r.requesterName}</span><div class="flex gap-2"><button onclick="loadChatMessages('${r.requesterId}')" class="text-purple-600 font-bold">צור קשר</button>${isAdmin ? `<button onclick="deleteItem('helpRequests','${r.id}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>` : ''}</div></div></div>`).join('')}</div></div>`; 
+            return `<div class="space-y-4"><div class="bg-purple-600 text-white p-6 rounded-2xl shadow flex justify-between items-center"><div><h2 class="text-2xl font-bold">עזרה לקהילה</h2><p>סיוע הדדי</p></div><button onclick="navigate('createHelp')" class="bg-white text-purple-600 px-4 py-2 rounded-xl font-bold">בקש עזרה</button></div><div class="grid gap-4">${store.data.helpRequests.map(r => `<div class="bg-white p-5 rounded-xl shadow border-r-4 border-purple-500"><div class="flex justify-between mb-2"><span class="text-purple-700 font-bold bg-purple-100 px-2 rounded text-sm">${r.category}</span><span class="text-gray-400 text-xs">${formatDate(r.createdAt)}</span></div><p class="text-lg font-medium mb-2">${r.description}</p><div class="flex justify-between text-sm text-gray-500"><span><i class="fa-solid fa-user"></i> ${r.requesterName}</span><div class="flex gap-2"><button onclick="loadChatMessages('${r.requesterId}')" class="text-purple-600 font-bold">צור קשר</button>${isAdmin ? `<button onclick="deleteItem('helpRequests','${r.id}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>` : ''}</div></div></div>`).join('')}</div></div>`; 
         }
         
-        function renderCreateHelp() { return `<div class="bg-white p-6 rounded-2xl shadow mt-4"><h2 class="text-2xl font-bold mb-4 text-purple-600">בקשת עזרה</h2><div class="bg-yellow-50 p-4 rounded mb-4 text-sm text-yellow-800 border border-yellow-200">שים לב: העזרה על אחריות המשתמש בלבד.</div><form onsubmit="event.preventDefault(); db.collection('helpRequests').add({category:this.cat.value, description:this.desc.value, requesterId:store.user.uid, requesterName:store.user.name, requesterCity:store.user.city, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); navigate('help');"><select name="cat" class="w-full mb-4"><option>ייעוץ רפואי</option><option>ייעוץ משפטי</option><option>עזרה טכנית</option><option>הסעה</option><option>אחר</option></select><textarea name="desc" rows="4" class="w-full mb-4" required></textarea><div class="flex gap-2 mb-6"><input type="checkbox" required> <label>מאשר שקראתי.</label></div><button class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">שלח</button></form></div>`; }
+        function renderCreateHelp() { return `<div class="bg-white p-6 rounded-2xl shadow"><h2 class="text-2xl font-bold mb-4 text-purple-600">בקשת עזרה</h2><div class="bg-yellow-50 p-4 rounded mb-4 text-sm text-yellow-800 border border-yellow-200">שים לב: העזרה על אחריות המשתמש בלבד.</div><form onsubmit="event.preventDefault(); db.collection('helpRequests').add({category:this.cat.value, description:this.desc.value, requesterId:store.user.uid, requesterName:store.user.name, requesterCity:store.user.city, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); navigate('help');"><select name="cat" class="w-full mb-4"><option>ייעוץ רפואי</option><option>ייעוץ משפטי</option><option>עזרה טכנית</option><option>הסעה</option><option>אחר</option></select><textarea name="desc" rows="4" class="w-full mb-4" required></textarea><div class="flex gap-2 mb-6"><input type="checkbox" required> <label>מאשר שקראתי.</label></div><button class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">שלח</button></form></div>`; }
         function renderBottomNav() { const p=store.currentPage, a=(k)=>p.startsWith(k)?'text-red-600':'text-gray-400', un=store.data.chats.reduce((s,c)=>s+(c['unread_'+store.user.uid]||0),0); return `<nav class="fixed bottom-0 w-full bg-white border-t py-3 px-4 flex justify-between items-center z-40 shadow-lg"><button onclick="navigate('home')" class="${a('home')} flex flex-col items-center"><i class="fa-solid fa-house text-2xl"></i><span class="text-xs">בית</span></button><button onclick="navigate('activities')" class="${a('activities')} flex flex-col items-center"><i class="fa-solid fa-person-walking text-2xl"></i><span class="text-xs">פעילויות</span></button><button onclick="navigate('forums')" class="${a('forums')} flex flex-col items-center"><i class="fa-solid fa-comments text-2xl"></i><span class="text-xs">פורומים</span></button><button onclick="navigate('chats')" class="${a('chats')} flex flex-col items-center relative"><div class="relative"><i class="fa-solid fa-envelope text-2xl"></i>${un>0?`<span class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">${un}</span>`:''}</div><span class="text-xs">הודעות</span></button><button onclick="navigate('help')" class="${a('help')} flex flex-col items-center"><i class="fa-solid fa-hand-holding-heart text-2xl"></i><span class="text-xs">עזרה</span></button></nav>`; }
     </script>
 </body>
