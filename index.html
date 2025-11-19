@@ -503,9 +503,10 @@
 
         // --- מערכת ניקוד ודרגות ---
         const BADGES = [
-            { min: 0, name: 'מתחיל', icon: '' },
-            { min: 100, name: 'איש המאה 🥉', icon: '<span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full border border-amber-500 flex items-center gap-1">🥉 איש המאה</span>' },
-            { min: 1000, name: 'מדליית כסף 🥈', icon: '<span class="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-0.5 rounded-full border border-gray-500 flex items-center gap-1">🥈 מדליית כסף</span>' }
+            { min: 0, name: 'מתחיל', icon: '⭐' },
+            { min: 100, name: 'איש המאה 🥉', icon: '🥉' },
+            { min: 1000, name: 'מדליית כסף 🥈', icon: '🥈' },
+            { min: 2500, name: 'אלוף הזהב 🥇', icon: '🥇' }
         ];
 
         function getUserBadge(points) {
@@ -914,7 +915,8 @@
         function renderHeader() {
             const u = store.user; 
             const badge = getUserBadge(u.points || 0); 
-            const badgeName = badge.name || 'מתחיל';
+            // Clean badge name from emojis for text display
+            const badgeName = badge.name.replace(/ .*/,'') || 'מתחיל';
             const adminAlerts = (store.data.reports?.length||0) + (store.data.suggestions?.length||0);
             
             return `<div class="flex justify-between items-center w-full h-full">
@@ -924,9 +926,9 @@
                             <span class="header-text text-gray-600">הצעות<br>ייעול</span>
                         </div>
                         <div class="header-bubble">
-                            <span class="header-icon text-lg text-blue-600 font-bold">${u.points || 0}</span>
-                            <span class="header-text text-gray-600">נקודות</span>
-                            <div class="badge-text mt-1 text-gray-600 bg-gray-100 px-2 rounded">${badgeName}</div>
+                            <span class="text-2xl mb-1">${badge.icon}</span>
+                            <span class="header-text text-gray-600 font-bold text-xs">${u.points || 0} נק'</span>
+                            <div class="badge-text text-gray-600 bg-gray-100 px-2 rounded">${badgeName}</div>
                         </div>
                     </div>
                     <div class="flex flex-col items-center justify-center cursor-pointer w-1/3 absolute left-1/2 transform -translate-x-1/2 top-2" onclick="navigate('home')">
@@ -1120,9 +1122,15 @@
         // --- צ'אט מפוצל ---
         function renderChatsList() {
             let filteredUsers = store.data.users.filter(u => u.id !== store.user.uid);
+            
+            // Filter logic - simplified to ensure "All" works
             if (store.chatFilterName) filteredUsers = filteredUsers.filter(u => u.name.toLowerCase().includes(store.chatFilterName.toLowerCase()));
             if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city.toLowerCase().includes(store.chatFilterCity.toLowerCase()));
-            if (store.chatFilterGender && store.chatFilterGender !== "") filteredUsers = filteredUsers.filter(u => u.gender === store.chatFilterGender);
+            
+            // Ensure we check for null/empty string explicitly
+            if (store.chatFilterGender && store.chatFilterGender !== "") {
+                filteredUsers = filteredUsers.filter(u => u.gender === store.chatFilterGender);
+            }
             
             filteredUsers.sort((a, b) => {
                 const chatA = store.data.chats.find(c => c.participants.includes(a.id));
@@ -1135,8 +1143,6 @@
             const targetUser = store.data.users.find(u => u.id === store.currentChatTargetId);
             const msgs = store.data.currentChatMessages || [];
             const hasActiveChat = !!targetUser;
-
-            // קלאס למצב מובייל - אם יש צ'אט פעיל, מוסיפים את הקלאס
             const mobileClass = hasActiveChat ? 'chat-mobile-active' : '';
 
             return `
@@ -1148,13 +1154,16 @@
                             <input placeholder="חפש חבר..." oninput="store.chatFilterName=this.value; render()" class="w-full p-2 text-sm border rounded-lg bg-gray-50 mb-0" value="${store.chatFilterName}">
                             <div class="flex gap-2">
                                 <select onchange="store.chatFilterGender=this.value; render()" class="w-1/2 p-1 text-sm border rounded bg-gray-50 mb-0">
-                                    <option value="">הכל</option><option value="male">גבר</option><option value="female">אישה</option>
+                                    <option value="">הכל (הצג כולם)</option>
+                                    <option value="male" ${store.chatFilterGender === 'male' ? 'selected' : ''}>גבר</option>
+                                    <option value="female" ${store.chatFilterGender === 'female' ? 'selected' : ''}>אישה</option>
                                 </select>
                                 <input oninput="store.chatFilterCity=this.value; render()" placeholder="עיר..." class="w-1/2 p-1 text-sm border rounded bg-gray-50 mb-0">
                             </div>
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                        ${filteredUsers.length === 0 ? '<p class="text-center text-gray-500 text-sm mt-4">לא נמצאו משתמשים</p>' : ''}
                         ${filteredUsers.map(u => {
                             const chat = store.data.chats.find(c => c.participants.includes(u.id));
                             const unreadCount = chat ? (chat['unread_' + store.user.uid] || 0) : 0;
