@@ -386,6 +386,7 @@
                 
                 <label class="block mb-1 text-sm font-bold">תמונה:</label>
                 <input type="file" id="newAvFile" accept="image/*" required class="p-2 border rounded w-full mb-3">
+                <p id="compressStatus" class="text-xs text-gray-500 mb-2 hidden">מכווץ תמונה...</p>
                 
                 <label class="block mb-1 text-sm font-bold">מגדר:</label>
                 <select id="newAvGender" class="p-2 border rounded w-full mb-4">
@@ -405,11 +406,13 @@
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center relative overflow-hidden animate-fade-in border-4 border-yellow-400">
             <div class="text-6xl mb-2 animate-bounce">🎉</div>
             <h2 class="text-3xl font-extrabold text-yellow-600 mb-2">ברכות!</h2>
-            <p class="text-lg text-gray-600 mb-6">עלית לדרגה חדשה:</p>
+            <p class="text-lg text-gray-600 mb-6">עלית לדרגה חדשה בקהילה:</p>
+            
             <div class="bg-yellow-50 p-4 rounded-2xl mb-6 border border-yellow-200">
                 <div id="newBadgeDisplay" class="text-5xl mb-2 drop-shadow-md">🏆</div>
                 <h3 id="newBadgeName" class="text-2xl font-bold text-gray-800"></h3>
             </div>
+            
             <button onclick="document.getElementById('levelUpModal').classList.add('hidden')" class="btn-primary w-full py-3 rounded-xl shadow-lg text-lg">איזה כיף!</button>
         </div>
     </div>
@@ -417,7 +420,7 @@
     <div id="shareModal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center animate-fade-in">
             <h2 class="text-2xl font-bold mb-2 text-gray-800">הזמן חבר</h2>
-            <p class="text-gray-500 mb-6 text-sm">שתף את הקהילה וצבור נקודות!</p>
+            <p class="text-gray-500 mb-6 text-sm">שתף את הקהילה עם חברים וצבור נקודות!</p>
             <div class="grid grid-cols-1 gap-3">
                 <button onclick="shareVia('whatsapp')" class="bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-bold shadow flex justify-center items-center gap-3 transition">
                     <i class="fa-brands fa-whatsapp text-2xl"></i> וואטסאפ
@@ -542,14 +545,14 @@
             filterCity: "",     
             filterForumCategory: "",
             
-            // מסנני צ'אט
+            // מסנני צ'אט - ברירת מחדל ריקה
             chatFilterName: "", 
             chatFilterCity: "", 
             chatFilterGender: "", 
             chatFilterOnline: false,
             
             data: { 
-                users: [], forums: [], activities: [], chats: [], helpRequests: [], reports: [], suggestions: [], sysCategories: [], systemAvatars: [], currentChatMessages: [] 
+                users: [], forums: [], activities: [], chats: [], helpRequests: [], reports: [], suggestions: [], sysCategories: [], currentChatMessages: [] 
             },
             params: {} 
         };
@@ -609,7 +612,7 @@
             } catch(e) { console.error("Points Error", e); }
         }
 
-        // --- ניהול נתונים מערכתיים ---
+        // --- ניהול קטגוריות דינמי ---
         async function ensureCategories() {
             const snap = await db.collection('sys_categories').get();
             if(snap.empty) {
@@ -617,48 +620,12 @@
                 for(const c of defaults) { await db.collection('sys_categories').add({name: c}); }
             }
         }
-
-        // --- פונקציה קריטית: אתחול אווטארים למערכת אם לא קיימים ---
-        async function ensureSystemAvatars() {
-            const snap = await db.collection('system_avatars').get();
-            if(snap.empty) {
-                const batch = db.batch();
-                DEFAULT_AVATARS.forEach(av => {
-                    const ref = db.collection('system_avatars').doc();
-                    batch.set(ref, av);
-                });
-                await batch.commit();
-            }
+        async function addCategory() { 
+            const n = prompt("שם הקטגוריה החדשה:"); 
+            if(n) await db.collection('sys_categories').add({name:n}); 
         }
-        
-        // הוספת אווטאר חדש ע"י אדמין (העלאת תמונה)
-        async function saveNewSystemAvatar() {
-            const name = document.getElementById('newAvName').value;
-            const gender = document.getElementById('newAvGender').value;
-            const fileInput = document.getElementById('newAvFile');
-            
-            if(!name || !fileInput.files[0]) return alert("נא למלא את כל השדות");
-            
-            const reader = new FileReader();
-            reader.onloadend = async () => {
-                const base64Url = reader.result;
-                try {
-                    await db.collection('system_avatars').add({
-                        name: name,
-                        gender: gender,
-                        url: base64Url // שמירת ה-Base64 ישירות
-                    });
-                    document.getElementById('addAvatarModal').classList.add('hidden');
-                    alert("אווטאר נוסף בהצלחה!");
-                } catch(e) {
-                    alert("שגיאה בהוספה: " + e.message);
-                }
-            };
-            reader.readAsDataURL(fileInput.files[0]);
-        }
-        
-        async function deleteSystemAvatar(id) {
-            if(confirm("למחוק אווטאר זה?")) await db.collection('system_avatars').doc(id).delete();
+        async function deleteCategory(id) { 
+            if(confirm("למחוק קטגוריה זו?")) await db.collection('sys_categories').doc(id).delete(); 
         }
 
         // --- הצעות ייעול ---
@@ -711,14 +678,13 @@
         }
 
         function getAvatar(name) {
-            // ברירת מחדל
+            if (name && name.startsWith('http')) return name;
             return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=c0aede&mood=happy`;
         }
 
         function getUserImage(user) {
             if (user && user.customImage) return user.customImage;
             const seed = user ? (user.avatarSeed || user.name) : 'User';
-            // אם זה URL (מהמערכת החדשה), נחזיר אותו. אחרת נבנה (לתמיכה לאחור)
             if (seed && (seed.startsWith('http') || seed.startsWith('data:image'))) return seed;
             return getAvatar(seed);
         }
@@ -733,7 +699,45 @@
         }
         setInterval(updatePresence, 60000); 
 
-        // --- תמונות יציבות ---
+        // --- פונקציה לדחיסת תמונה (חדש!) ---
+        function compressImage(file, maxWidth, quality, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = event => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // חישוב פרופורציות
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxWidth) {
+                            width *= maxWidth / height;
+                            height = maxWidth;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // המרה חזרה ל-Base64 עם דחיסה
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    callback(dataUrl);
+                }
+            }
+        }
+
+        // --- תמונות יציבות לפעילויות ופורומים ---
         function getActivityImage(category) {
             const map = {
                 'טיול': 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=400&fit=crop&q=80',
@@ -773,15 +777,59 @@
         async function editItem(col, id, txt, field, sub, pid) { const n=prompt("ערוך:",txt); if(n&&n!==txt) try{ (sub?db.collection(col).doc(pid).collection(sub).doc(id):db.collection(col).doc(id)).update({[field]:n}); } catch(e){alert(e.message)} }
         async function deleteItem(col, id, sub, pid) { if(confirm("למחוק?")) try{ (sub?db.collection(col).doc(pid).collection(sub).doc(id):db.collection(col).doc(id)).delete(); } catch(e){alert(e.message)} }
         async function toggleJoin(actId) { const a=store.data.activities.find(x=>x.id===actId); if(a) db.collection('activities').doc(actId).update({attendees: a.attendees.includes(store.user.uid)?firebase.firestore.FieldValue.arrayRemove(store.user.uid):firebase.firestore.FieldValue.arrayUnion(store.user.uid)}); }
-        async function initFixedForums() { if(confirm("ליצור מחדש את 4 הפורומים הקבועים?")) { const fs=[{t:"זכויות ומשפט", c:"זכויות ומשפט"},{t:"בריאות ואיכות חיים", c:"בריאות ואיכות חיים"},{t:"טכנולוגיה ודיגיטל", c:"טכנולוגיה ודיגיטל"},{t:"תרבות ופנאי", c:"תרבות ופנאי"}]; for(const f of fs) await db.collection('forums').add({title: f.t, category: f.c, description:"פורום בנושא "+f.t, creatorId:store.user.uid, isFixed:true, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); navigate('forums'); } }
+        async function initFixedForums() { if(confirm("ליצור מחדש?")) { const fs=[{t:"זכויות ומשפט", c:"זכויות ומשפט"},{t:"בריאות ואיכות חיים", c:"בריאות ואיכות חיים"},{t:"טכנולוגיה ודיגיטל", c:"טכנולוגיה ודיגיטל"},{t:"תרבות ופנאי", c:"תרבות ופנאי"}]; for(const f of fs) await db.collection('forums').add({title: f.t, category: f.c, description:"פורום בנושא "+f.t, creatorId:store.user.uid, isFixed:true, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); navigate('forums'); } }
 
-        // --- פרופיל (הלוגיקה המרכזית) ---
+        // --- פונקציה קריטית: אתחול אווטארים למערכת ---
+        async function ensureSystemAvatars() {
+            const snap = await db.collection('system_avatars').get();
+            if(snap.empty) {
+                const batch = db.batch();
+                DEFAULT_AVATARS.forEach(av => {
+                    const ref = db.collection('system_avatars').doc();
+                    batch.set(ref, av);
+                });
+                await batch.commit();
+            }
+        }
+        
+        // הוספת אווטאר חדש ע"י אדמין (עם דחיסה!)
+        async function saveNewSystemAvatar() {
+            const name = document.getElementById('newAvName').value;
+            const gender = document.getElementById('newAvGender').value;
+            const fileInput = document.getElementById('newAvFile');
+            
+            if(!name || !fileInput.files[0]) return alert("נא למלא את כל השדות");
+            
+            document.getElementById('compressStatus').classList.remove('hidden');
+            
+            // שימוש בדחיסה לפני העלאה
+            compressImage(fileInput.files[0], 400, 0.7, async (base64Url) => {
+                 try {
+                    await db.collection('system_avatars').add({
+                        name: name,
+                        gender: gender,
+                        url: base64Url 
+                    });
+                    document.getElementById('compressStatus').classList.add('hidden');
+                    document.getElementById('addAvatarModal').classList.add('hidden');
+                    alert("אווטאר נוסף בהצלחה!");
+                } catch(e) {
+                    alert("שגיאה בהוספה: " + e.message);
+                }
+            });
+        }
+        
+        async function deleteSystemAvatar(id) {
+            if(confirm("למחוק אווטאר זה?")) await db.collection('system_avatars').doc(id).delete();
+        }
+
+
+        // --- פרופיל (הלוגיקה המרכזית - מעודכן עם דחיסה) ---
         function openProfileModal() { 
             document.getElementById('editCity').value = store.user.city || '';
             document.getElementById('editGender').value = store.user.gender || 'male';
             document.getElementById('previewImg').src = getUserImage(store.user);
             
-            // טעינת האווטארים מתוך store.data.systemAvatars
             const grid = document.getElementById('avatarGrid');
             const avatars = store.data.systemAvatars || [];
             
@@ -800,7 +848,18 @@
             document.getElementById('profileModal').classList.remove('hidden'); 
         }
         function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
-        function handleImageUpload(i) { const f=i.files[0]; if(f){const r=new FileReader(); r.onloadend=()=>{store.tempImageBase64=r.result;document.getElementById('previewImg').src=r.result; document.getElementById('selectedAvatarUrl').value='';}; r.readAsDataURL(f);} }
+        
+        // העלאת תמונה אישית עם דחיסה
+        function handleImageUpload(i) { 
+            const f=i.files[0]; 
+            if(f){
+                compressImage(f, 400, 0.7, (base64) => {
+                     store.tempImageBase64 = base64;
+                     document.getElementById('previewImg').src = base64; 
+                     document.getElementById('selectedAvatarUrl').value = '';
+                });
+            } 
+        }
         
         window.selectAvatar = function(url, el) {
             document.getElementById('selectedAvatarUrl').value = url;
@@ -810,6 +869,8 @@
             el.classList.add('border-red-500', 'bg-red-50');
         }
         
+        function updatePreviewFromSelect() {}
+
         async function saveProfileChanges() { 
             const d={
                 city: document.getElementById('editCity').value, 
@@ -864,7 +925,7 @@
             }); 
             navigate('chatRoom'); 
         }
-        async function sendMessage(rid) { const t=store.chatDraft; if(!rid||!t.trim())return; store.chatDraft=""; store.showEmojiPicker=false; render(); const cid=[store.user.uid,rid].sort().join("_"); const r=store.data.users.find(u=>u.id===rid); await db.collection('chats').doc(cid).collection('messages').add({senderId:store.user.uid,content:t,timestamp:firebase.firestore.FieldValue.serverTimestamp(),read:false}); await db.collection('chats').doc(cid).set({participants:[store.user.uid,rid],participantNames:{[store.user.uid]:store.user.name,[rid]:r?r.name:'משתמש'},lastMessage:t,lastUpdated:firebase.firestore.FieldValue.serverTimestamp(),['unread_'+rid]:firebase.firestore.FieldValue.increment(1)},{merge:true}); }
+        async function sendMessage(rid) { const t=store.chatDraft; if(!rid||!t.trim())return; store.chatDraft=""; store.showEmojiPicker=false; render(); const cid=[store.user.uid,rid].sort().join("_"); const r=store.data.users.find(u=>u.id===rid); try { await db.collection('chats').doc(cid).collection('messages').add({senderId:store.user.uid,content:t,timestamp:firebase.firestore.FieldValue.serverTimestamp(),read:false}); await db.collection('chats').doc(cid).set({participants:[store.user.uid,rid],participantNames:{[store.user.uid]:store.user.name,[rid]:r?r.name:'משתמש'},lastMessage:t,lastUpdated:firebase.firestore.FieldValue.serverTimestamp(),['unread_'+rid]:firebase.firestore.FieldValue.increment(1)},{merge:true}); } catch(e){console.error(e)} }
 
         async function createPost(fid, t, c) { await db.collection('forums').doc(fid).collection('posts').add({title:t, content:c, creatorId:store.user.uid, creatorName:store.user.name, creatorAvatar:store.user.avatarSeed, createdAt:firebase.firestore.FieldValue.serverTimestamp(), replies:[]}); await db.collection('forums').doc(fid).update({postCount:firebase.firestore.FieldValue.increment(1), lastActivity:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10, 'post'); }
         async function addReply(fid, pid, txt) { if(!txt.trim())return; const r={id:Date.now().toString(),content:txt,creatorId:store.user.uid,creatorName:store.user.name,createdAt:new Date()}; await db.collection('forums').doc(fid).collection('posts').doc(pid).update({replies:firebase.firestore.FieldValue.arrayUnion(r)}); await db.collection('forums').doc(fid).update({lastActivity:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 1, 'reply'); store.openReplyId=null; }
@@ -872,7 +933,6 @@
         async function createActivity(d) { const has=store.data.activities.some(a=>a.creatorId===store.user.uid); if(has)return alert("רק פעילות אחת מותרת"); await db.collection('activities').add({...d, creatorId:store.user.uid, creatorName:store.user.name, attendees:[store.user.uid], createdAt:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10, 'act'); navigate('activities'); }
         async function createForum(cat, t, d) { if(!t||!d||!cat)return alert("חסר מידע"); await db.collection('forums').add({category:cat, title:t, description:d, creatorId:store.user.uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10, 'forum'); navigate('forums'); }
 
-        // --- טעינה ---
         function fetchData() {
             if(!store.user)return;
             ensureCategories();
@@ -926,17 +986,16 @@
 
         function renderContent() { switch(store.currentPage){ case 'home':return renderHome(); case 'activities':return renderActivities(); case 'forums':return renderForums(); case 'forumView':return renderForumView(); case 'chats':return renderChatsList(); case 'chatRoom':return renderChatRoom(); case 'help':return renderHelp(); case 'createHelp':return renderCreateHelp(); case 'admin':return renderAdminPanel(); default:return renderHome(); } }
 
-        function renderLogin() { return `<div class="min-h-screen flex items-center justify-center bg-red-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-red-500 text-center animate-fade-in"><div class="flex justify-center items-center gap-3 mb-4 transform scale-125">${BIG_LOGO_SVG}</div><h1 class="text-4xl font-bold text-red-600 mb-2">קהילת קשר</h1><p class="text-gray-500 mb-8">הבית החם של גיל הזהב</p><form onsubmit="event.preventDefault(); handleLogin(this.email.value, this.password.value)"><input type="email" name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה" required><button class="w-full btn-primary py-3 rounded-xl text-xl font-bold shadow-lg mt-4">כניסה</button></form><button onclick="resetPassword()" class="mt-4 text-sm text-gray-500 hover:underline block w-full">שכחתי סיסמה</button><button onclick="navigate('register')" class="mt-2 text-blue-600 font-medium hover:underline block w-full">אין לך חשבון? הירשם כאן</button></div></div>`; }
-        function renderRegister() { return `<div class="min-h-screen flex items-center justify-center bg-blue-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-500 animate-fade-in"><h1 class="text-3xl font-bold text-center text-blue-600 mb-6">הרשמה לקהילה</h1><form onsubmit="event.preventDefault(); handleRegister(this.name.value, this.email.value, this.password.value, this.city.value, this.dob.value, this.gender.value, this.referrer.value)"><input name="name" placeholder="שם מלא" required><input name="city" placeholder="עיר מגורים" required><label class="block text-right text-sm font-bold text-gray-600 mb-1">תאריך לידה:</label><input type="date" name="dob" required><select name="gender" required><option value="">מין...</option><option value="male">גבר</option><option value="female">אישה</option></select><input name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה (6 תווים לפחות)" required minlength="6"><input name="referrer" placeholder="מייל החבר שהזמין אותך (אופציונלי)"><button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">הירשם</button></form><button onclick="navigate('login')" class="w-full mt-4 text-gray-600 hover:underline">חזרה לכניסה</button></div></div>`; }
+        function renderLogin() { return `<div class="min-h-screen flex items-center justify-center bg-red-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-red-500 text-center animate-fade-in"><div class="flex justify-center items-center gap-3 mb-4 transform scale-125">${BIG_LOGO_SVG}</div><h1 class="text-4xl font-bold text-red-600 mb-2">קהילת קשר</h1><form onsubmit="event.preventDefault(); handleLogin(this.email.value, this.password.value)"><input type="email" name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה" required><button class="w-full btn-primary py-3 rounded-xl text-xl font-bold shadow-lg mt-4">כניסה</button></form><button onclick="resetPassword()" class="mt-4 text-sm text-gray-500 hover:underline block w-full">שכחתי סיסמה</button><button onclick="navigate('register')" class="mt-2 text-blue-600 font-medium hover:underline block w-full">אין לך חשבון? הירשם כאן</button></div></div>`; }
+        function renderRegister() { return `<div class="min-h-screen flex items-center justify-center bg-blue-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-500 animate-fade-in"><h1 class="text-3xl font-bold text-center text-blue-600 mb-6">הרשמה לקהילה</h1><form onsubmit="event.preventDefault(); handleRegister(this.name.value, this.email.value, this.password.value, this.city.value, this.dob.value, this.gender.value)"><input name="name" placeholder="שם מלא" required><input name="city" placeholder="עיר מגורים" required><label class="block text-right text-sm font-bold text-gray-600 mb-1">תאריך לידה:</label><input type="date" name="dob" required><select name="gender" required><option value="">מין...</option><option value="male">גבר</option><option value="female">אישה</option></select><input name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה (6 תווים לפחות)" required minlength="6"><button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-4">הירשם</button></form><button onclick="navigate('login')" class="w-full mt-4 text-gray-600 hover:underline">חזרה לכניסה</button></div></div>`; }
         
         async function handleLogin(e,p) { try{await auth.signInWithEmailAndPassword(e,p)}catch(err){alert("שגיאה: "+err.message)} }
-        async function handleRegister(n,e,p,c,dob,g,refEmail) { try{const r=await auth.createUserWithEmailAndPassword(e,p); await db.collection('users').doc(r.user.uid).set({name:n,email:e,city:c,dob:dob,gender:g,avatarSeed:'Felix',points:0,joinDate:firebase.firestore.FieldValue.serverTimestamp(),isActive:true,role:e===MASTER_ADMIN_EMAIL?'admin':'user'}); if(refEmail){const q=await db.collection('users').where('email','==',refEmail).get(); if(!q.empty) addPoints(q.docs[0].id, 40, 'ref');} }catch(err){alert("שגיאה: "+err.message)} }
+        async function handleRegister(n,e,p,c,dob,g,refEmail) { try{const r=await auth.createUserWithEmailAndPassword(e,p); await db.collection('users').doc(r.user.uid).set({name:n,email:e,city:c,dob:dob,gender:g,avatarSeed:'Felix',points:0,joinDate:firebase.firestore.FieldValue.serverTimestamp(),isActive:true});}catch(err){alert("שגיאה: "+err.message)} }
         function handleLogout() { auth.signOut(); navigate('login'); }
         async function resetPassword() { const e=prompt("מייל:"); if(e)try{await auth.sendPasswordResetEmail(e.trim());alert("נשלח! (בדוק ספאם)");}catch(err){alert("בקשה נשלחה");} }
 
         function renderHeader() {
             const u=store.user; const badge=getUserBadge(u.points||0); const adminAlerts=(store.data.reports?.length||0)+(store.data.suggestions?.length||0);
-            
             return `<header class="bg-white shadow-md fixed top-0 left-0 right-0 z-40 h-24 flex items-center justify-center max-w-[1024px] mx-auto w-full px-4">
                 <div class="flex justify-between items-center w-full">
                     
@@ -965,7 +1024,9 @@
                         
                         ${u.role==='admin' ? `<div class="header-bubble relative" onclick="navigate('admin')"><i class="fa-solid fa-shield-halved header-icon text-gray-800"></i><span class="header-text text-gray-600">ניהול</span>${adminAlerts>0?`<span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">${adminAlerts}</span>`:''}</div>` : ''}
                         
-                        <button onclick="handleLogout()" class="text-red-500 text-2xl px-2 hover:text-red-700" title="יציאה"><i class="fa-solid fa-right-from-bracket"></i></button>
+                        <button onclick="handleLogout()" class="text-red-500 text-2xl px-2 hover:text-red-700" title="יציאה">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
                     </div>
                 </div>
             </header>`;
