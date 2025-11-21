@@ -33,7 +33,6 @@
             --nav-height: 80px;       
         }
         
-        /* הגדרות בסיס */
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
@@ -74,7 +73,7 @@
             flex-direction: column;
         }
 
-        /* --- רכיבים --- */
+        /* רכיבים */
         .btn-primary {
             background-color: var(--primary);
             color: white;
@@ -112,7 +111,7 @@
         .text-overlay { text-shadow: 0 2px 4px rgba(0,0,0,0.8); color: white; }
         .gradient-overlay { background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%); }
         
-        /* --- לוגו --- */
+        /* לוגו */
         .logo-container { 
             position: relative; 
             width: 45px; 
@@ -125,7 +124,7 @@
         .logo-heart { font-size: 42px; color: #E63946; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
         .logo-hands { position: absolute; font-size: 22px; color: white; top: 52%; left: 50%; transform: translate(-50%, -50%); }
 
-        /* --- בועות Header --- */
+        /* בועות Header */
         .header-bubble {
             background-color: var(--bubble-bg);
             border: 1px solid #e5e7eb;
@@ -158,13 +157,13 @@
                 padding: 2px;
             }
             .header-icon { font-size: 1rem; margin-bottom: 0; }
-            .header-text { display: none; } /* הסתרת טקסט במובייל */
+            .header-text { display: none; } 
             .badge-text { font-size: 0.45rem; padding: 0 2px; max-width: 45px; margin-top: 1px; }
             .app-title-text { display: none; }
             .content-area { padding: 0.5rem; }
         }
 
-        /* --- צ'אט --- */
+        /* צ'אט */
         .chat-split-container {
             display: flex;
             width: 100%;
@@ -193,7 +192,6 @@
             height: 100%;
         }
 
-        /* תיקון צ'אט במובייל - עולה על הכל */
         @media (max-width: 768px) {
             .chat-sidebar {
                 width: 100%;
@@ -269,7 +267,7 @@
         .nav-item i { font-size: 1.5rem; margin-bottom: 4px; }
         .nav-item span { font-size: 0.75rem; font-weight: bold; }
         
-        /* כותרת עליונה - תיקון סימטריה */
+        /* --- תיקון הדר קריטי לסימטריה ומונע חפיפה --- */
         #main-header {
             position: fixed;
             top: 0;
@@ -282,20 +280,43 @@
             max-width: 1024px;
             margin: 0 auto;
             display: flex;
-            justify-content: space-between; /* חשוב */
             align-items: center;
-            padding: 0 1rem;
+            justify-content: space-between; /* הבסיס לפריסה */
+            padding: 0 8px;
         }
         
-        /* חלוקה ל-3 חלקים שווים לכותרת */
-        .header-part {
-            width: 33%;
+        /* קבוצות צדדיות */
+        .header-side-group {
             display: flex;
             align-items: center;
+            gap: 4px; 
+            z-index: 20; /* מעל הלוגו אם יש חפיפה */
+            flex: 1; /* תופס מקום */
         }
-        .header-part.left { justify-content: flex-end; }
-        .header-part.right { justify-content: flex-start; }
-        .header-part.center { justify-content: center; }
+        
+        /* קבוצה ימנית */
+        .header-side-group.right {
+            justify-content: flex-start;
+        }
+        
+        /* קבוצה שמאלית */
+        .header-side-group.left {
+            justify-content: flex-end;
+        }
+
+        /* הלוגו - ממורכז אבסולוטית כדי להיות תמיד באמצע */
+        .header-center-logo {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+        }
 
     </style>
 </head>
@@ -819,14 +840,13 @@
         window.updateDraft = function(v) { store.chatDraft=v; }
         function toggleEmojiPicker() { store.showEmojiPicker=!store.showEmojiPicker; render(); }
         
-        // *** התיקון הקריטי לסינון עיר ***
+        // *** תיקון סינון (במקום רנדור מלא) ***
         function updateChatListOnly() {
             const listContainer = document.querySelector('.chat-sidebar .flex-1');
-            if (!listContainer) return; // Safety check
+            if (!listContainer) return; 
 
             let filteredUsers = store.data.users.filter(u => u.id !== store.user.uid);
             
-            // Filter logic
             if (store.chatFilterName) filteredUsers = filteredUsers.filter(u => u.name.toLowerCase().includes(store.chatFilterName.toLowerCase()));
             if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city && u.city.includes(store.chatFilterCity));
             if (store.chatFilterGender && store.chatFilterGender !== "" && store.chatFilterGender !== "all") {
@@ -837,7 +857,6 @@
                 filteredUsers = filteredUsers.filter(u => u.lastSeen && u.lastSeen.toDate() > fiveMinAgo);
             }
             
-            // Sort
             filteredUsers.sort((a, b) => {
                 const chatA = store.data.chats.find(c => c.participants.includes(a.id));
                 const chatB = store.data.chats.find(c => c.participants.includes(b.id));
@@ -846,7 +865,6 @@
                 return unreadB - unreadA;
             });
 
-            // Generate HTML for list only
             const listHTML = filteredUsers.length === 0 ? '<p class="text-center text-gray-500 text-sm mt-4">לא נמצאו משתמשים</p>' : 
                 filteredUsers.map(u => {
                     const chat = store.data.chats.find(c => c.participants.includes(u.id));
@@ -1017,7 +1035,7 @@
         function renderRegister() { 
             const avatars = store.data.systemAvatars.length > 0 ? store.data.systemAvatars : DEFAULT_AVATARS;
             return `
-            <div class="min-h-screen flex items-center justify-center bg-blue-50 p-4 overflow-y-auto">
+            <div class="min-h-screen flex flex-col items-center justify-start bg-blue-50 p-4 overflow-y-auto pt-10 pb-10">
                 <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-500 animate-fade-in my-4">
                     <h1 class="text-3xl font-bold text-center text-blue-600 mb-4">הרשמה לקהילה</h1>
                     <form onsubmit="event.preventDefault(); handleRegister(this.name.value, this.email.value, this.password.value, this.city.value, this.dob.value, this.gender.value, this.referrer.value)">
@@ -1063,7 +1081,7 @@
             const adminAlerts = (store.data.reports?.length||0) + (store.data.suggestions?.length||0);
             
             return `<div class="flex justify-between items-center w-full h-full px-2">
-                    <div class="header-part right gap-2">
+                    <div class="header-side-group right gap-2">
                          <div class="header-bubble" onclick="document.getElementById('suggestionModal').classList.remove('hidden')">
                             <i class="fa-regular fa-lightbulb header-icon text-yellow-600"></i>
                             <span class="header-text text-gray-600">הצעות</span>
@@ -1075,14 +1093,14 @@
                         </div>
                     </div>
 
-                    <div class="header-part center">
+                    <div class="header-center-logo">
                         <div class="flex flex-col items-center justify-center cursor-pointer" onclick="window.location.reload()">
                             ${LOGO_SVG}
                             <span class="text-sm font-bold text-gray-700 mt-1 app-title-text">קהילת קשר</span>
                         </div>
                     </div>
 
-                    <div class="header-part left gap-2">
+                    <div class="header-side-group left gap-2">
                         <div class="header-bubble" onclick="openProfileModal()">
                             <div class="w-8 h-8 rounded-full overflow-hidden border border-gray-300 header-icon mx-auto mb-1"><img src="${getUserImage(u)}" class="profile-img"></div>
                             <span class="header-text text-gray-600">פרופיל</span>
