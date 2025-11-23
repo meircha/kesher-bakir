@@ -20,10 +20,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
     <style>
-        /* ========================================= */
-        /* הגדרות עיצוב (CSS) - הגרסה המלאה והמתוקנת */
-        /* ========================================= */
-
         :root {
             --primary: #E63946;       
             --primary-hover: #C81D2A; 
@@ -64,7 +60,7 @@
             overflow-y: auto;       
             -webkit-overflow-scrolling: touch; 
             height: calc(100vh - var(--header-height) - var(--nav-height));
-            padding-bottom: 100px; /* מרווח ביטחון בתחתית */
+            padding-bottom: 120px;
         }
 
         .content-area.chat-mode {
@@ -74,7 +70,6 @@
             flex-direction: column;
         }
 
-        /* כפתורים */
         .btn-primary {
             background-color: var(--primary);
             color: white;
@@ -96,7 +91,6 @@
             display: block;
         }
         
-        /* עזרים */
         .hidden { display: none !important; }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -107,8 +101,8 @@
         .card-img { object-fit: cover; width: 100%; height: 100%; transition: transform 0.3s; }
         .card-hover:hover .card-img { transform: scale(1.05); }
         .gradient-overlay { background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%); }
-        
-        /* לוגו */
+        .text-overlay { text-shadow: 0 2px 4px rgba(0,0,0,0.8); color: white; }
+
         .logo-container { 
             position: relative; width: 45px; height: 45px; 
             display: flex; align-items: center; justify-content: center; 
@@ -118,7 +112,6 @@
         .logo-heart { font-size: 42px; color: #E63946; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
         .logo-hands { position: absolute; font-size: 22px; color: white; top: 52%; left: 50%; transform: translate(-50%, -50%); }
 
-        /* Header Styles */
         .header-bubble {
             background-color: var(--bubble-bg);
             border: 1px solid #e5e7eb;
@@ -142,7 +135,7 @@
             .content-area { padding: 0.5rem; }
         }
 
-        /* משחקים CSS */
+        /* --- משחקים CSS --- */
         .game-card {
             background: white; border-radius: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s;
@@ -150,41 +143,45 @@
         }
         .game-card:hover { transform: translateY(-5px); border-color: var(--primary); }
 
-        /* סודוקו - עם גבולות 3X3 */
+        /* סודוקו - גבולות 3X3 */
         .sudoku-board { 
             display: grid; grid-template-columns: repeat(9, 1fr); gap: 0; 
             background: #1D3557; border: 4px solid #1D3557; margin: 0 auto; max-width: 350px;
         }
         .sudoku-cell {
             background: white; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; font-weight: bold; cursor: pointer; border: 1px solid #e5e7eb;
+            font-size: 1.2rem; font-weight: bold; cursor: pointer; border: 1px solid #e5e7eb; position: relative;
         }
-        /* הדגשת גבולות 3x3 */
         .sudoku-cell:nth-child(3n) { border-right: 3px solid #1D3557; }
         .sudoku-cell:nth-child(9n) { border-right: 1px solid #e5e7eb; } 
-        .sudoku-row-end { border-bottom: 3px solid #1D3557; }
+        /* גבול תחתון לשורות 3 ו-6 - שימוש ב-nth-child מחושב */
+        .sudoku-cell:nth-child(n+19):nth-child(-n+27),
+        .sudoku-cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 3px solid #1D3557;
+        }
+        .sudoku-cell input { width: 100%; height: 100%; text-align: center; border: none; outline: none; font-size: 1.2rem; padding: 0; color: #1D3557; background: transparent; }
+        .sudoku-cell.fixed { background: #f3f4f6; color: #333; pointer-events: none; }
+        .sudoku-cell.error input { color: red; }
 
-        .sudoku-cell input { width: 100%; height: 100%; text-align: center; border: none; outline: none; font-size: 1.2rem; padding: 0; color: #1D3557; }
-        .sudoku-cell.fixed { background: #f0f0f0; color: #333; pointer-events: none; }
-
-        /* תפזורת - עם סימון */
+        /* תפזורת */
         .word-search-grid {
             display: grid; gap: 2px; margin: 0 auto; max-width: 350px;
             background: #e5e7eb; padding: 2px; user-select: none;
         }
         .ws-cell {
             background: white; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-            font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: background 0.1s;
+            font-weight: bold; cursor: pointer; font-size: 1.2rem; transition: background 0.1s;
         }
-        .ws-cell.selected { background: #93c5fd; color: #1e3a8a; } 
+        .ws-cell.selected { background: #93c5fd !important; color: #1e3a8a; } 
         .ws-cell.found { background: #86efac !important; color: #064e3b; } 
-        .ws-word.found { text-decoration: line-through; color: #22c55e; font-weight: bold; opacity: 0.6; }
+        .ws-word { padding: 4px 8px; background: #f3f4f6; border-radius: 4px; font-size: 0.9rem; border: 1px solid #e5e7eb; }
+        .ws-word.found { text-decoration: line-through; color: #22c55e; background: #dcfce7; border-color: #86efac; }
 
         /* זיכרון */
         .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 350px; margin: 20px auto; }
         .memory-card {
             aspect-ratio: 1; background: #E63946; border-radius: 8px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white;
+            display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: white;
             transition: transform 0.3s; transform-style: preserve-3d;
         }
         .memory-card.flipped { background: white; border: 2px solid #E63946; transform: rotateY(180deg); }
@@ -262,7 +259,7 @@
         <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-blue-500">
             <div class="text-6xl mb-4 flex justify-center"><div class="relative w-16 h-16 flex items-center justify-center"><i class="fa-solid fa-heart text-[#E63946] text-6xl"></i><i class="fa-solid fa-handshake text-white absolute text-2xl" style="top: 50%; left: 50%; transform: translate(-50%, -50%);"></i></div></div>
             <h2 class="text-2xl font-bold mb-2">התקן את האפליקציה!</h2>
-            <p class="text-gray-600 mb-6">לגישה מהירה ונוחה, הוסף את קהילת קשר למסך הבית.</p>
+            <p class="text-gray-600 mb-6">לגישה מהירה, הוסף למסך הבית.</p>
             <div class="flex gap-3"><button onclick="document.getElementById('installModal').classList.add('hidden')" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold">לא עכשיו</button><button onclick="installPWA()" class="flex-1 btn-primary py-3 rounded-xl font-bold shadow-lg">התקן</button></div>
         </div>
     </div>
@@ -283,10 +280,8 @@
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center animate-fade-in border-t-8 border-yellow-400">
             <div class="text-6xl mb-4 animate-bounce">🏆</div>
             <h2 class="text-3xl font-extrabold text-gray-800 mb-2">כל הכבוד!</h2>
-            <p class="text-lg text-gray-600 mb-6">הצלחת לסיים את המשחק בהצלחה!</p>
-            <div class="bg-yellow-50 p-4 rounded-xl mb-4">
-                <span class="text-2xl font-bold text-yellow-600">+5 נקודות</span>
-            </div>
+            <p class="text-lg text-gray-600 mb-6">סיימת את המשחק בהצלחה!</p>
+            <div class="bg-yellow-50 p-4 rounded-xl mb-4"><span class="text-2xl font-bold text-yellow-600">+5 נקודות</span></div>
             <button onclick="navigate('games'); document.getElementById('gameWinModal').classList.add('hidden')" class="btn-primary w-full py-3 rounded-xl shadow-lg">חזור למשחקים</button>
         </div>
     </div>
@@ -305,7 +300,7 @@
     </div>
 
     <div id="birthdayModal" class="hidden fixed inset-0 bg-black/80 z-[12000] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-pink-500"><div class="text-6xl mb-4">🎂</div><h2 class="text-4xl font-extrabold text-pink-600 mb-2">מזל טוב!</h2><p class="text-lg text-gray-600 mb-6">יום הולדת שמח! קבל מתנה מאיתנו:</p><div class="bg-pink-50 p-6 rounded-2xl mb-6 border border-pink-200"><div class="text-5xl font-black text-pink-500 my-2">+20</div><p class="text-sm text-gray-500">נקודות לחשבונך</p></div><button onclick="closeBirthdayModal()" class="btn-primary w-full py-3 rounded-xl shadow-lg text-lg bg-pink-500 hover:bg-pink-600">תודה רבה!</button></div>
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-pink-500"><div class="text-6xl mb-4">🎂</div><h2 class="text-4xl font-extrabold text-pink-600 mb-2">מזל טוב!</h2><p class="text-lg text-gray-600 mb-6">יום הולדת שמח! קבל מתנה:</p><div class="bg-pink-50 p-6 rounded-2xl mb-6 border border-pink-200"><div class="text-5xl font-black text-pink-500 my-2">+20</div><p class="text-sm text-gray-500">נקודות לחשבונך</p></div><button onclick="closeBirthdayModal()" class="btn-primary w-full py-3 rounded-xl shadow-lg text-lg bg-pink-500 hover:bg-pink-600">תודה רבה!</button></div>
     </div>
 
     <div id="suggestionModal" class="hidden fixed inset-0 bg-black/60 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm">
@@ -357,12 +352,11 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // State Management
+        // State
         const store = {
             user: null, currentPage: 'loading', tempImageBase64: null, registerAvatar: null, registerCustomImage: null, currentChatTargetId: null, showEmojiPicker: false, openReplyId: null, chatDraft: "",
             filterCategory: "", filterCity: "", filterForumCategory: "",
             chatFilterName: "", chatFilterCity: "", chatFilterGender: "", chatFilterOnline: false,
-            // Games State
             currentGameType: null, gameLevel: null, memoryCards: [], flippedCards: [], matchedPairs: 0, 
             sudokuBoard: [], sudokuSolution: [], wsGrid: [], wsWords: [], wsSelection: [], wsFoundWords: [],
             data: { users: [], forums: [], activities: [], chats: [], helpRequests: [], reports: [], suggestions: [], sysCategories: [], systemAvatars: [], currentChatMessages: [] },
@@ -520,7 +514,6 @@
             }
         }
 
-        // --- תמונות ---
         function getActivityImage(category) {
             const map = { 'טיול': 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=400&fit=crop&q=80', 'ספורט': 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop&q=80', 'הרצאה': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600&h=400&fit=crop&q=80', 'ארוחה': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop&q=80', 'משחקי חברה': 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=600&h=400&fit=crop&q=80', 'אחר': 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&h=400&fit=crop&q=80' };
             return map[category] || map['אחר'];
@@ -543,8 +536,16 @@
             document.getElementById('shareModal').classList.add('hidden');
         }
 
-        // --- פעולות ---
-        async function updateUserRole(uid, role) { if(uid===store.user.uid)return alert("לא ניתן לשנות לעצמך"); try{await db.collection('users').doc(uid).update({role});alert("עודכן");}catch(e){alert("שגיאה: הרשאות חסרות");} }
+        async function updateUserRole(uid, role) { 
+            if(uid===store.user.uid) return alert("לא ניתן לשנות לעצמך"); 
+            try{
+                await db.collection('users').doc(uid).update({role});
+                alert("עודכן בהצלחה!");
+            }catch(e){
+                console.error("Error updating role:", e);
+                alert("שגיאה בעדכון: ייתכן שאין לך הרשאות מתאימות ב-Firebase Rules.\n" + e.message);
+            } 
+        }
         
         async function approveUser(uid) {
             if(confirm("לאשר משתמש זה?")) {
@@ -568,7 +569,7 @@
         
         async function deleteItem(col, id, sub, pid) { 
             if (col === 'users') {
-                if(!confirm("⚠️ שים לב!\nמחיקת המשתמש תסיר את כל הפרטים שלו מהאפליקציה. האם למחוק?")) return;
+                if(!confirm("⚠️ שים לב!\nמחיקת המשתמש תסיר את כל הפרטים שלו מהאפליקציה, אבל המייל שלו עדיין רשום במערכת האבטחה של גוגל.\n\nכדי שהוא יוכל להירשם שוב עם אותו מייל, חובה למחוק אותו ידנית גם ב-Firebase Console (Authentication).\n\nהאם למחוק מהאפליקציה?")) return;
             } else {
                 if(!confirm("למחוק?")) return;
             }
@@ -891,12 +892,12 @@
         async function addReply(fid, pid, txt) { if(!txt.trim())return; const r={id:Date.now().toString(),content:txt,creatorId:store.user.uid,creatorName:store.user.name,createdAt:new Date()}; await db.collection('forums').doc(fid).collection('posts').doc(pid).update({replies:firebase.firestore.FieldValue.arrayUnion(r)}); await db.collection('forums').doc(fid).update({lastActivity:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 1, 'reply'); store.openReplyId=null; }
         function toggleReplyBox(pid) { store.openReplyId=store.openReplyId===pid?null:pid; render(); }
         
-        // Fixed createActivity - date format
+        // תיקון קריטי: המרת תאריך לפעילות חדשה
         async function createActivity(d) { 
             try {
                 const activityData = {
                     ...d,
-                    date: new Date(d.date).toISOString(), // Ensure ISO format
+                    date: new Date(d.date).toISOString(), 
                     creatorId: store.user.uid, 
                     creatorName: store.user.name, 
                     attendees: [], 
@@ -909,6 +910,14 @@
         }
         
         async function createForum(cat, t, d) { if(!t||!d||!cat)return alert("חסר מידע"); await db.collection('forums').add({category:cat, title:t, description:d, creatorId:store.user.uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10, 'forum'); navigate('forums'); }
+        
+        // השעיה
+        async function suspendUser(uid, currentStatus) {
+            if(confirm(currentStatus ? "להשעות משתמש זה?" : "להפעיל מחדש משתמש זה?")) {
+                await db.collection('users').doc(uid).update({isActive: !currentStatus});
+                alert("סטטוס עודכן!");
+            }
+        }
 
         // --- GAMES LOGIC ---
         function openGameLevelModal(type) {
@@ -930,8 +939,7 @@
             else if (store.currentGameType === 'wordsearch') initWordSearch(level);
             
             navigate('playGame');
-            // Force render to show game immediately
-            render();
+            render(); // תיקון: רינדור מיידי
         }
 
         // Memory
@@ -950,26 +958,32 @@
         function flipCard(id) {
             let card = store.memoryCards.find(c => c.id === id);
             if (card.flipped || card.matched || store.flippedCards.length >= 2) return;
+            
             card.flipped = true;
             store.flippedCards.push(card);
             render();
+
             if (store.flippedCards.length === 2) {
                 setTimeout(() => {
                     const [c1, c2] = store.flippedCards;
                     if (c1.icon === c2.icon) {
-                        c1.matched = true; c2.matched = true; store.matchedPairs++;
+                        c1.matched = true; c2.matched = true;
+                        store.matchedPairs++;
                         if (store.matchedPairs === store.memoryCards.length / 2) {
                             addPoints(store.user.uid, 5);
                             document.getElementById('gameWinModal').classList.remove('hidden');
                         }
-                    } else { c1.flipped = false; c2.flipped = false; }
+                    } else {
+                        c1.flipped = false;
+                        c2.flipped = false;
+                    }
                     store.flippedCards = [];
                     render();
                 }, 1000);
             }
         }
 
-        // Sudoku Logic
+        // Sudoku
         function initSudokuGame(level) {
             const solved = [
                 [5,3,4,6,7,8,9,1,2], [6,7,2,1,9,5,3,4,8], [1,9,8,3,4,2,5,6,7],
@@ -1004,13 +1018,12 @@
             }
         }
 
-        // Word Search Logic
+        // Word Search
         function initWordSearch(level) {
             store.wsWords = ["אהבה", "שמחה", "בריאות", "נחת", "תקווה", "שלום"];
             const size = 10;
             let grid = Array(size).fill().map(() => Array(size).fill(''));
             
-            // Simple placement (horizontal/vertical only for stability)
             store.wsWords.forEach(word => {
                 let placed = false;
                 let attempts = 0;
@@ -1019,9 +1032,7 @@
                     let r = Math.floor(Math.random() * size);
                     let c = Math.floor(Math.random() * size);
                     if (dir === 'H' && c + word.length <= size) {
-                         let clear = true;
-                         for(let i=0; i<word.length; i++) if(grid[r][c+i] !== '') clear = false;
-                         if (clear) {
+                         if (grid[r].slice(c, c+word.length).every(char => char === '')) {
                              for(let i=0; i<word.length; i++) grid[r][c+i] = word[i];
                              placed = true;
                          }
@@ -1059,31 +1070,29 @@
         }
         
         function checkWordSearch() {
-            // Check if selection forms a word (basic check)
-            let selectedChars = store.wsSelection.map(id => {
-                const [r, c] = id.split('-').map(Number);
-                return store.wsGrid[r][c];
-            }).join('');
-            
-            const reversed = selectedChars.split('').reverse().join('');
-            
-            if (store.wsWords.includes(selectedChars) || store.wsWords.includes(reversed)) {
-                 const word = store.wsWords.includes(selectedChars) ? selectedChars : reversed;
-                 if (!store.wsFoundWords.includes(word)) {
-                     store.wsFoundWords.push(word);
-                     store.wsSelection.forEach(id => {
-                         const [r, c] = id.split('-');
-                         // Find cell by data attributes or re-render approach
-                     });
-                     alert(`מצאת את המילה: ${word}!`);
-                     store.wsSelection = []; // Clear selection after find
-                     // In real app, mark cells as found permanently
+            if (store.wsSelection.length > 0) {
+                 const potentialWord = store.wsSelection.map(id => {
+                    const [r, c] = id.split('-').map(Number);
+                    return store.wsGrid[r][c];
+                 }).join('');
+                 
+                 const reversed = potentialWord.split('').reverse().join('');
+                 
+                 if (store.wsWords.includes(potentialWord) || store.wsWords.includes(reversed)) {
+                      const word = store.wsWords.includes(potentialWord) ? potentialWord : reversed;
+                      if (!store.wsFoundWords.includes(word)) {
+                          store.wsFoundWords.push(word);
+                          alert(`מצאת את המילה: ${word}!`);
+                          store.wsSelection = [];
+                          render();
+                          return;
+                      }
                  }
-            } else {
-                alert("לא נמצאה מילה (סמן ברצף)");
-                store.wsSelection = [];
             }
+            
+            store.wsSelection = [];
             render();
+            alert("נסה שוב (סמן אותיות ברצף)");
         }
 
 
@@ -1284,7 +1293,7 @@
 
                     <div class="relative z-10 max-w-lg text-center md:text-right w-full flex flex-col items-center md:items-start">
                         <h2 class="text-3xl font-bold mb-2 pr-2">שלום, ${u.name.split(' ')[0]}</h2>
-                        <div class="flex flex-wrap gap-3 items-center justify-center md:justify-start mt-2">
+                        <div class="flex flex-wrap gap-3 items-center justify-center md:justify-start mt-1">
                             <div class="bg-white/20 backdrop-blur p-2 rounded-lg text-sm"><i class="fa-solid fa-lightbulb text-yellow-300"></i> טיפ: ${tip}</div>
                             <button onclick="openShareModal()" class="bg-white text-red-600 px-3 py-2 rounded-lg font-bold shadow hover:bg-gray-100 flex items-center gap-2 text-sm"><i class="fa-solid fa-share-nodes"></i> הזמן חבר</button>
                         </div>
@@ -1310,15 +1319,12 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         ${featuredForums.map(f => `
-                            <div onclick="navigate('forumView', {forumId: '${f.id}', title: '${f.title}'})" class="bg-white rounded-xl shadow-md cursor-pointer flex flex-col h-full relative border-b-4 border-blue-400 overflow-hidden group">
-                                <div class="h-28 bg-gray-200 relative overflow-hidden">
+                            <div onclick="navigate('forumView', {forumId: '${f.id}', title: '${f.title}'})" class="bg-white rounded-xl shadow-md cursor-pointer flex flex-col h-full relative border-b-4 border-blue-400 p-3">
+                                <div class="h-28 bg-gray-200 relative mb-2 rounded-lg overflow-hidden">
                                     <img src="${getForumImage(f.category||f.title)}" class="card-img">
-                                    <div class="absolute bottom-0 w-full p-2 gradient-overlay text-overlay font-bold">${f.title}</div>
                                 </div>
-                                <div class="p-3 flex-1">
-                                    <p class="text-gray-500 text-sm truncate">${f.description}</p>
-                                    <span class="text-[10px] bg-blue-100 text-blue-800 px-2 rounded mt-2 inline-block">${f.category||'כללי'}</span>
-                                </div>
+                                <h4 class="font-bold text-gray-800">${f.title}</h4>
+                                <p class="text-gray-500 text-sm truncate">${f.description}</p>
                             </div>
                         `).join('')}
                     </div>
@@ -1436,7 +1442,7 @@
                         ${store.sudokuBoard.map((row, r) => row.map((val, c) => `
                             <div class="bg-white flex items-center justify-center relative 
                                 ${(c+1)%3===0 && c!==8 ? 'border-r-2 border-gray-800' : ''} 
-                                ${(r+1)%3===0 && r!==8 ? 'sudoku-row-end' : ''}">
+                                ${(r+1)%3===0 && r!==8 ? 'border-b-2 border-gray-800' : ''}">
                                 ${val !== 0 
                                     ? `<span class="font-bold text-lg text-black">${val}</span>` 
                                     : `<input type="tel" maxlength="1" class="w-full h-full text-center text-blue-600 font-bold text-lg p-0 m-0 border-none focus:bg-blue-50 outline-none" 
@@ -1717,8 +1723,7 @@
         function renderAdminPanel() {
             if (store.user.role !== 'admin' && store.user.role !== 'senior') { setTimeout(() => navigate('home'), 0); return ''; }
             const isAdmin = store.user.role === 'admin';
-            const pendingUsers = store.data.users.filter(u => !u.isActive);
-
+            
             const avatarManager = `
                 <div class="bg-white p-6 rounded-2xl shadow-xl mt-6">
                     <h3 class="text-2xl font-bold text-red-600 mb-4"><i class="fa-solid fa-images"></i> ניהול אווטארים</h3>
@@ -1740,25 +1745,27 @@
                 <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg flex justify-between items-center">
                     <h2 class="text-2xl font-bold">ניהול מערכת</h2>
                 </div>
-                ${pendingUsers.length > 0 ? `
-                <div class="bg-orange-50 border border-orange-200 rounded-xl shadow overflow-hidden">
-                    <div class="bg-orange-100 p-4 font-bold text-orange-800 border-b border-orange-200">משתמשים ממתינים לאישור (${pendingUsers.length})</div>
-                    <div class="divide-y">
-                        ${pendingUsers.map(u => `
-                            <div class="p-4 flex justify-between items-center hover:bg-orange-50">
-                                <div><p class="font-bold">${u.name}</p><p class="text-xs text-gray-600">${u.email} | ${u.city}</p></div>
-                                <div class="flex gap-2"><button onclick="approveUser('${u.id}')" class="bg-green-500 text-white px-3 py-1 rounded shadow">אשר</button><button onclick="deleteItem('users', '${u.id}')" class="bg-red-500 text-white px-3 py-1 rounded shadow">דחה</button></div>
+                
+                <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-red-500">
+                    <div class="bg-gray-100 p-4 font-bold border-b flex justify-between">
+                        <span><i class="fa-solid fa-triangle-exclamation text-red-500"></i> דיווחים</span>
+                        <span class="bg-red-100 text-red-600 px-2 rounded text-xs">${store.data.reports ? store.data.reports.length : 0}</span>
+                    </div>
+                    <div class="divide-y max-h-64 overflow-y-auto">
+                        ${(store.data.reports || []).map(r => `
+                            <div class="p-4 hover:bg-gray-50 text-sm">
+                                <p class="font-bold text-red-700">דיווח על ${r.type === 'chat' ? 'צ\'אט' : 'פורום'}</p>
+                                <p class="text-gray-800 mt-1">"${r.content}"</p>
+                                <div class="flex justify-between mt-2 text-xs text-gray-500">
+                                    <span>מדווח: ${r.reporterName} | על: ${r.reportedUserName}</span>
+                                    <button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline">מחק</button>
+                                </div>
                             </div>
                         `).join('')}
-                    </div>
-                </div>` : ''}
-                <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-red-500">
-                    <div class="bg-gray-100 p-4 font-bold border-b flex justify-between"><span><i class="fa-solid fa-triangle-exclamation text-red-500"></i> דיווחים</span><span class="bg-red-100 text-red-600 px-2 rounded text-xs">${store.data.reports ? store.data.reports.length : 0}</span></div>
-                    <div class="divide-y max-h-64 overflow-y-auto">
-                        ${(store.data.reports || []).map(r => `<div class="p-4 hover:bg-gray-50 text-sm"><p class="font-bold text-red-700">דיווח</p><p class="text-gray-800 mt-1">"${r.content}"</p><div class="flex justify-between mt-2 text-xs text-gray-500"><span>מדווח: ${r.reporterName}</span><button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline">מחק</button></div></div>`).join('')}
+                        ${(!store.data.reports || store.data.reports.length === 0) ? '<div class="p-4 text-gray-500 text-center">אין דיווחים חדשים.</div>' : ''}
                     </div>
                 </div>
-                
+
                 <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-purple-500">
                     <div class="bg-gray-100 p-4 font-bold border-b">הצעות ייעול (${store.data.suggestions ? store.data.suggestions.length : 0})</div>
                     <div class="divide-y max-h-64 overflow-y-auto">
@@ -1778,17 +1785,37 @@
 
                 ${isAdmin ? `
                 <div class="bg-white rounded-xl shadow overflow-hidden">
-                    <div class="bg-gray-100 p-4 font-bold border-b">ניהול משתמשים פעילים</div>
+                    <div class="bg-gray-100 p-4 font-bold border-b">ניהול משתמשים</div>
                     <div class="divide-y">
-                        ${store.data.users.filter(u => u.isActive).map(u => `
+                        ${store.data.users.map(u => `
                             <div class="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-gray-50 gap-3">
-                                <div class="flex items-center gap-3 w-full md:w-auto"><div class="w-10 h-10 rounded-full overflow-hidden bg-gray-200 border"><img src="${getUserImage(u)}" class="profile-img"></div><div><p class="font-bold">${u.name}</p><p class="text-xs text-gray-500">${u.email}</p></div></div>
-                                <div class="flex gap-2 items-center w-full md:w-auto justify-end"><select onchange="updateUserRole('${u.id}', this.value)" class="text-sm border-gray-300 rounded py-1 px-2 bg-white mb-0 w-auto"><option value="user" ${u.role === 'user' ? 'selected' : ''}>רגיל</option><option value="senior" ${u.role === 'senior' ? 'selected' : ''}>בכיר</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל</option></select>${u.id !== store.user.uid ? `<button onclick="deleteItem('users', '${u.id}')" class="bg-red-50 text-red-700 px-3 py-1.5 rounded hover:bg-red-100"><i class="fa-solid fa-trash"></i></button>` : ''}</div>
+                                <div class="flex items-center gap-3 w-full md:w-auto">
+                                    <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-200 border">
+                                        <img src="${getUserImage(u)}" class="profile-img">
+                                    </div>
+                                    <div>
+                                        <p class="font-bold">${u.name} ${!u.isActive ? '<span class="text-red-500 text-xs">(מושהה)</span>' : ''}</p>
+                                        <p class="text-xs text-gray-500">${u.email}</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 items-center w-full md:w-auto justify-end">
+                                    <select onchange="updateUserRole('${u.id}', this.value)" class="text-sm border-gray-300 rounded py-1 px-2 bg-white mb-0 w-auto">
+                                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>רגיל</option>
+                                        <option value="senior" ${u.role === 'senior' ? 'selected' : ''}>בכיר</option>
+                                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל</option>
+                                    </select>
+                                    <button onclick="suspendUser('${u.id}', ${u.isActive})" class="px-3 py-1.5 rounded text-xs font-bold shadow ${u.isActive ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
+                                        ${u.isActive ? 'השעה' : 'הפעל'}
+                                    </button>
+                                    ${u.id !== store.user.uid ? `<button onclick="deleteItem('users', '${u.id}')" class="bg-red-50 text-red-700 px-3 py-1.5 rounded hover:bg-red-100"><i class="fa-solid fa-trash"></i></button>` : ''}
+                                </div>
                             </div>
                         `).join('')}
                     </div>
                 </div>
-                ${avatarManager}` : ''}
+                
+                ${avatarManager}
+                ` : ''}
             </div>`;
         }
 
@@ -1799,14 +1826,21 @@
 
         function renderBottomNav() { 
             const p = store.currentPage; 
-            const a = (k) => p.startsWith(k) ? 'text-red-600' : 'text-gray-400';
+            const a = (k) => p.startsWith(k) ? 'active' : ''; 
+            const un = store.data.chats.reduce((s,c)=>s+(c['unread_'+store.user.uid]||0),0); 
             return `
             <nav class="fixed bottom-0 w-full bg-white border-t py-2 px-1 flex justify-between items-center z-40 shadow-lg max-w-[1024px] mx-auto left-0 right-0">
-                <button onclick="navigate('home')" class="${a('home')} flex flex-col items-center w-1/5"><i class="fa-solid fa-house text-xl mb-1"></i><span class="text-[10px]">בית</span></button>
-                <button onclick="navigate('activities')" class="${a('activities')} flex flex-col items-center w-1/5"><i class="fa-solid fa-person-walking text-xl mb-1"></i><span class="text-[10px]">פעילויות</span></button>
-                <button onclick="navigate('games')" class="${a('games')} flex flex-col items-center w-1/5"><i class="fa-solid fa-puzzle-piece text-xl mb-1"></i><span class="text-[10px]">משחקים</span></button>
-                <button onclick="navigate('forums')" class="${a('forums')} flex flex-col items-center w-1/5"><i class="fa-solid fa-comments text-xl mb-1"></i><span class="text-[10px]">פורומים</span></button>
-                <button onclick="navigate('chats')" class="${a('chats')} flex flex-col items-center w-1/5"><i class="fa-solid fa-envelope text-xl mb-1"></i><span class="text-[10px]">הודעות</span></button>
+                <button onclick="navigate('home')" class="nav-item ${a('home')} flex flex-col items-center w-1/5"><i class="fa-solid fa-house text-xl mb-1"></i><span class="text-[10px]">בית</span></button>
+                <button onclick="navigate('activities')" class="nav-item ${a('activities')} flex flex-col items-center w-1/5"><i class="fa-solid fa-person-walking text-xl mb-1"></i><span class="text-[10px]">פעילויות</span></button>
+                <button onclick="navigate('games')" class="nav-item ${a('games')} flex flex-col items-center w-1/5"><i class="fa-solid fa-puzzle-piece text-xl mb-1"></i><span class="text-[10px]">משחקים</span></button>
+                <button onclick="navigate('forums')" class="nav-item ${a('forums')} flex flex-col items-center w-1/5"><i class="fa-solid fa-comments text-xl mb-1"></i><span class="text-[10px]">פורומים</span></button>
+                <button onclick="navigate('chats')" class="nav-item ${a('chats')} flex flex-col items-center w-1/5 relative">
+                    <div class="relative">
+                        <i class="fa-solid fa-envelope text-xl mb-1"></i>
+                        ${un > 0 ? `<span class="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">${un}</span>` : ''}
+                    </div>
+                    <span class="text-[10px]">הודעות</span>
+                </button>
             </nav>`; 
         }
     </script>
