@@ -20,81 +20,225 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
     <style>
-        :root { --primary: #E63946; --primary-hover: #C81D2A; --secondary: #457B9D; --text-main: #1D3557; --bg-color: #f8fafc; --bubble-bg: #FFFFFF; --header-height: 96px; --nav-height: 80px; }
-        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 16px; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; overflow: hidden; height: 100vh; width: 100vw; }
-        .main-app-container { max-width: 1024px; margin: 0 auto; height: 100%; background-color: #ffffff; position: relative; display: flex; flex-direction: column; }
-        .content-area { flex: 1; margin-top: var(--header-height); margin-bottom: var(--nav-height); padding: 1rem; overflow-y: auto; -webkit-overflow-scrolling: touch; height: calc(100vh - var(--header-height) - var(--nav-height)); }
-        .content-area.chat-mode { overflow: hidden; padding: 0; display: flex; flex-direction: column; }
-        .btn-primary { background-color: var(--primary); color: white; transition: all 0.3s ease; font-weight: 700; display: flex; justify-content: center; align-items: center; cursor: pointer; border-radius: 0.75rem; padding: 0.75rem 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        input, select, textarea { font-size: 16px !important; padding: 12px !important; border-radius: 0.75rem !important; border: 1px solid #e2e8f0 !important; width: 100%; margin-bottom: 12px; background-color: #f8fafc; display: block; }
+        /* ========================================= */
+        /* הגדרות עיצוב (CSS) - הגרסה המלאה והיציבה */
+        /* ========================================= */
+
+        :root {
+            --primary: #E63946;       
+            --primary-hover: #C81D2A; 
+            --secondary: #457B9D;     
+            --text-main: #1D3557;     
+            --bg-color: #f8fafc;      
+            --bubble-bg: #FFFFFF;     
+            --header-height: 96px;    
+            --nav-height: 80px;       
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 16px;
+            margin: 0; padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden; 
+            height: 100vh; width: 100vw;
+        }
+
+        .main-app-container {
+            max-width: 1024px;
+            margin: 0 auto;
+            height: 100%;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .content-area {
+            flex: 1;
+            margin-top: var(--header-height);    
+            margin-bottom: var(--nav-height);   
+            padding: 1rem;
+            overflow-y: auto;       
+            -webkit-overflow-scrolling: touch; 
+            height: calc(100vh - var(--header-height) - var(--nav-height));
+        }
+
+        .content-area.chat-mode {
+            overflow: hidden;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* כפתורים */
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; border-radius: 0.75rem; padding: 0.75rem 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        input, select, textarea {
+            font-size: 16px !important;
+            padding: 12px !important;
+            border-radius: 0.75rem !important;
+            border: 1px solid #e2e8f0 !important;
+            width: 100%;
+            margin-bottom: 12px;
+            background-color: #f8fafc;
+            display: block;
+        }
+        
+        /* עזרים */
         .hidden { display: none !important; }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .heart-beat { animation: beat 1.5s infinite ease-in-out; }
         @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
         .profile-img { object-fit: cover; width: 100%; height: 100%; }
         .card-img { object-fit: cover; width: 100%; height: 100%; }
         .gradient-overlay { background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%); }
-        .logo-container { position: relative; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; margin: 0 auto; cursor: pointer; }
+        
+        /* לוגו */
+        .logo-container { 
+            position: relative; width: 45px; height: 45px; 
+            display: flex; align-items: center; justify-content: center; 
+            margin: 0 auto;
+            cursor: pointer;
+        }
         .logo-heart { font-size: 42px; color: #E63946; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
         .logo-hands { position: absolute; font-size: 22px; color: white; top: 52%; left: 50%; transform: translate(-50%, -50%); }
-        .header-bubble { background-color: var(--bubble-bg); border: 1px solid #e5e7eb; border-radius: 1rem; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 65px; width: 65px; min-width: 65px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; margin: 0 2px; position: relative; }
+
+        /* Header Styles */
+        .header-bubble {
+            background-color: var(--bubble-bg);
+            border: 1px solid #e5e7eb;
+            border-radius: 1rem;
+            padding: 4px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 65px; width: 65px; min-width: 65px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: pointer; margin: 0 2px; position: relative;
+        }
         .header-icon { font-size: 1.2rem; margin-bottom: 2px; color: #4B5563; }
         .header-text { font-size: 0.6rem; font-weight: bold; text-align: center; line-height: 1; color: #1D3557; }
         .badge-text { font-size: 0.55rem; background: #f3f4f6; padding: 1px 3px; border-radius: 4px; max-width: 58px; font-weight: bold; }
-        @media (max-width: 600px) { .header-bubble { height: 50px; width: 50px; min-width: 50px; border-radius: 0.8rem; padding: 2px; } .header-icon { font-size: 1rem; margin-bottom: 0; } .header-text { display: none; } .badge-text { font-size: 0.45rem; padding: 0 2px; max-width: 45px; margin-top: 1px; } .app-title-text { display: none; } .content-area { padding: 0.5rem; } }
+
+        @media (max-width: 600px) {
+            .header-bubble { height: 50px; width: 50px; min-width: 50px; border-radius: 0.8rem; padding: 2px; }
+            .header-icon { font-size: 1rem; margin-bottom: 0; }
+            .header-text { display: none; } 
+            .badge-text { font-size: 0.45rem; padding: 0 2px; max-width: 45px; margin-top: 1px; }
+            .app-title-text { display: none; }
+            .content-area { padding: 0.5rem; }
+        }
+
+        /* משחקים CSS */
+        .game-card {
+            background: white; border-radius: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s;
+            border: 1px solid #e5e7eb; position: relative; overflow: hidden;
+        }
+        .game-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+
+        /* סודוקו - עם גבולות 3X3 */
+        .sudoku-board { 
+            display: grid; grid-template-columns: repeat(9, 1fr); gap: 0; 
+            background: #1D3557; border: 4px solid #1D3557; margin: 0 auto; max-width: 350px;
+        }
+        .sudoku-cell {
+            background: white; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; font-weight: bold; cursor: pointer; border: 1px solid #e5e7eb;
+        }
+        /* הדגשת גבולות 3x3 */
+        .sudoku-cell:nth-child(3n) { border-right: 3px solid #1D3557; }
+        .sudoku-cell:nth-child(9n) { border-right: 1px solid #e5e7eb; } /* ביטול גבול ימני קיצוני */
+        /* הוספת גבול תחתון כל שורה שלישית */
+        .sudoku-row-end { border-bottom: 3px solid #1D3557; }
+
+        .sudoku-cell input { width: 100%; height: 100%; text-align: center; border: none; outline: none; font-size: 1.2rem; padding: 0;}
+        .sudoku-cell.fixed { background: #f0f0f0; color: #333; }
+
+        /* תפזורת - עם סימון */
+        .word-search-grid {
+            display: grid; gap: 2px; margin: 0 auto; max-width: 350px;
+            background: #e5e7eb; padding: 2px; user-select: none;
+        }
+        .ws-cell {
+            background: white; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; cursor: pointer; font-size: 1.1rem;
+        }
+        .ws-cell.selected { background: #93c5fd; color: white; transform: scale(0.95); }
+        .ws-cell.found { background: #4ade80 !important; color: white; }
+        .ws-word.found { text-decoration: line-through; color: #22c55e; font-weight: bold; }
+
+        /* זיכרון */
+        .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 350px; margin: 20px auto; }
+        .memory-card {
+            aspect-ratio: 1; background: #E63946; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white;
+            transition: transform 0.3s;
+        }
+        .memory-card.flipped { background: white; border: 2px solid #E63946; transform: rotateY(180deg); }
+        .memory-card.matched { visibility: hidden; }
+
+        /* צ'אט */
         .chat-split-container { display: flex; width: 100%; height: 100%; background: white; overflow: hidden; position: relative; }
         .chat-sidebar { width: 35%; min-width: 250px; border-left: 1px solid #e5e7eb; background-color: #f9fafb; display: flex; flex-direction: column; height: 100%; }
         .chat-main-area { flex: 1; display: flex; flex-direction: column; background-color: #ffffff; position: relative; height: 100%; }
-        @media (max-width: 768px) { .chat-sidebar { width: 100%; min-width: 100%; border-left: none; } .chat-main-area { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 20000; transform: translateX(100%); transition: transform 0.3s ease-in-out; background: white; padding-bottom: env(safe-area-inset-bottom); } .chat-mobile-active .chat-main-area { transform: translateX(0); } }
+
+        @media (max-width: 768px) {
+            .chat-sidebar { width: 100%; min-width: 100%; border-left: none; }
+            .chat-main-area {
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                width: 100%; height: 100%; z-index: 20000;
+                transform: translateX(100%); transition: transform 0.3s ease-in-out;
+                background: white; padding-bottom: env(safe-area-inset-bottom);
+            }
+            .chat-mobile-active .chat-main-area { transform: translateX(0); }
+        }
+
         .chat-user-item { transition: all 0.2s; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
         .chat-user-item:hover { background-color: #ffffff; }
         .chat-user-item.active { background-color: #fff0f0; border-right: 4px solid #E63946; }
         .reg-avatar-option { border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: transform 0.2s; }
         .reg-avatar-option.selected { border-color: #E63946; transform: scale(1.1); }
         #chatMessagesArea { flex: 1; overflow-y: auto; padding: 1rem; background-color: #f8fafc; scroll-behavior: smooth; }
-        #bottom-nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height); z-index: 9999; background-color: white; border-top: 1px solid #e5e7eb; box-shadow: 0 -4px 15px rgba(0,0,0,0.08); max-width: 1024px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around; }
+
+        /* תפריט תחתון */
+        #bottom-nav-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
+            z-index: 9999; background-color: white; border-top: 1px solid #e5e7eb;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.08); max-width: 1024px; margin: 0 auto;
+            padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around;
+        }
         .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af; width: 20%; }
         .nav-item.active { color: var(--primary); }
         .nav-item i { font-size: 1.5rem; margin-bottom: 4px; }
         .nav-item span { font-size: 0.75rem; font-weight: bold; }
-        #main-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); z-index: 9998; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 1024px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 1rem; }
+        
+        /* כותרת עליונה */
+        #main-header {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--header-height);
+            z-index: 9998; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            max-width: 1024px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 1rem;
+        }
         .header-side-group { display: flex; align-items: center; gap: 4px; z-index: 20; flex: 1; }
         .header-side-group.right { justify-content: flex-start; }
         .header-side-group.left { justify-content: flex-end; }
-        .header-center-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 50; display: flex; flex-direction: column; align-items: center; width: auto; pointer-events: auto; }
-
-        /* Game Styles */
-        .game-card { background: white; border-radius: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 1rem; text-align: center; cursor: pointer; transition: all 0.2s; border: 1px solid #e5e7eb; }
-        .game-card:hover { transform: translateY(-3px); border-color: var(--primary); }
         
-        /* Sudoku - תיקון גבולות 3x3 */
-        .sudoku-board { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background: #1D3557; border: 3px solid #1D3557; margin: 0 auto; max-width: 350px; }
-        .sudoku-cell { background: white; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
-        .sudoku-cell.fixed { background: #f0f0f0; color: #333; }
-        .sudoku-cell input { width: 100%; height: 100%; text-align: center; border: none; outline: none; font-size: 1.2rem; }
-        /* קווים מודגשים כל 3 עמודות */
-        .sudoku-cell:nth-child(3n) { border-right: 2px solid #1D3557; }
-        .sudoku-cell:nth-child(9n) { border-right: none; }
-        /* קווים מודגשים כל 3 שורות - שימוש ב-grid lines */
-        /* פתרון פשוט: נוסיף border-bottom לתאים בשורה 3 ו-6 */
-        .sudoku-cell:nth-child(n+19):nth-child(-n+27),
-        .sudoku-cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #1D3557; }
-
-        /* Word Search - תיקון סימון */
-        .word-search-grid { display: grid; gap: 2px; margin: 0 auto; max-width: 350px; background: #e5e7eb; padding: 2px; user-select: none; }
-        .ws-cell { background: white; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
-        .ws-cell.selected { background: #93c5fd; color: white; } /* כחול לסימון */
-        .ws-cell.found { background: #86efac !important; color: white; } /* ירוק למילה שנמצאה */
-        .ws-word-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
-        .ws-word { padding: 2px 8px; background: #f3f4f6; border-radius: 4px; font-size: 0.9rem; }
-        .ws-word.found { text-decoration: line-through; color: #22c55e; }
-
-        /* Memory */
-        .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 350px; margin: 20px auto; }
-        .memory-card { aspect-ratio: 1; background: #E63946; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white; transition: transform 0.3s; }
-        .memory-card.flipped { background: white; border: 2px solid #E63946; transform: rotateY(180deg); }
-        .memory-card.matched { visibility: hidden; }
+        .header-center-logo {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            z-index: 50; display: flex; flex-direction: column; align-items: center; width: auto;
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body>
@@ -111,15 +255,6 @@
         </div>
     </div>
 
-    <div id="installModal" class="hidden fixed inset-0 bg-black/80 z-[20000] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-blue-500">
-            <div class="text-6xl mb-4 flex justify-center"><div class="relative w-16 h-16 flex items-center justify-center"><i class="fa-solid fa-heart text-[#E63946] text-6xl"></i><i class="fa-solid fa-handshake text-white absolute text-2xl" style="top: 50%; left: 50%; transform: translate(-50%, -50%);"></i></div></div>
-            <h2 class="text-2xl font-bold mb-2">התקן את האפליקציה!</h2>
-            <p class="text-gray-600 mb-6">לגישה מהירה ונוחה, הוסף את קהילת קשר למסך הבית.</p>
-            <div class="flex gap-3"><button onclick="document.getElementById('installModal').classList.add('hidden')" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold">לא עכשיו</button><button onclick="installPWA()" class="flex-1 btn-primary py-3 rounded-xl font-bold shadow-lg">התקן</button></div>
-        </div>
-    </div>
-    
     <div id="gameLevelModal" class="hidden fixed inset-0 bg-black/80 z-[15000] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center animate-fade-in">
             <h2 class="text-2xl font-bold mb-4 text-purple-700">בחר רמת קושי</h2>
@@ -131,12 +266,12 @@
             <button onclick="document.getElementById('gameLevelModal').classList.add('hidden')" class="mt-4 text-gray-500 underline">ביטול</button>
         </div>
     </div>
-    
+
     <div id="gameWinModal" class="hidden fixed inset-0 bg-black/80 z-[15000] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center animate-fade-in border-t-8 border-yellow-400">
             <div class="text-6xl mb-4 animate-bounce">🏆</div>
             <h2 class="text-3xl font-extrabold text-gray-800 mb-2">כל הכבוד!</h2>
-            <p class="text-lg text-gray-600 mb-6">הצלחת לסיים את המשחק בהצלחה!</p>
+            <p class="text-lg text-gray-600 mb-6">סיימת את המשחק בהצלחה!</p>
             <div class="bg-yellow-50 p-4 rounded-xl mb-4">
                 <span class="text-2xl font-bold text-yellow-600">+5 נקודות</span>
             </div>
@@ -144,65 +279,42 @@
         </div>
     </div>
 
+    <div id="installModal" class="hidden fixed inset-0 bg-black/80 z-[20000] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-blue-500">
+            <div class="text-6xl mb-4 flex justify-center"><div class="relative w-16 h-16 flex items-center justify-center"><i class="fa-solid fa-heart text-[#E63946] text-6xl"></i><i class="fa-solid fa-handshake text-white absolute text-2xl" style="top: 50%; left: 50%; transform: translate(-50%, -50%);"></i></div></div>
+            <h2 class="text-2xl font-bold mb-2">התקן את האפליקציה!</h2>
+            <p class="text-gray-600 mb-6">לגישה מהירה, הוסף למסך הבית.</p>
+            <div class="flex gap-3"><button onclick="document.getElementById('installModal').classList.add('hidden')" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold">לא עכשיו</button><button onclick="installPWA()" class="flex-1 btn-primary py-3 rounded-xl font-bold shadow-lg">התקן</button></div>
+        </div>
+    </div>
+
     <div id="pendingModal" class="hidden fixed inset-0 bg-black/90 z-[20000] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-8 w-full max-w-md text-center border-t-8 border-orange-500">
             <div class="text-6xl mb-4">⏳</div>
             <h2 class="text-2xl font-bold mb-2">ההרשמה התקבלה!</h2>
-            <p class="text-gray-600 mb-4">למען ביטחון הקהילה, כל חבר חדש עובר אישור ע"י מנהל המערכת.</p>
+            <p class="text-gray-600 mb-4">המתן לאישור מנהל המערכת.</p>
             <button onclick="location.reload()" class="mt-6 text-blue-600 underline">בדוק שוב</button>
         </div>
     </div>
 
     <div id="welcomeModal" class="hidden fixed inset-0 bg-black/80 z-[12000] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-green-500">
-            <div class="text-6xl mb-4 animate-bounce">🎁</div>
-            <h2 class="text-3xl font-extrabold text-green-600 mb-2">ברוכים הבאים!</h2>
-            <p class="text-lg text-gray-600 mb-6">איזה כיף שהצטרפת למשפחה.</p>
-            <div class="text-xl font-bold text-green-700 mb-6">קיבלת נקודה ראשונה במתנה! ⭐</div>
-            <button onclick="closeWelcomeModal()" class="btn-primary w-full py-3 rounded-xl shadow-lg text-lg">תודה, בואו נתחיל!</button>
-        </div>
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-green-500"><div class="text-6xl mb-4 animate-bounce">🎁</div><h2 class="text-3xl font-extrabold text-green-600 mb-2">ברוכים הבאים!</h2><p class="text-lg text-gray-600 mb-6">איזה כיף שהצטרפת.</p><div class="text-xl font-bold text-green-700 mb-6">קיבלת נקודה ראשונה במתנה! ⭐</div><button onclick="closeWelcomeModal()" class="btn-primary w-full py-3 rounded-xl shadow-lg text-lg">תודה!</button></div>
     </div>
 
     <div id="birthdayModal" class="hidden fixed inset-0 bg-black/80 z-[12000] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-pink-500">
-            <div class="text-6xl mb-4">🎂</div>
-            <h2 class="text-4xl font-extrabold text-pink-600 mb-2">מזל טוב!</h2>
-            <p class="text-lg text-gray-600 mb-6">יום הולדת שמח! קבל מתנה מאיתנו:</p>
-            <div class="bg-pink-50 p-6 rounded-2xl mb-6 border border-pink-200">
-                <div class="text-5xl font-black text-pink-500 my-2">+20</div>
-                <p class="text-sm text-gray-500">נקודות לחשבונך</p>
-            </div>
-            <button onclick="closeBirthdayModal()" class="btn-primary w-full py-3 rounded-xl shadow-lg text-lg bg-pink-500 hover:bg-pink-600">תודה רבה!</button>
-        </div>
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-fade-in border-t-8 border-pink-500"><div class="text-6xl mb-4">🎂</div><h2 class="text-4xl font-extrabold text-pink-600 mb-2">מזל טוב!</h2><p class="text-lg text-gray-600 mb-6">יום הולדת שמח! קבל מתנה:</p><div class="bg-pink-50 p-6 rounded-2xl mb-6 border border-pink-200"><div class="text-5xl font-black text-pink-500 my-2">+20</div><p class="text-sm text-gray-500">נקודות</p></div><button onclick="closeBirthdayModal()" class="btn-primary w-full py-3 rounded-xl shadow-lg text-lg bg-pink-500 hover:bg-pink-600">תודה!</button></div>
     </div>
 
     <div id="suggestionModal" class="hidden fixed inset-0 bg-black/60 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-fade-in border-t-8 border-purple-500">
-            <h2 class="text-2xl font-bold mb-4 text-purple-700 text-center">תיבת הצעות</h2>
-            <form onsubmit="event.preventDefault(); sendSuggestion()">
-                <label class="font-bold text-sm block mb-1">דחיפות:</label>
-                <select id="sugUrgency" class="border p-3 rounded-xl w-full"><option>רגיל</option><option>חשוב</option><option>קריטי</option></select>
-                <label class="font-bold text-sm block mb-1">נושא:</label>
-                <input id="sugCategory" required class="p-3 rounded-xl">
-                <label class="font-bold text-sm block mb-1">פירוט:</label>
-                <textarea id="sugContent" rows="4" required class="p-3 rounded-xl"></textarea>
-                <div class="flex gap-3 mt-4"><button type="button" onclick="document.getElementById('suggestionModal').classList.add('hidden')" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold">ביטול</button><button type="submit" class="flex-1 btn-primary py-3 rounded-xl font-bold">שלח</button></div>
-            </form>
-        </div>
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-fade-in border-t-8 border-purple-500"><h2 class="text-2xl font-bold mb-4 text-purple-700 text-center">תיבת הצעות</h2><form onsubmit="event.preventDefault(); sendSuggestion()"><label class="font-bold text-sm block mb-1">דחיפות:</label><select id="sugUrgency" class="border p-3 rounded-xl w-full"><option>רגיל</option><option>חשוב</option><option>קריטי</option></select><label class="font-bold text-sm block mb-1">נושא:</label><input id="sugCategory" required class="p-3 rounded-xl"><label class="font-bold text-sm block mb-1">פירוט:</label><textarea id="sugContent" rows="4" required class="p-3 rounded-xl"></textarea><div class="flex gap-3 mt-4"><button type="button" onclick="document.getElementById('suggestionModal').classList.add('hidden')" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold">ביטול</button><button type="submit" class="flex-1 btn-primary py-3 rounded-xl font-bold">שלח</button></div></form></div>
     </div>
     
     <div id="addAvatarModal" class="hidden fixed inset-0 bg-black/60 z-[10005] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-fade-in border-t-8 border-green-500">
-            <h2 class="text-xl font-bold mb-4 text-center">הוספת אווטאר</h2>
-            <form onsubmit="event.preventDefault(); saveNewSystemAvatar()"><label class="block mb-1 text-sm font-bold">שם:</label><input id="newAvName" required class="p-2 border rounded w-full mb-3"><label class="block mb-1 text-sm font-bold">תמונה:</label><input type="file" id="newAvFile" accept="image/*" required class="p-2 border rounded w-full mb-3"><p id="compressStatus" class="text-xs text-gray-500 mb-2 hidden">מכווץ...</p><label class="block mb-1 text-sm font-bold">מגדר:</label><select id="newAvGender" class="p-2 border rounded w-full mb-4"><option value="male">גבר</option><option value="female">אישה</option></select><div class="flex gap-2"><button type="button" onclick="document.getElementById('addAvatarModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2 rounded-lg">ביטול</button><button type="submit" class="flex-1 btn-primary py-2 rounded-lg">שמור</button></div></form>
-        </div>
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-fade-in border-t-8 border-green-500"><h2 class="text-xl font-bold mb-4 text-center">הוספת אווטאר</h2><form onsubmit="event.preventDefault(); saveNewSystemAvatar()"><label class="block mb-1 text-sm font-bold">שם:</label><input id="newAvName" required class="p-2 border rounded w-full mb-3"><label class="block mb-1 text-sm font-bold">תמונה:</label><input type="file" id="newAvFile" accept="image/*" required class="p-2 border rounded w-full mb-3"><p id="compressStatus" class="text-xs text-gray-500 mb-2 hidden">מכווץ...</p><label class="block mb-1 text-sm font-bold">מגדר:</label><select id="newAvGender" class="p-2 border rounded w-full mb-4"><option value="male">גבר</option><option value="female">אישה</option></select><div class="flex gap-2"><button type="button" onclick="document.getElementById('addAvatarModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2 rounded-lg">ביטול</button><button type="submit" class="flex-1 btn-primary py-2 rounded-lg">שמור</button></div></form></div>
     </div>
 
     <div id="shareModal" class="hidden fixed inset-0 bg-black/60 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center animate-fade-in">
-            <h2 class="text-2xl font-bold mb-2">הזמן חבר</h2>
-            <div class="grid grid-cols-1 gap-3"><button onclick="shareVia('whatsapp')" class="bg-[#25D366] text-white py-3 rounded-xl font-bold shadow"><i class="fa-brands fa-whatsapp"></i> וואטסאפ</button><button onclick="shareVia('sms')" class="bg-blue-500 text-white py-3 rounded-xl font-bold shadow"><i class="fa-solid fa-comment-sms"></i> SMS</button><button onclick="shareVia('copy')" class="bg-gray-100 text-gray-700 py-3 rounded-xl font-bold shadow"><i class="fa-regular fa-copy"></i> העתק</button></div><button onclick="document.getElementById('shareModal').classList.add('hidden')" class="mt-6 text-gray-400 text-sm w-full">סגור</button>
-        </div>
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center animate-fade-in"><h2 class="text-2xl font-bold mb-2">הזמן חבר</h2><div class="grid grid-cols-1 gap-3"><button onclick="shareVia('whatsapp')" class="bg-[#25D366] text-white py-3 rounded-xl font-bold shadow"><i class="fa-brands fa-whatsapp"></i> וואטסאפ</button><button onclick="shareVia('sms')" class="bg-blue-500 text-white py-3 rounded-xl font-bold shadow"><i class="fa-solid fa-comment-sms"></i> SMS</button><button onclick="shareVia('copy')" class="bg-gray-100 text-gray-700 py-3 rounded-xl font-bold shadow"><i class="fa-regular fa-copy"></i> העתק</button></div><button onclick="document.getElementById('shareModal').classList.add('hidden')" class="mt-6 text-gray-400 text-sm w-full">סגור</button></div>
     </div>
 
     <div id="profileModal" class="hidden fixed inset-0 bg-black/70 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm">
@@ -242,24 +354,13 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // State
+        // State Management
         const store = {
-            user: null,
-            currentPage: 'loading',
-            tempImageBase64: null, 
-            registerAvatar: null, 
-            registerCustomImage: null, 
-            currentChatTargetId: null,
-            showEmojiPicker: false,
-            openReplyId: null,
-            chatDraft: "",
-            filterCategory: "", filterCity: "", filterForumCategory: "",
-            chatFilterName: "", chatFilterCity: "", chatFilterGender: "", chatFilterOnline: false,
+            user: null, currentPage: 'loading', tempImageBase64: null, registerAvatar: null, registerCustomImage: null, currentChatTargetId: null, showEmojiPicker: false, openReplyId: null, chatDraft: "",
+            filterCategory: "", filterCity: "", filterForumCategory: "", chatFilterName: "", chatFilterCity: "", chatFilterGender: "", chatFilterOnline: false,
             // Games State
-            currentGameType: null, gameLevel: null, 
-            memoryCards: [], flippedCards: [], matchedPairs: 0, 
-            sudokuBoard: [], sudokuSolution: [],
-            wsGrid: [], wsWords: [], wsSelectedCells: [], wsFoundWords: [],
+            currentGameType: null, gameLevel: null, memoryCards: [], flippedCards: [], matchedPairs: 0, 
+            sudokuBoard: [], sudokuSolution: [], wsGrid: [], wsWords: [], wsSelection: [], wsFoundWords: [],
             data: { users: [], forums: [], activities: [], chats: [], helpRequests: [], reports: [], suggestions: [], sysCategories: [], systemAvatars: [], currentChatMessages: [] },
             params: {} 
         };
@@ -307,7 +408,6 @@
             } catch(e) { console.error("Points Error", e); }
         }
 
-        // --- מערכת ---
         async function ensureCategories() {
             const snap = await db.collection('sys_categories').get();
             if(snap.empty) {
@@ -353,7 +453,6 @@
         }
         async function deleteSuggestion(id) { if(confirm("למחוק?")) await db.collection('suggestions').doc(id).delete(); }
 
-        // --- פונקציות עזר ---
         function navigate(page, params = {}) {
             store.currentPage = page;
             store.params = params;
@@ -417,7 +516,6 @@
             }
         }
 
-        // --- תמונות ---
         function getActivityImage(category) {
             const map = { 'טיול': 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=400&fit=crop&q=80', 'ספורט': 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop&q=80', 'הרצאה': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600&h=400&fit=crop&q=80', 'ארוחה': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop&q=80', 'משחקי חברה': 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=600&h=400&fit=crop&q=80', 'אחר': 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&h=400&fit=crop&q=80' };
             return map[category] || map['אחר'];
@@ -440,8 +538,16 @@
             document.getElementById('shareModal').classList.add('hidden');
         }
 
-        // --- פעולות ---
-        async function updateUserRole(uid, role) { if(uid===store.user.uid)return alert("לא ניתן לשנות לעצמך"); try{await db.collection('users').doc(uid).update({role});alert("עודכן");}catch(e){alert("שגיאה");} }
+        async function updateUserRole(uid, role) { 
+            if(uid===store.user.uid) return alert("לא ניתן לשנות לעצמך"); 
+            try{
+                await db.collection('users').doc(uid).update({role});
+                alert("עודכן בהצלחה!");
+            }catch(e){
+                console.error("Error updating role:", e);
+                alert("שגיאה בעדכון: ייתכן שאין לך הרשאות מתאימות ב-Firebase Rules.\n" + e.message);
+            } 
+        }
         
         async function approveUser(uid) {
             if(confirm("לאשר משתמש זה?")) {
@@ -464,7 +570,6 @@
         }
         async function toggleJoin(actId) { const a=store.data.activities.find(x=>x.id===actId); if(a) db.collection('activities').doc(actId).update({attendees: a.attendees.includes(store.user.uid)?firebase.firestore.FieldValue.arrayRemove(store.user.uid):firebase.firestore.FieldValue.arrayUnion(store.user.uid)}); }
 
-        // --- פרופיל והרשמה ---
         function openProfileModal() { 
             document.getElementById('editCity').value = store.user.city || '';
             document.getElementById('editGender').value = store.user.gender || 'male';
@@ -528,8 +633,18 @@
             }
         }
 
-        // --- Login/Register ---
-        async function handleLogin(e,p) { try{await auth.signInWithEmailAndPassword(e,p)}catch(err){alert("שגיאה: המייל או הסיסמה אינם נכונים.");} }
+        // --- Login Handling ---
+        async function handleLogin(e,p) { 
+            try{
+                await auth.signInWithEmailAndPassword(e,p)
+            } catch(err){
+                let msg = "שגיאה בהתחברות: " + err.message;
+                if(err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.message.includes('INVALID')) {
+                    msg = "שגיאה: המייל או הסיסמה אינם נכונים.";
+                }
+                alert(msg);
+            } 
+        }
         
         async function handleRegister(n,e,p,c,dob,g,refEmail) { 
             try {
@@ -768,7 +883,7 @@
         async function createActivity(d) { const has=store.data.activities.some(a=>a.creatorId===store.user.uid); if(has)return alert("רק פעילות אחת מותרת"); await db.collection('activities').add({...d, creatorId:store.user.uid, creatorName:store.user.name, attendees:[store.user.uid], createdAt:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10, 'act'); navigate('activities'); }
         async function createForum(cat, t, d) { if(!t||!d||!cat)return alert("חסר מידע"); await db.collection('forums').add({category:cat, title:t, description:d, creatorId:store.user.uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10, 'forum'); navigate('forums'); }
 
-        // --- Games Logic ---
+        // --- GAMES LOGIC ---
         function openGameLevelModal(type) {
             store.currentGameType = type;
             document.getElementById('gameLevelModal').classList.remove('hidden');
@@ -816,8 +931,7 @@
                         c1.matched = true; c2.matched = true; store.matchedPairs++;
                         if (store.matchedPairs === store.memoryCards.length / 2) {
                             addPoints(store.user.uid, 5);
-                            alert("כל הכבוד!");
-                            navigate('games');
+                            document.getElementById('gameWinModal').classList.remove('hidden');
                         }
                     } else { c1.flipped = false; c2.flipped = false; }
                     store.flippedCards = [];
@@ -828,7 +942,6 @@
 
         // Sudoku
         function initSudokuGame(level) {
-            // Fixed solved board for demo
             const solved = [
                 [5,3,4,6,7,8,9,1,2], [6,7,2,1,9,5,3,4,8], [1,9,8,3,4,2,5,6,7],
                 [8,5,9,7,6,1,4,2,3], [4,2,6,8,5,3,7,9,1], [7,1,3,9,2,4,8,5,6],
@@ -852,7 +965,10 @@
                 store.sudokuBoard[row][col] = val;
                 let isFull = true;
                 for(let r=0; r<9; r++) for(let c=0; c<9; c++) if(store.sudokuBoard[r][c] === 0) isFull = false;
-                if(isFull) { alert("סיימת בהצלחה!"); addPoints(store.user.uid, 15); navigate('games'); }
+                if(isFull) {
+                    document.getElementById('gameWinModal').classList.remove('hidden');
+                    addPoints(store.user.uid, 15);
+                }
             } else {
                 alert("טעות!");
                 document.getElementById(`cell-${row}-${col}`).value = "";
@@ -861,39 +977,97 @@
 
         // Word Search
         function initWordSearch(level) {
-            // Simple word search logic
-            store.wsWords = ["אהבה", "שמחה", "בריאות", "נחת"];
-            store.wsGrid = [
-                ['א','ה','ב','ה','ש','מ','ח','ה'],
-                ['ב','ר','י','א','ו','ת','א','ב'],
-                ['ג','ד','נ','ח','ת','ה','ו','ז'],
-                ['ח','ט','י','כ','ל','מ','נ','ס'],
-                ['ע','פ','צ','ק','ר','ש','ת','א'],
-                ['ב','ג','ד','ה','ו','ז','ח','ט'],
-                ['י','כ','ל','מ','נ','ס','ע','פ'],
-                ['צ','ק','ר','ש','ת','א','ב','ג']
-            ];
-            store.wsFound = [];
+            // תפזורת אמיתית בעברית
+            const size = 10;
+            store.wsWords = ["אהבה", "שמחה", "בריאות", "נחת", "תקווה", "שלום"];
+            let grid = Array(size).fill().map(() => Array(size).fill(''));
+            
+            store.wsWords.forEach(word => {
+                let placed = false;
+                while (!placed) {
+                    let dir = Math.random() > 0.5 ? 'H' : 'V';
+                    let r = Math.floor(Math.random() * size);
+                    let c = Math.floor(Math.random() * size);
+                    if (dir === 'H' && c + word.length <= size) {
+                         if (grid[r].slice(c, c+word.length).every(char => char === '')) {
+                             for(let i=0; i<word.length; i++) grid[r][c+i] = word[i];
+                             placed = true;
+                         }
+                    } else if (dir === 'V' && r + word.length <= size) {
+                         let clear = true;
+                         for(let i=0; i<word.length; i++) if(grid[r+i][c] !== '') clear = false;
+                         if (clear) {
+                             for(let i=0; i<word.length; i++) grid[r+i][c] = word[i];
+                             placed = true;
+                         }
+                    }
+                }
+            });
+
+            const letters = "אבגדהוזחטיכלמנסעפצקרשת";
+            for(let r=0; r<size; r++) for(let c=0; c<size; c++) if(grid[r][c] === '') grid[r][c] = letters[Math.floor(Math.random()*letters.length)];
+            
+            store.wsGrid = grid;
             store.wsSelection = [];
+            store.wsFoundWords = [];
         }
 
         function clickWsCell(r, c, el) {
+            const id = `${r}-${c}`;
             if (el.classList.contains('found')) return;
             
-            // Logic to toggle selection
-            const cellId = `${r}-${c}`;
-            const index = store.wsSelection.indexOf(cellId);
-            
-            if (index > -1) {
-                store.wsSelection.splice(index, 1);
-                el.classList.remove('bg-blue-200');
+            if (store.wsSelection.includes(id)) {
+                store.wsSelection = store.wsSelection.filter(x => x !== id);
+                el.classList.remove('selected');
             } else {
-                store.wsSelection.push(cellId);
-                el.classList.add('bg-blue-200');
+                store.wsSelection.push(id);
+                el.classList.add('selected');
             }
+        }
+        
+        function checkWordSearch() {
+            // בדיקה פשוטה אם האותיות שנבחרו יוצרות מילה
+            let selectedChars = store.wsSelection.map(id => {
+                const [r, c] = id.split('-').map(Number);
+                return store.wsGrid[r][c];
+            });
             
-            // Check if word formed (Simplified for demo)
-            // In real app, check contiguous selection matching words
+            // בדיקת כל הפרמוטציות (פשוט למקרה זה)
+            const forward = selectedChars.join('');
+            const backward = selectedChars.reverse().join('');
+            
+            const found = store.wsWords.find(w => w === forward || w === backward);
+            
+            if (found && !store.wsFoundWords.includes(found)) {
+                store.wsFoundWords.push(found);
+                // Mark as found visually
+                store.wsSelection.forEach(id => {
+                    const [r, c] = id.split('-');
+                    const cell = document.querySelector(`.ws-cell[onclick*="${r}, ${c}"]`);
+                    if(cell) {
+                        cell.classList.remove('selected');
+                        cell.classList.add('found');
+                    }
+                });
+                store.wsSelection = [];
+                
+                if (store.wsFoundWords.length === store.wsWords.length) {
+                    document.getElementById('gameWinModal').classList.remove('hidden');
+                    addPoints(store.user.uid, 10);
+                } else {
+                    alert(`מצאת את המילה: ${found}!`);
+                    render(); // Update list
+                }
+            } else {
+                alert("לא נמצאה מילה או שהבחירה לא רציפה.");
+                // Clear selection
+                store.wsSelection.forEach(id => {
+                    const [r, c] = id.split('-');
+                    const cell = document.querySelector(`.ws-cell[onclick*="${r}, ${c}"]`);
+                    if(cell) cell.classList.remove('selected');
+                });
+                store.wsSelection = [];
+            }
         }
 
 
@@ -1039,18 +1213,14 @@
             const u = store.user; 
             const badge = getUserBadge(u.points || 0); 
             const badgeName = badge.name.replace(/ .*/,'') || 'מתחיל';
-            const adminAlerts = (store.data.reports?.length||0) + (store.data.suggestions?.length||0);
             
             return `<div class="flex justify-between items-center w-full h-full px-2 relative">
-                    <div class="absolute top-2 left-2 z-30">
-                        <div class="sos-btn hidden" onclick="triggerSOS()">SOS</div>
-                    </div>
-
                     <div class="header-side-group right gap-2">
                          <div class="header-bubble" onclick="document.getElementById('suggestionModal').classList.remove('hidden')">
                             <i class="fa-regular fa-lightbulb header-icon text-yellow-600"></i>
                             <span class="header-text text-gray-600">הצעות</span>
                         </div>
+                        
                         <div class="header-bubble" onclick="navigate('help')">
                             <i class="fa-solid fa-hand-holding-heart header-icon text-purple-600"></i>
                             <span class="header-text text-gray-600">עזרה</span>
@@ -1069,8 +1239,7 @@
                             <div class="w-8 h-8 rounded-full overflow-hidden border border-gray-300 header-icon mx-auto mb-1"><img src="${getUserImage(u)}" class="profile-img"></div>
                             <span class="header-text text-gray-600">פרופיל</span>
                         </div>
-                        ${u.role==='admin' ? `<div class="header-bubble relative" onclick="renderAdminPanel(); navigate('admin')"><i class="fa-solid fa-shield-halved header-icon text-gray-800"></i><span class="header-text text-gray-600">ניהול</span>${adminAlerts > 0 ? `<span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">${adminAlerts}</span>` : ''}</div>` : ''}
-                        <button onclick="handleLogout()" class="text-red-500 text-xl px-1 hover:text-red-700" title="יציאה"><i class="fa-solid fa-right-from-bracket"></i></button>
+                        ${u.role==='admin' ? `<div class="header-bubble relative" onclick="renderAdminPanel(); navigate('admin')"><i class="fa-solid fa-shield-halved header-icon text-gray-800"></i><span class="header-text text-gray-600">ניהול</span></div>` : ''}
                     </div>
                 </div>`;
         }
@@ -1088,9 +1257,9 @@
 
             return `
             <div class="space-y-8 p-2">
-                <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white p-6 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
+                <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white p-3 rounded-3xl shadow-xl flex flex-col md:flex-row relative overflow-hidden min-h-[160px]">
                     
-                    <div class="md:absolute md:top-4 md:left-4 mb-2 md:mb-0 bg-white/20 backdrop-blur rounded-xl p-1 px-3 text-center text-white shadow-sm border border-white/30 z-20 w-fit mx-auto md:mx-0">
+                    <div class="md:absolute md:top-4 md:left-4 mb-2 md:mb-0 bg-white/20 backdrop-blur rounded-xl p-1 px-3 text-center text-white shadow-sm border border-white/30 z-20 w-fit mx-auto md:mx-0 scale-90 md:scale-100">
                         <div class="text-xl leading-none filter drop-shadow-md flex items-center gap-2 justify-center">
                             <span>${badge.icon}</span>
                             <span class="font-bold text-sm leading-none">${u.points} נק'</span>
@@ -1106,18 +1275,15 @@
                     </div>
                 </div>
                 
-                <div class="mt-6 bg-purple-50 p-4 rounded-2xl border border-purple-100 shadow-sm cursor-pointer hover:bg-purple-100 transition" onclick="navigate('games')">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="w-14 h-14 bg-purple-500 rounded-full flex items-center justify-center text-white text-2xl shadow-md">
-                                <i class="fa-solid fa-puzzle-piece"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-800">משחקי חשיבה</h3>
-                                <p class="text-sm text-gray-600">תרגול למוח, זיכרון וכיף!</p>
-                            </div>
+                <div class="mt-6">
+                    <h3 class="text-xl font-bold text-gray-800 border-r-4 border-purple-500 pr-2 mb-3">משחקי חשיבה</h3>
+                    <div onclick="navigate('games')" class="bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-purple-100 transition">
+                        <div class="bg-purple-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl"><i class="fa-solid fa-puzzle-piece"></i></div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-purple-800">מרכז המשחקים</h4>
+                            <p class="text-xs text-gray-600">תרגול למוח, זיכרון וכיף!</p>
                         </div>
-                        <i class="fa-solid fa-chevron-left text-purple-400 text-xl"></i>
+                        <i class="fa-solid fa-chevron-left text-purple-400"></i>
                     </div>
                 </div>
 
@@ -1129,6 +1295,9 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         ${featuredForums.map(f => `
                             <div onclick="navigate('forumView', {forumId: '${f.id}', title: '${f.title}'})" class="bg-white rounded-xl shadow-md cursor-pointer flex flex-col h-full relative border-b-4 border-blue-400 p-3">
+                                <div class="h-28 bg-gray-200 relative mb-2 rounded-lg overflow-hidden">
+                                    <img src="${getForumImage(f.category||f.title)}" class="card-img">
+                                </div>
                                 <h4 class="font-bold text-gray-800">${f.title}</h4>
                                 <p class="text-gray-500 text-sm truncate">${f.description}</p>
                             </div>
@@ -1161,34 +1330,28 @@
 
         function renderGamesHub() {
             return `
-            <div class="space-y-6 p-4 pb-24">
+            <div class="space-y-6 p-4">
                 <h2 class="text-3xl font-bold text-center text-purple-800 mb-6">משחקים למוח</h2>
                 
                 <div class="grid gap-4">
-                    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4" 
-                         onclick="openGameLevelModal('memory')">
-                        <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-3xl">🃏</div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800">משחק הזיכרון</h3>
-                            <p class="text-xs text-gray-500">אימון לזיכרון חזותי</p>
+                    <div class="game-card p-4" onclick="openGameLevelModal('memory')">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-3xl">🃏</div>
+                            <div><h3 class="text-xl font-bold text-gray-800">משחק הזיכרון</h3><p class="text-sm text-gray-500">מצא את הזוגות</p></div>
                         </div>
                     </div>
                     
-                    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4" 
-                         onclick="openGameLevelModal('sudoku')">
-                        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-3xl">🧩</div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800">סודוקו</h3>
-                            <p class="text-xs text-gray-500">אתגר מספרים קלאסי</p>
+                    <div class="game-card p-4" onclick="openGameLevelModal('sudoku')">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-3xl">🧩</div>
+                            <div><h3 class="text-xl font-bold text-gray-800">סודוקו</h3><p class="text-sm text-gray-500">אתגר המספרים</p></div>
                         </div>
                     </div>
 
-                    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4" 
-                         onclick="openGameLevelModal('wordsearch')">
-                        <div class="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center text-3xl">🔤</div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800">תפזורת מילים</h3>
-                            <p class="text-xs text-gray-500">מצא את המילים המסתתרות</p>
+                    <div class="game-card p-4" onclick="openGameLevelModal('wordsearch')">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center text-3xl">🔤</div>
+                            <div><h3 class="text-xl font-bold text-gray-800">תפזורת מילים</h3><p class="text-sm text-gray-500">מצא את המילים</p></div>
                         </div>
                     </div>
                 </div>
@@ -1204,6 +1367,18 @@
                         <button onclick="document.getElementById('gameLevelModal').classList.add('hidden')" class="mt-4 text-gray-500 underline">ביטול</button>
                     </div>
                 </div>
+
+                <div id="gameWinModal" class="hidden fixed inset-0 bg-black/80 z-[15000] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center animate-fade-in border-t-8 border-yellow-400">
+                        <div class="text-6xl mb-4 animate-bounce">🏆</div>
+                        <h2 class="text-3xl font-extrabold text-gray-800 mb-2">כל הכבוד!</h2>
+                        <p class="text-lg text-gray-600 mb-6">הצלחת לסיים את המשחק בהצלחה!</p>
+                        <div class="bg-yellow-50 p-4 rounded-xl mb-4">
+                            <span class="text-2xl font-bold text-yellow-600">+5 נקודות</span>
+                        </div>
+                        <button onclick="navigate('games'); document.getElementById('gameWinModal').classList.add('hidden')" class="btn-primary w-full py-3 rounded-xl shadow-lg">חזור למשחקים</button>
+                    </div>
+                </div>
             </div>`;
         }
 
@@ -1212,8 +1387,8 @@
                 return `
                 <div class="p-4 h-full flex flex-col items-center pb-24">
                     <div class="flex justify-between items-center w-full mb-4">
-                        <button onclick="navigate('games')" class="text-gray-500"><i class="fa-solid fa-arrow-right text-xl"></i> יציאה</button>
-                        <h2 class="text-xl font-bold text-purple-800">זיכרון</h2>
+                        <button onclick="navigate('games')" class="text-gray-500"><i class="fa-solid fa-arrow-right text-xl"></i> חזרה</button>
+                        <h2 class="text-xl font-bold text-purple-800">זיכרון - ${store.gameLevel === 'easy' ? 'קל' : (store.gameLevel === 'medium' ? 'בינוני' : 'קשה')}</h2>
                     </div>
                     <div class="grid grid-cols-4 gap-3 w-full max-w-md">
                         ${store.memoryCards.map(card => `
@@ -1235,7 +1410,7 @@
                         ${store.sudokuBoard.map((row, r) => row.map((val, c) => `
                             <div class="bg-white flex items-center justify-center relative 
                                 ${(c+1)%3===0 && c!==8 ? 'border-r-2 border-gray-800' : ''} 
-                                ${(r+1)%3===0 && r!==8 ? 'border-b-2 border-gray-800' : ''}">
+                                ${(r+1)%3===0 && r!==8 ? 'sudoku-row-end' : ''}">
                                 ${val !== 0 
                                     ? `<span class="font-bold text-lg text-black">${val}</span>` 
                                     : `<input type="tel" maxlength="1" class="w-full h-full text-center text-blue-600 font-bold text-lg p-0 m-0 border-none focus:bg-blue-50 outline-none" 
@@ -1244,7 +1419,7 @@
                             </div>
                         `).join('')).join('')}
                     </div>
-                    <p class="text-sm text-gray-500 mt-4 text-center">מלא את המספרים 1-9</p>
+                    <p class="text-sm text-gray-500 mt-4 text-center">הזן מספרים (1-9) במשבצות הריקות</p>
                 </div>`;
             } else if (store.currentGameType === 'wordsearch') {
                 return `
@@ -1255,14 +1430,14 @@
                     </div>
                     <div class="mb-4 text-center">
                         <p class="text-sm font-bold text-gray-600 mb-2">מילים למציאה:</p>
-                        <div class="flex flex-wrap justify-center gap-2">
-                            ${store.wsWords.map(w => `<span class="px-2 py-1 bg-white border rounded text-xs ${store.wsFound.includes(w) ? 'line-through text-green-500 bg-green-50' : ''}">${w}</span>`).join('')}
+                        <div class="flex flex-wrap justify-center gap-2 ws-word-list">
+                            ${store.wsWords.map(w => `<span class="ws-word ${store.wsFoundWords.includes(w) ? 'found' : ''}">${w}</span>`).join('')}
                         </div>
                     </div>
-                    <div class="grid grid-cols-8 gap-1 bg-gray-200 p-2 rounded-lg w-full max-w-md aspect-square">
+                    <div class="grid grid-cols-10 gap-1 bg-gray-200 p-2 rounded-lg w-full max-w-md aspect-square">
                         ${store.wsGrid.map((row, r) => row.map((char, c) => `
-                            <div class="bg-white flex items-center justify-center font-bold text-lg cursor-pointer hover:bg-green-100 rounded-sm select-none
-                                 ${store.wsSelection.includes(`${r}-${c}`) ? 'bg-blue-200' : ''}"
+                            <div class="bg-white flex items-center justify-center font-bold text-lg cursor-pointer hover:bg-green-100 rounded-sm select-none ws-cell
+                                 ${store.wsSelection.includes(`${r}-${c}`) ? 'selected' : ''}"
                                  onclick="clickWsCell(${r}, ${c}, this)">
                                 ${char}
                             </div>
@@ -1275,92 +1450,67 @@
         }
 
         function renderActivities() {
+             const u = store.user;
+             const isAdmin = u.role === 'admin';
+             const isSenior = u.role === 'senior';
+             const canCreate = isAdmin || isSenior || u.role === 'user';
              const cats=(store.data.sysCategories||[]).map(c=>c.name);
              const filtered = store.data.activities.filter(a => {
                 const matchCat = store.filterCategory ? a.category === store.filterCategory : true;
                 const matchCity = store.filterCity ? a.location.includes(store.filterCity) : true;
                 return matchCat && matchCity;
             });
-             return `<div class="space-y-4 p-2"><div class="flex flex-col gap-3 bg-white p-4 rounded-xl shadow-sm"><div class="flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">לוח פעילויות</h2><button onclick="navigate('createActivity')" class="bg-red-600 text-white px-3 py-1 rounded-full font-bold shadow text-sm"><i class="fa-solid fa-plus"></i> חדש</button></div><div class="flex gap-2"><select onchange="store.filterCategory=this.value; render()" class="border p-2 rounded w-1/2 text-sm mb-0"><option value="">קטגוריות</option>${cats.map(c => `<option value="${c}" ${store.filterCategory===c ? 'selected' : ''}>${c}</option>`).join('')}</select><input oninput="store.filterCity=this.value; render()" placeholder="עיר..." class="border p-2 rounded w-1/2 text-sm mb-0"></div></div><div class="grid gap-4 md:grid-cols-2">${filtered.map(act => `<div class="bg-white rounded-xl shadow p-4 border-r-4 border-green-500"><h3 class="font-bold text-lg">${act.title}</h3><p class="text-sm text-gray-600 mb-2"><i class="fa-solid fa-location-dot"></i> ${act.location} | ${new Date(act.date).toLocaleDateString()}</p><p class="text-sm text-gray-700 mb-2 line-clamp-2">${act.description}</p><button onclick="toggleJoin('${act.id}')" class="text-blue-600 font-bold text-sm">${act.attendees.includes(store.user.uid) ? 'בטל הרשמה' : 'הירשם'}</button></div>`).join('')}</div></div>`;
+             return `
+             <div class="space-y-4 p-2">
+                <div class="flex flex-col gap-3 bg-white p-4 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-800">לוח פעילויות</h2>
+                        ${canCreate ? `<button onclick="navigate('createActivity')" class="bg-red-600 text-white px-3 py-1 rounded-full font-bold shadow text-sm"><i class="fa-solid fa-plus"></i> חדש</button>` : ''}
+                    </div>
+                    <div class="flex gap-2">
+                        <select onchange="store.filterCategory=this.value; render()" class="border p-2 rounded w-1/2 text-sm mb-0"><option value="">קטגוריות</option>${cats.map(c => `<option value="${c}" ${store.filterCategory===c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+                        <input oninput="store.filterCity=this.value; render()" placeholder="עיר..." class="border p-2 rounded w-1/2 text-sm mb-0">
+                    </div>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    ${filtered.map(act => {
+                        const canEdit = isAdmin || act.creatorId === u.uid || isSenior;
+                        return `
+                        <div class="bg-white rounded-xl shadow p-4 border-r-4 border-green-500 relative group">
+                            <h3 class="font-bold text-lg">${act.title}</h3>
+                            <p class="text-sm text-gray-600 mb-2"><i class="fa-solid fa-location-dot"></i> ${act.location} | ${new Date(act.date).toLocaleDateString()}</p>
+                            <p class="text-sm text-gray-700 mb-2 line-clamp-2">${act.description}</p>
+                            <button onclick="toggleJoin('${act.id}')" class="text-blue-600 font-bold text-sm">${act.attendees.includes(store.user.uid) ? 'בטל הרשמה' : 'הירשם'}</button>
+                            ${canEdit ? `<div class="absolute top-2 left-2 flex gap-2"><button onclick="deleteItem('activities','${act.id}')" class="text-red-500 hover:bg-red-50 p-1 rounded"><i class="fa-solid fa-trash"></i></button></div>` : ''}
+                        </div>`;
+                    }).join('')}
+                </div>
+             </div>`;
         }
 
-        function renderForums() {
-            const isAdmin = store.user.role === 'admin';
-            const cats=(store.data.sysCategories||[]).map(c=>c.name);
-            const filtered = (store.data.forums || []).filter(f => !store.filterForumCategory || f.category === store.filterForumCategory);
-            return `
-            <div class="space-y-4 p-2">
-                <div class="bg-blue-600 text-white p-4 rounded-xl shadow text-center">
-                    <h2 class="text-xl font-bold">פורומים</h2>
-                </div>
-                <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                    <button onclick="store.filterForumCategory='';render()" class="px-3 py-1 rounded-full text-sm whitespace-nowrap ${store.filterForumCategory===''?'bg-blue-600 text-white':'bg-gray-200'}">הכל</button>
-                    ${cats.map(c => `<button onclick="store.filterForumCategory='${c}';render()" class="px-3 py-1 rounded-full text-sm whitespace-nowrap ${store.filterForumCategory===c?'bg-blue-600 text-white':'bg-gray-200'}">${c}</button>`).join('')}
-                </div>
-                <div class="bg-white p-3 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-2">
-                    <div class="flex gap-2">
-                        <select id="newForumCat" class="border p-2 rounded w-1/3 text-sm mb-0"><option value="">נושא...</option>${cats.map(c => `<option>${c}</option>`).join('')}</select>
-                        <input id="newForumTitle" placeholder="כותרת הפורום" class="flex-1 bg-gray-50 text-sm mb-0">
-                    </div>
-                    <input id="newForumDesc" placeholder="תיאור קצר..." class="bg-gray-50 text-sm mb-0">
-                    <button onclick="createForum(document.getElementById('newForumCat').value,document.getElementById('newForumTitle').value,document.getElementById('newForumDesc').value)" class="bg-blue-600 text-white py-2 rounded-lg font-bold text-sm">פתח פורום חדש</button>
-                </div>
-                <div class="grid gap-3">
-                    ${filtered.map(f => `
-                        <div onclick="navigate('forumView', {forumId: '${f.id}', title: '${f.title}'})" class="bg-white rounded-xl shadow-md flex flex-row overflow-hidden h-24 cursor-pointer relative">
-                            <div class="w-24 bg-gray-200 relative flex-shrink-0">
-                                <img src="${getForumImage(f.category||f.title)}" class="w-full h-full object-cover">
-                            </div>
-                            <div class="p-3 flex-1 overflow-hidden">
-                                <h4 class="font-bold text-gray-800 truncate">${f.title}</h4>
-                                <p class="text-gray-500 text-xs line-clamp-2 mt-1">${f.description}</p>
-                                <span class="text-[10px] bg-gray-100 text-gray-500 px-1 rounded mt-1 inline-block">${f.category||'כללי'}</span>
-                            </div>
-                            ${isAdmin ? `<button onclick="event.stopPropagation(); deleteItem('forums', '${f.id}')" class="absolute top-1 left-1 text-red-400 hover:text-red-600"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            </div>`;
+        function renderForums() { return renderForumsImplementation(); } 
+        function renderForumsImplementation() {
+             const cats=(store.data.sysCategories||[]).map(c=>c.name);
+             const filtered = store.data.forums.filter(f => !store.filterForumCategory || f.category === store.filterForumCategory);
+             return `<div class="space-y-4 p-2"><div class="bg-blue-600 text-white p-4 rounded-xl shadow text-center"><h2 class="text-xl font-bold">פורומים</h2></div><div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar"><button onclick="store.filterForumCategory='';render()" class="px-3 py-1 rounded-full text-sm whitespace-nowrap ${store.filterForumCategory===''?'bg-blue-600 text-white':'bg-gray-200'}">הכל</button>${cats.map(c => `<button onclick="store.filterForumCategory='${c}';render()" class="px-3 py-1 rounded-full text-sm whitespace-nowrap ${store.filterForumCategory===c?'bg-blue-600 text-white':'bg-gray-200'}">${c}</button>`).join('')}</div><div class="bg-white p-3 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-2"><div class="flex gap-2"><select id="newForumCat" class="border p-2 rounded w-1/3 text-sm mb-0"><option value="">נושא...</option>${cats.map(c => `<option>${c}</option>`).join('')}</select><input id="newForumTitle" placeholder="כותרת הפורום" class="flex-1 bg-gray-50 text-sm mb-0"></div><input id="newForumDesc" placeholder="תיאור קצר..." class="bg-gray-50 text-sm mb-0"><button onclick="createForum(document.getElementById('newForumCat').value,document.getElementById('newForumTitle').value,document.getElementById('newForumDesc').value)" class="bg-blue-600 text-white py-2 rounded-lg font-bold text-sm">פתח פורום חדש</button></div><div class="grid gap-3">${filtered.map(f => `<div onclick="navigate('forumView', {forumId: '${f.id}', title: '${f.title}'})" class="bg-white rounded-xl shadow-md flex flex-row overflow-hidden h-24 cursor-pointer relative"><div class="w-24 bg-gray-200 relative flex-shrink-0"><img src="${getForumImage(f.category||f.title)}" class="w-full h-full object-cover"></div><div class="p-3 flex-1 overflow-hidden"><h4 class="font-bold text-gray-800 truncate">${f.title}</h4><p class="text-gray-500 text-xs line-clamp-2 mt-1">${f.description}</p></div></div>`).join('')}</div></div>`;
         }
 
         function renderForumView() {
             const fid = store.params.forumId;
-            const isAdmin = store.user.role === 'admin';
-            const isSenior = store.user.role === 'senior';
-            if (!store.currentForumId || store.currentForumId !== fid) {
-                store.currentForumId = fid;
-                store.data.currentPosts = [];
-                db.collection('forums').doc(fid).collection('posts').orderBy('createdAt', 'desc')
-                    .onSnapshot(s => { store.data.currentPosts = s.docs.map(d => ({id:d.id, ...d.data()})); render(); });
-            }
+            if (!store.currentForumId || store.currentForumId !== fid) { store.currentForumId = fid; store.data.currentPosts = []; db.collection('forums').doc(fid).collection('posts').orderBy('createdAt', 'desc').onSnapshot(s => { store.data.currentPosts = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }); }
             const posts = store.data.currentPosts || [];
-            return `<div class="space-y-4 p-2 pb-20"><div class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm sticky top-0 z-10"><button onclick="navigate('forums')" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-right"></i></button><h2 class="text-lg font-bold truncate">${store.params.title}</h2></div><div class="space-y-4">${posts.map(p => {
-                const canEdit = isAdmin || p.creatorId === store.user.uid || isSenior;
-                const replies = p.replies || [];
-                return `<div class="bg-white p-4 rounded-xl shadow-sm"><div class="flex gap-3 mb-2"><img src="${getAvatar(p.creatorAvatar || p.creatorName)}" class="w-8 h-8 rounded-full bg-gray-100"><div class="flex-1"><div class="flex justify-between"><h4 class="font-bold text-sm">${p.title}</h4>${p.creatorId !== store.user.uid ? `<button onclick="reportItem('forum', '${p.id}', '${p.title}', '${p.creatorId}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-flag text-xs"></i></button>` : ''}</div><p class="text-xs text-gray-500">${p.creatorName} • ${formatDate(p.createdAt)}</p></div></div><p class="text-gray-700 text-sm mb-3 bg-gray-50 p-2 rounded">${p.content}</p>${replies.length > 0 ? `<div class="bg-blue-50 rounded p-2 space-y-2 mb-2 text-xs">${replies.map(r => `<div><span class="font-bold">${r.creatorName}:</span> ${r.content}</div>`).join('')}</div>` : ''}<div class="flex gap-2 items-center"><button onclick="toggleReplyBox('${p.id}')" class="text-blue-600 text-xs font-bold bg-blue-50 px-2 py-1 rounded">הגב</button>${canEdit && isAdmin ? `<button onclick="deleteItem('forums', '${p.id}', 'posts', '${fid}')" class="text-red-400 text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}</div>${store.openReplyId === p.id ? `<form onsubmit="event.preventDefault(); addReply('${fid}','${p.id}',this.reply.value);" class="mt-2 flex gap-2"><input name="reply" placeholder="תגובה..." class="bg-white text-xs mb-0 border rounded px-2" required><button class="bg-blue-600 text-white px-2 rounded text-xs">שלח</button></form>` : ''}</div>`;
-            }).join('')}</div><div class="fixed bottom-[85px] left-0 right-0 px-4 max-w-[1024px] mx-auto"><form onsubmit="event.preventDefault(); createPost('${fid}', this.title.value, this.content.value); this.reset();" class="bg-white p-2 rounded-xl shadow-lg border border-gray-200 flex gap-2 items-center"><div class="flex-1 space-y-1"><input name="title" placeholder="נושא" class="w-full bg-gray-50 text-sm p-1 mb-0 border-none" required><textarea name="content" placeholder="תוכן ההודעה..." class="w-full bg-gray-50 text-sm p-1 mb-0 border-none" rows="1" required></textarea></div><button class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow"><i class="fa-solid fa-paper-plane"></i></button></form></div></div>`;
+            return `<div class="space-y-4 p-2 pb-20"><div class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm sticky top-0 z-10"><button onclick="navigate('forums')" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-right"></i></button><h2 class="text-lg font-bold truncate">${store.params.title}</h2></div><div class="space-y-4">${posts.map(p => `<div class="bg-white p-4 rounded-xl shadow-sm"><div class="flex gap-3 mb-2"><img src="${getAvatar(p.creatorAvatar || p.creatorName)}" class="w-8 h-8 rounded-full bg-gray-100"><div class="flex-1"><h4 class="font-bold text-sm">${p.title}</h4><p class="text-xs text-gray-500">${p.creatorName}</p></div></div><p class="text-gray-700 text-sm mb-3 bg-gray-50 p-2 rounded">${p.content}</p><div class="flex gap-2 items-center"><button onclick="toggleReplyBox('${p.id}')" class="text-blue-600 text-xs font-bold bg-blue-50 px-2 py-1 rounded">הגב</button></div>${store.openReplyId === p.id ? `<form onsubmit="event.preventDefault(); addReply('${fid}','${p.id}',this.reply.value);" class="mt-2 flex gap-2"><input name="reply" placeholder="תגובה..." class="bg-white text-xs mb-0 border rounded px-2" required><button class="bg-blue-600 text-white px-2 rounded text-xs">שלח</button></form>` : ''}</div>`).join('')}</div><div class="fixed bottom-[85px] left-0 right-0 px-4 max-w-[1024px] mx-auto"><form onsubmit="event.preventDefault(); createPost('${fid}', this.title.value, this.content.value); this.reset();" class="bg-white p-2 rounded-xl shadow-lg border border-gray-200 flex gap-2 items-center"><div class="flex-1 space-y-1"><input name="title" placeholder="נושא" class="w-full bg-gray-50 text-sm p-1 mb-0 border-none" required><textarea name="content" placeholder="תוכן ההודעה..." class="w-full bg-gray-50 text-sm p-1 mb-0 border-none" rows="1" required></textarea></div><button class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow"><i class="fa-solid fa-paper-plane"></i></button></form></div></div>`;
         }
 
-        function renderChatsList() {
+        function renderChatsList() { return renderChatsListImplementation(); } 
+        function renderChatsListImplementation() {
             let filteredUsers = store.data.users.filter(u => u.id !== store.user.uid);
-            
             if (store.chatFilterName) filteredUsers = filteredUsers.filter(u => u.name.toLowerCase().includes(store.chatFilterName.toLowerCase()));
-            if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city && u.city.includes(store.chatFilterCity));
-            if (store.chatFilterGender && store.chatFilterGender !== "" && store.chatFilterGender !== "all") filteredUsers = filteredUsers.filter(u => u.gender === store.chatFilterGender);
-            if (store.chatFilterOnline) { const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000); filteredUsers = filteredUsers.filter(u => u.lastSeen && u.lastSeen.toDate() > fiveMinAgo); }
+            if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city.toLowerCase().includes(store.chatFilterCity.toLowerCase()));
             
-            filteredUsers.sort((a, b) => {
-                const chatA = store.data.chats.find(c => c.participants.includes(a.id));
-                const chatB = store.data.chats.find(c => c.participants.includes(b.id));
-                const unreadA = chatA ? (chatA['unread_' + store.user.uid] || 0) : 0;
-                const unreadB = chatB ? (chatB['unread_' + store.user.uid] || 0) : 0;
-                return unreadB - unreadA;
-            });
-
             const targetUser = store.data.users.find(u => u.id === store.currentChatTargetId);
             const msgs = store.data.currentChatMessages || [];
-            const hasActiveChat = !!targetUser;
-            const mobileClass = hasActiveChat ? 'chat-mobile-active' : '';
+            const mobileClass = targetUser ? 'chat-mobile-active' : '';
 
             return `
             <div class="chat-split-container mt-4">
@@ -1370,192 +1520,38 @@
                         <div class="space-y-2">
                             <input placeholder="חפש חבר..." oninput="store.chatFilterName=this.value; updateChatListOnly()" class="w-full p-2 text-sm border rounded-lg bg-gray-50 mb-0" value="${store.chatFilterName}">
                             <div class="flex gap-2">
-                                <select onchange="store.chatFilterGender=this.value; updateChatListOnly()" class="w-1/2 p-1 text-sm border rounded bg-gray-50 mb-0">
-                                    <option value="all">הכל</option>
-                                    <option value="male" ${store.chatFilterGender === 'male' ? 'selected' : ''}>גבר</option>
-                                    <option value="female" ${store.chatFilterGender === 'female' ? 'selected' : ''}>אישה</option>
-                                </select>
-                                <input oninput="store.chatFilterCity=this.value; updateChatListOnly()" placeholder="עיר..." class="w-1/2 p-1 text-sm border rounded bg-gray-50 mb-0" value="${store.chatFilterCity}">
-                            </div>
-                            <div class="flex items-center gap-2 mt-1">
-                                <input type="checkbox" id="onlineFilter" onchange="store.chatFilterOnline=this.checked; updateChatListOnly()" ${store.chatFilterOnline ? 'checked' : ''} class="w-4 h-4 !mb-0 !inline-block">
-                                <label for="onlineFilter" class="text-sm text-gray-600">הצג מחוברים בלבד</label>
+                                <input oninput="store.chatFilterCity=this.value; updateChatListOnly()" placeholder="עיר..." class="w-full p-2 text-sm border rounded-lg bg-gray-50 mb-0" value="${store.chatFilterCity}">
                             </div>
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto p-2 space-y-1">
-                        ${filteredUsers.length === 0 ? '<p class="text-center text-gray-500 text-sm mt-4">לא נמצאו משתמשים</p>' : ''}
-                        ${filteredUsers.map(u => {
-                            const chat = store.data.chats.find(c => c.participants.includes(u.id));
-                            const unreadCount = chat ? (chat['unread_' + store.user.uid] || 0) : 0;
-                            const isActive = store.currentChatTargetId === u.id;
-                            return `
-                            <div onclick="loadChatMessages('${u.id}')" class="chat-user-item flex items-center gap-3 p-3 rounded-lg ${isActive ? 'active' : ''} relative">
-                                <div class="relative">
-                                    <img src="${getUserImage(u)}" class="w-10 h-10 rounded-full border bg-white object-cover">
-                                    ${u.lastSeen && (new Date() - u.lastSeen.toDate()) < 300000 ? '<span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>' : ''}
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <span class="font-bold text-sm block truncate text-gray-800">${u.name}</span>
-                                    <span class="text-xs text-gray-500 truncate block">${u.city}</span>
-                                </div>
-                                ${unreadCount > 0 ? `<div class="bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">${unreadCount}</div>` : ''}
-                            </div>`;
-                        }).join('')}
+                        ${filteredUsers.map(u => `<div onclick="loadChatMessages('${u.id}')" class="chat-user-item flex items-center gap-3 p-3 rounded-lg relative"><img src="${getUserImage(u)}" class="w-10 h-10 rounded-full border bg-white object-cover"><div class="flex-1 min-w-0"><span class="font-bold text-sm block truncate text-gray-800">${u.name}</span><span class="text-xs text-gray-500 truncate block">${u.city}</span></div></div>`).join('')}
                     </div>
                 </div>
-
                 <div class="chat-main-area">
                     ${targetUser ? `
-                        <div class="p-3 border-b flex items-center gap-3 bg-white shadow-sm z-10">
-                            <button onclick="closeChat()" class="md:hidden text-gray-500 px-2"><i class="fa-solid fa-arrow-right text-xl"></i></button>
-                            <img src="${getUserImage(targetUser)}" class="w-10 h-10 rounded-full border border-white shadow-sm bg-white">
-                            <div>
-                                <h3 class="font-bold text-lg leading-tight text-gray-800">${targetUser.name}</h3>
-                                <span class="text-xs text-gray-500">${targetUser.city}</span>
-                            </div>
-                        </div>
-                        
-                        <div id="chatMessagesArea">
-                            ${msgs.map(m => `
-                                <div class="flex ${m.senderId === store.user.uid ? 'justify-end' : 'justify-start'} mb-3">
-                                    <div class="max-w-[85%] p-3 rounded-2xl shadow-sm text-sm ${m.senderId === store.user.uid ? 'bg-red-500 text-white rounded-tl-none' : 'bg-white text-gray-800 rounded-tr-none border'}">
-                                        <p>${m.content} <button onclick="speakText('${m.content.replace(/'/g, "\\'")}')" class="text-gray-400 hover:text-blue-500 mx-1 text-xs"><i class="fa-solid fa-volume-high"></i></button></p>
-                                        <p class="text-[10px] mt-1 opacity-70 text-right dir-ltr">${m.timestamp ? safeDate(m.timestamp).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'}) : '...'}</p>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <div class="p-3 border-t bg-gray-50" style="position: relative; z-index: 60;">
-                            <div class="flex gap-2 items-center">
-                                <button onclick="toggleEmojiPicker()" class="text-gray-500 hover:text-yellow-500 text-xl p-1"><i class="fa-regular fa-face-smile"></i></button>
-                                <button onclick="startDictation()" class="text-gray-500 hover:text-red-500 text-xl p-1"><i class="fa-solid fa-microphone"></i></button>
-                                <input id="chatInput" placeholder="כתוב הודעה..." class="flex-1 rounded-full px-4 py-2 bg-white border focus:ring-2 focus:ring-red-200 text-sm mb-0" autocomplete="off" value="${store.chatDraft}" oninput="window.updateDraft(this.value)">
-                                <button onclick="sendMessage(store.currentChatTargetId)" class="bg-red-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow hover:bg-red-700 transition"><i class="fa-solid fa-paper-plane"></i></button>
-                            </div>
-                            ${store.showEmojiPicker ? `
-                                <div class="absolute bottom-16 right-4 bg-white shadow-xl rounded-xl p-2 grid grid-cols-4 gap-2 border z-50">
-                                    ${['❤️', '👍', '😊', '🌷', '👋', '☕', '😂', '🙏'].map(e => `<button onclick="window.addEmoji('${e}')" class="text-2xl hover:bg-gray-100 p-2 rounded">${e}</button>`).join('')}
-                                </div>
-                            ` : ''}
-                        </div>
-                    ` : `
-                        <div class="flex flex-col items-center justify-center h-full text-gray-300">
-                            <i class="fa-regular fa-comments text-6xl mb-4"></i>
-                            <p class="text-lg font-bold">בחר חבר כדי להתחיל לשוחח</p>
-                        </div>
-                    `}
+                        <div class="p-3 border-b flex items-center gap-3 bg-white shadow-sm z-10"><button onclick="closeChat()" class="md:hidden text-gray-500 px-2"><i class="fa-solid fa-arrow-right text-xl"></i></button><img src="${getUserImage(targetUser)}" class="w-10 h-10 rounded-full border"><h3 class="font-bold text-lg">${targetUser.name}</h3></div>
+                        <div id="chatMessagesArea">${msgs.map(m => `<div class="flex ${m.senderId === store.user.uid ? 'justify-end' : 'justify-start'} mb-3"><div class="max-w-[85%] p-3 rounded-2xl shadow-sm text-sm ${m.senderId === store.user.uid ? 'bg-red-500 text-white' : 'bg-white border'}"><p>${m.content} <button onclick="speakText('${m.content.replace(/'/g, "\\'")}')" class="text-xs opacity-50 hover:opacity-100 ml-1">🔊</button></p></div></div>`).join('')}</div>
+                        <div class="p-3 border-t bg-gray-50"><div class="flex gap-2 items-center"><button onclick="toggleEmojiPicker()" class="text-xl p-1">😊</button><button onclick="startDictation()" class="text-xl p-1 text-red-500">🎤</button><input id="chatInput" placeholder="כתוב..." class="flex-1 rounded-full px-4" autocomplete="off" value="${store.chatDraft}" oninput="window.updateDraft(this.value)"><button onclick="sendMessage(store.currentChatTargetId)" class="bg-red-600 text-white w-10 h-10 rounded-full shadow"><i class="fa-solid fa-paper-plane"></i></button></div></div>
+                    ` : `<div class="flex flex-col items-center justify-center h-full text-gray-300"><i class="fa-regular fa-comments text-6xl mb-4"></i><p class="text-lg font-bold">בחר חבר לשיחה</p></div>`}
                 </div>
             </div>`;
         }
 
-        function renderHelp() {
-            const isAdmin = store.user.role === 'admin';
-            return `<div class="space-y-4 p-2"><div class="bg-purple-600 text-white p-6 rounded-2xl shadow flex justify-between items-center"><div><h2 class="text-2xl font-bold">עזרה לקהילה</h2><p>סיוע הדדי</p></div><button onclick="navigate('createHelp')" class="bg-white text-purple-600 px-4 py-2 rounded-xl font-bold">בקש עזרה</button></div><div class="grid gap-4">${(store.data.helpRequests||[]).map(r => `<div class="bg-white p-5 rounded-xl shadow border-r-4 border-purple-500"><div class="flex justify-between mb-2"><span class="text-purple-700 font-bold bg-purple-100 px-2 rounded text-sm">${r.category}</span><span class="text-gray-400 text-xs">${formatDate(r.createdAt)}</span></div><p class="text-lg font-medium mb-2">${r.description}</p><div class="flex justify-between text-sm text-gray-500"><span><i class="fa-solid fa-user"></i> ${r.requesterName}</span><div class="flex gap-2"><button onclick="loadChatMessages('${r.requesterId}'); navigate('chats');" class="text-purple-600 font-bold">צור קשר</button>${isAdmin ? `<button onclick="deleteItem('helpRequests','${r.id}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>` : ''}</div></div></div>`).join('')}</div></div>`; 
-        }
-        
-        function renderCreateHelp() { return `<div class="bg-white p-6 rounded-2xl shadow mt-4"><h2 class="text-2xl font-bold mb-4 text-purple-600">בקשת עזרה</h2><div class="bg-yellow-50 p-4 rounded mb-4 text-sm text-yellow-800 border border-yellow-200">שים לב: העזרה על אחריות המשתמש בלבד.</div><form onsubmit="event.preventDefault(); db.collection('helpRequests').add({category:this.cat.value, description:this.desc.value, requesterId:store.user.uid, requesterName:store.user.name, requesterCity:store.user.city, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); navigate('help');"><select name="cat" class="w-full mb-4"><option>ייעוץ רפואי</option><option>ייעוץ משפטי</option><option>עזרה טכנית</option><option>הסעה</option><option>אחר</option></select><textarea name="desc" rows="4" class="w-full mb-4" required></textarea><div class="flex gap-2 mb-6"><input type="checkbox" required> <label>מאשר שקראתי.</label></div><button class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">שלח</button></form></div>`; }
-        
-        function renderAdminPanel() {
-            if (store.user.role !== 'admin' && store.user.role !== 'senior') { setTimeout(() => navigate('home'), 0); return ''; }
-            const isAdmin = store.user.role === 'admin';
-            
-            const avatarManager = `
-                <div class="bg-white p-6 rounded-2xl shadow-xl mt-6">
-                    <h3 class="text-2xl font-bold text-red-600 mb-4"><i class="fa-solid fa-images"></i> ניהול אווטארים</h3>
-                    <div class="grid grid-cols-4 gap-4 mb-4">
-                        ${(store.data.systemAvatars || []).map(a => `
-                            <div class="relative group text-center">
-                                <img src="${a.url}" class="w-16 h-16 rounded-full border bg-gray-50 object-cover mx-auto">
-                                <p class="text-xs text-center mt-1 font-bold">${a.name}</p>
-                                <button onclick="deleteSystemAvatar('${a.id}')" class="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs shadow opacity-0 group-hover:opacity-100 transition">x</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button onclick="document.getElementById('addAvatarModal').classList.remove('hidden')" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold w-full">+ הוסף אווטאר חדש</button>
-                </div>
-            `;
-            
-            // בדיקת הרשאות ניהול משתמשים
-            const pendingUsers = store.data.users.filter(u => !u.isActive);
-
-            return `
-            <div class="space-y-6 p-4 pb-24">
-                <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg flex justify-between items-center">
-                    <h2 class="text-2xl font-bold">ניהול מערכת</h2>
-                </div>
-                
-                ${pendingUsers.length > 0 ? `
-                <div class="bg-orange-50 border border-orange-200 rounded-xl shadow overflow-hidden">
-                    <div class="bg-orange-100 p-4 font-bold text-orange-800 border-b border-orange-200">משתמשים ממתינים לאישור (${pendingUsers.length})</div>
-                    <div class="divide-y">
-                        ${pendingUsers.map(u => `
-                            <div class="p-4 flex justify-between items-center hover:bg-orange-50">
-                                <div><p class="font-bold">${u.name}</p><p class="text-xs text-gray-600">${u.email} | ${u.city}</p></div>
-                                <div class="flex gap-2"><button onclick="approveUser('${u.id}')" class="bg-green-500 text-white px-3 py-1 rounded shadow">אשר</button><button onclick="deleteItem('users', '${u.id}')" class="bg-red-500 text-white px-3 py-1 rounded shadow">דחה</button></div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>` : ''}
-
-                <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-red-500">
-                    <div class="bg-gray-100 p-4 font-bold border-b flex justify-between"><span><i class="fa-solid fa-triangle-exclamation text-red-500"></i> דיווחים</span><span class="bg-red-100 text-red-600 px-2 rounded text-xs">${store.data.reports ? store.data.reports.length : 0}</span></div>
-                    <div class="divide-y max-h-64 overflow-y-auto">
-                        ${(store.data.reports || []).map(r => `<div class="p-4 hover:bg-gray-50 text-sm"><p class="font-bold text-red-700">דיווח</p><p class="text-gray-800 mt-1">"${r.content}"</p><div class="flex justify-between mt-2 text-xs text-gray-500"><span>מדווח: ${r.reporterName}</span><button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline">מחק</button></div></div>`).join('')}
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-purple-500">
-                    <div class="bg-gray-100 p-4 font-bold border-b">הצעות ייעול (${store.data.suggestions ? store.data.suggestions.length : 0})</div>
-                    <div class="divide-y max-h-64 overflow-y-auto">
-                        ${(store.data.suggestions || []).map(s => `
-                            <div class="p-4 hover:bg-gray-50 text-sm flex justify-between">
-                                <div><span class="font-bold text-purple-700">${s.category}</span><p>${s.content}</p></div>
-                                <button onclick="deleteSuggestion('${s.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                ${isAdmin ? `
-                <div class="bg-white rounded-xl shadow overflow-hidden">
-                    <div class="bg-gray-100 p-4 font-bold border-b">ניהול משתמשים פעילים</div>
-                    <div class="divide-y">
-                        ${store.data.users.filter(u => u.isActive).map(u => `
-                            <div class="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-gray-50 gap-3">
-                                <div class="flex items-center gap-3 w-full md:w-auto"><div class="w-10 h-10 rounded-full overflow-hidden bg-gray-200 border"><img src="${getUserImage(u)}" class="profile-img"></div><div><p class="font-bold">${u.name}</p><p class="text-xs text-gray-500">${u.email}</p></div></div>
-                                <div class="flex gap-2 items-center w-full md:w-auto justify-end"><select onchange="updateUserRole('${u.id}', this.value)" class="text-sm border-gray-300 rounded py-1 px-2 bg-white mb-0 w-auto"><option value="user" ${u.role === 'user' ? 'selected' : ''}>רגיל</option><option value="senior" ${u.role === 'senior' ? 'selected' : ''}>בכיר</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל</option></select>${u.id !== store.user.uid ? `<button onclick="deleteItem('users', '${u.id}')" class="bg-red-50 text-red-700 px-3 py-1.5 rounded hover:bg-red-100"><i class="fa-solid fa-trash"></i></button>` : ''}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                ${avatarManager}` : ''}
-            </div>`;
-        }
-
-        function renderCreateActivity() {
-             const cats=(store.data.sysCategories||[]).map(c=>c.name);
-             return `<div class="bg-white p-6 rounded-2xl shadow-lg mt-4"><h2 class="text-2xl font-bold mb-4">יצירת פעילות</h2><form onsubmit="event.preventDefault(); createActivity({title:this.title.value,description:this.description.value,category:this.category.value,date:this.date.value,location:this.location.value,maxParticipants:parseInt(this.max.value)||0})"><div class="space-y-4"><input name="title" placeholder="כותרת" required><select name="category">${cats.map(c=>`<option>${c}</option>`).join('')}</select><div class="grid grid-cols-2 gap-4"><input type="datetime-local" name="date" required><input type="number" name="max" placeholder="מקס' משתתפים"></div><input name="location" placeholder="מיקום" required><textarea name="description" rows="4" placeholder="תיאור..." required></textarea><button class="btn-primary w-full py-3 rounded-xl font-bold">פרסם</button></div></form></div>`;
-        }
+        function renderHelp() { return `<div class="space-y-4 p-2"><div class="bg-purple-600 text-white p-6 rounded-2xl shadow flex justify-between items-center"><div><h2 class="text-2xl font-bold">עזרה לקהילה</h2><p>סיוע הדדי</p></div><button onclick="navigate('createHelp')" class="bg-white text-purple-600 px-4 py-2 rounded-xl font-bold">בקש עזרה</button></div><div class="grid gap-4">${(store.data.helpRequests||[]).map(r => `<div class="bg-white p-5 rounded-xl shadow border-r-4 border-purple-500"><span class="text-purple-700 font-bold">${r.category}</span><p class="text-lg font-medium">${r.description}</p><div class="flex justify-between text-sm text-gray-500"><span>${r.requesterName}</span><button onclick="loadChatMessages('${r.requesterId}'); navigate('chats');" class="text-purple-600 font-bold">צור קשר</button></div></div>`).join('')}</div></div>`; }
+        function renderCreateHelp() { return `<div class="bg-white p-6 rounded-2xl shadow mt-4 p-4"><h2 class="text-2xl font-bold mb-4 text-purple-600">בקשת עזרה</h2><form onsubmit="event.preventDefault(); db.collection('helpRequests').add({category:this.cat.value, description:this.desc.value, requesterId:store.user.uid, requesterName:store.user.name, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); navigate('help');"><select name="cat" class="w-full mb-4"><option>עזרה טכנית</option><option>הסעה</option><option>אחר</option></select><textarea name="desc" rows="4" class="w-full mb-4" required></textarea><button class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">שלח</button></form></div>`; }
+        function renderAdminPanel() { return `<div class="p-4"><h2 class="text-2xl font-bold">ניהול מערכת</h2><div class="mt-4 space-y-4">${(store.data.reports||[]).map(r=>`<div class="bg-red-50 p-3 rounded border border-red-200"><p class="font-bold text-red-700">דיווח:</p><p>${r.content}</p><button onclick="deleteReport('${r.id}')" class="text-blue-500 underline text-sm">מחק</button></div>`).join('')}</div><div class="mt-8 font-bold text-lg border-b pb-2">הצעות ייעול</div><div class="mt-4 space-y-4">${(store.data.suggestions||[]).map(s=>`<div class="bg-purple-50 p-3 rounded border border-purple-200 flex justify-between"><div><span class="text-purple-700 font-bold">${s.category}</span><p>${s.content}</p></div><button onclick="deleteSuggestion('${s.id}')" class="text-red-500">🗑️</button></div>`).join('')}</div></div>`; }
 
         function renderBottomNav() { 
             const p = store.currentPage; 
-            const a = (k) => p.startsWith(k) ? 'active' : ''; 
-            const un = store.data.chats.reduce((s,c)=>s+(c['unread_'+store.user.uid]||0),0); 
+            const a = (k) => p.startsWith(k) ? 'text-red-600' : 'text-gray-400';
             return `
             <nav class="fixed bottom-0 w-full bg-white border-t py-2 px-1 flex justify-between items-center z-40 shadow-lg max-w-[1024px] mx-auto left-0 right-0">
-                <button onclick="navigate('home')" class="${a('home')} flex flex-col items-center w-1/5 transition-colors"><i class="fa-solid fa-house text-xl mb-1"></i><span class="text-[10px]">בית</span></button>
-                <button onclick="navigate('activities')" class="${a('activities')} flex flex-col items-center w-1/5 transition-colors"><i class="fa-solid fa-person-walking text-xl mb-1"></i><span class="text-[10px]">פעילויות</span></button>
-                <button onclick="navigate('games')" class="${a('games')} flex flex-col items-center w-1/5 transition-colors"><i class="fa-solid fa-puzzle-piece text-xl mb-1"></i><span class="text-[10px]">משחקים</span></button>
-                <button onclick="navigate('forums')" class="${a('forums')} flex flex-col items-center w-1/5 transition-colors"><i class="fa-solid fa-comments text-xl mb-1"></i><span class="text-[10px]">פורומים</span></button>
-                <button onclick="navigate('chats')" class="${a('chats')} flex flex-col items-center w-1/5 transition-colors relative">
-                    <div class="relative">
-                        <i class="fa-solid fa-envelope text-xl mb-1"></i>
-                        ${un > 0 ? `<span class="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">${un}</span>` : ''}
-                    </div>
-                    <span class="text-[10px]">הודעות</span>
-                </button>
+                <button onclick="navigate('home')" class="${a('home')} flex flex-col items-center w-1/5"><i class="fa-solid fa-house text-xl mb-1"></i><span class="text-[10px]">בית</span></button>
+                <button onclick="navigate('activities')" class="${a('activities')} flex flex-col items-center w-1/5"><i class="fa-solid fa-person-walking text-xl mb-1"></i><span class="text-[10px]">פעילויות</span></button>
+                <button onclick="navigate('games')" class="${a('games')} flex flex-col items-center w-1/5"><i class="fa-solid fa-puzzle-piece text-xl mb-1"></i><span class="text-[10px]">משחקים</span></button>
+                <button onclick="navigate('forums')" class="${a('forums')} flex flex-col items-center w-1/5"><i class="fa-solid fa-comments text-xl mb-1"></i><span class="text-[10px]">פורומים</span></button>
+                <button onclick="navigate('chats')" class="${a('chats')} flex flex-col items-center w-1/5"><i class="fa-solid fa-envelope text-xl mb-1"></i><span class="text-[10px]">הודעות</span></button>
             </nav>`; 
         }
     </script>
