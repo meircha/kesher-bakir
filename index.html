@@ -19,10 +19,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
     <style>
-        /* ========================================= */
-        /* הגדרות עיצוב (CSS)               */
-        /* ========================================= */
-
+        /* --- משתנים ועיצוב בסיסי --- */
         :root {
             --primary: #E63946;       
             --primary-hover: #C81D2A; 
@@ -39,15 +36,12 @@
             color: var(--text-main);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: 16px;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             -webkit-tap-highlight-color: transparent;
             overflow: hidden; 
-            height: 100vh;
-            width: 100vw;
+            height: 100vh; width: 100vw;
         }
 
-        /* מיכל ראשי */
         .main-app-container {
             max-width: 1024px;
             margin: 0 auto;
@@ -58,7 +52,6 @@
             flex-direction: column;
         }
         
-        /* אזור התוכן המרכזי */
         .content-area {
             flex: 1;
             margin-top: var(--header-height);    
@@ -82,12 +75,8 @@
             color: white;
             transition: all 0.3s ease;
             font-weight: 700;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1.5rem;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; border-radius: 0.75rem; padding: 0.75rem 1.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         
@@ -116,12 +105,8 @@
         
         /* --- לוגו --- */
         .logo-container { 
-            position: relative; 
-            width: 45px; 
-            height: 45px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
+            position: relative; width: 45px; height: 45px; 
+            display: flex; align-items: center; justify-content: center; 
             margin: 0 auto;
         }
         .logo-heart { font-size: 42px; color: #E63946; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
@@ -133,32 +118,18 @@
             border: 1px solid #e5e7eb;
             border-radius: 1rem;
             padding: 4px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 65px; 
-            width: 65px;  
-            min-width: 65px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 65px; width: 65px; min-width: 65px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            cursor: pointer;
-            position: relative;
-            margin: 0 2px;
+            cursor: pointer; margin: 0 2px; position: relative;
         }
-        
         .header-icon { font-size: 1.2rem; margin-bottom: 2px; color: #4B5563; }
         .header-text { font-size: 0.6rem; font-weight: bold; text-align: center; line-height: 1; color: #1D3557; margin-bottom: 2px;}
         .badge-text { font-size: 0.55rem; background: #f3f4f6; padding: 1px 3px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 58px; line-height: 1; color: #555; font-weight: bold; }
 
         /* התאמות למובייל - Header */
         @media (max-width: 600px) {
-            .header-bubble {
-                height: 50px;
-                width: 50px;
-                min-width: 50px;
-                border-radius: 0.8rem;
-                padding: 2px;
-            }
+            .header-bubble { height: 50px; width: 50px; min-width: 50px; border-radius: 0.8rem; padding: 2px; }
             .header-icon { font-size: 1rem; margin-bottom: 0; }
             .header-text { display: none; } 
             .badge-text { font-size: 0.45rem; padding: 0 2px; max-width: 45px; margin-top: 1px; }
@@ -167,186 +138,66 @@
         }
 
         /* --- צ'אט --- */
-        .chat-split-container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            background: white;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .chat-sidebar {
-            width: 35%;
-            min-width: 250px;
-            border-left: 1px solid #e5e7eb;
-            background-color: #f9fafb;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-        
-        .chat-main-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background-color: #ffffff;
-            position: relative;
-            height: 100%;
-        }
+        .chat-split-container { display: flex; width: 100%; height: 100%; background: white; overflow: hidden; position: relative; }
+        .chat-sidebar { width: 35%; min-width: 250px; border-left: 1px solid #e5e7eb; background-color: #f9fafb; display: flex; flex-direction: column; height: 100%; }
+        .chat-main-area { flex: 1; display: flex; flex-direction: column; background-color: #ffffff; position: relative; height: 100%; }
 
         /* תיקון צ'אט במובייל */
         @media (max-width: 768px) {
-            .chat-sidebar {
-                width: 100%;
-                min-width: 100%;
-                border-left: none;
-            }
-            
+            .chat-sidebar { width: 100%; min-width: 100%; border-left: none; }
             .chat-main-area {
-                position: fixed; 
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                width: 100%;
-                height: 100%;
-                z-index: 20000;
-                transform: translateX(100%);
-                transition: transform 0.3s ease-in-out;
-                background: white;
-                padding-bottom: env(safe-area-inset-bottom);
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                width: 100%; height: 100%; z-index: 20000;
+                transform: translateX(100%); transition: transform 0.3s ease-in-out;
+                background: white; padding-bottom: env(safe-area-inset-bottom);
             }
-
-            .chat-mobile-active .chat-main-area {
-                transform: translateX(0);
-            }
+            .chat-mobile-active .chat-main-area { transform: translateX(0); }
         }
 
-        .chat-user-item {
-            transition: all 0.2s;
-            cursor: pointer;
-            border-bottom: 1px solid #f3f4f6;
-        }
+        .chat-user-item { transition: all 0.2s; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
         .chat-user-item:hover { background-color: #ffffff; }
         .chat-user-item.active { background-color: #fff0f0; border-right: 4px solid #E63946; }
+        
+        .reg-avatar-option { border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: transform 0.2s; }
+        .reg-avatar-option.selected { border-color: #E63946; transform: scale(1.1); }
 
-        /* בחירת אווטאר בהרשמה */
-        .reg-avatar-option {
-            border: 3px solid transparent;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .reg-avatar-option.selected {
-            border-color: #E63946;
-            transform: scale(1.1);
-        }
-
-        #chatMessagesArea {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-            background-color: #f8fafc;
-            scroll-behavior: smooth;
-        }
+        #chatMessagesArea { flex: 1; overflow-y: auto; padding: 1rem; background-color: #f8fafc; scroll-behavior: smooth; }
 
         /* תפריט תחתון */
         #bottom-nav-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: var(--nav-height);
-            z-index: 9999;
-            background-color: white;
-            border-top: 1px solid #e5e7eb;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
-            max-width: 1024px;
-            margin: 0 auto;
-            padding-bottom: env(safe-area-inset-bottom);
-            display: flex;
-            justify-content: space-around;
+            position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
+            z-index: 9999; background-color: white; border-top: 1px solid #e5e7eb;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.08); max-width: 1024px; margin: 0 auto;
+            padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around;
         }
-        
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #9ca3af;
-            transition: color 0.2s;
-            width: 20%;
-        }
-        
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af; width: 20%; }
         .nav-item.active { color: var(--primary); }
         .nav-item i { font-size: 1.5rem; margin-bottom: 4px; }
         .nav-item span { font-size: 0.75rem; font-weight: bold; }
         
-        /* כותרת עליונה - סימטריה מוחלטת */
+        /* כותרת עליונה */
         #main-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: var(--header-height);
-            z-index: 9998; /* מתחת ל-SOS הצף */
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            max-width: 1024px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between; 
-            align-items: center;
-            padding: 0 1rem;
+            position: fixed; top: 0; left: 0; right: 0; height: var(--header-height);
+            z-index: 9998; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            max-width: 1024px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 1rem;
         }
-        
-        .header-side-group {
-            display: flex;
-            align-items: center;
-            gap: 4px; 
-            z-index: 20;
-            flex: 1; 
-        }
+        .header-side-group { display: flex; align-items: center; gap: 4px; z-index: 20; flex: 1; }
         .header-side-group.right { justify-content: flex-start; }
         .header-side-group.left { justify-content: flex-end; }
-
         .header-center-logo {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: auto;
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            z-index: 10; display: flex; flex-direction: column; align-items: center; width: auto;
         }
 
-        /* כפתור SOS צף ומתוקן */
+        /* כפתור SOS צף */
         .floating-sos-btn {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 10000; /* מעל הכל */
-            background-color: red; 
-            color: white; 
-            font-weight: bold; 
-            font-size: 0.7rem;
-            width: 45px; 
-            height: 45px; 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-            animation: pulse-red 2s infinite; 
-            cursor: pointer;
-            border: 2px solid white;
+            position: fixed; bottom: 95px; left: 15px; z-index: 10000;
+            background-color: #dc2626; color: white; font-weight: bold; font-size: 0.8rem;
+            width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4); border: 3px solid white; cursor: pointer;
+            animation: pulse-red 2s infinite;
         }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
-
+        @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -496,14 +347,14 @@
     </div>
 
     <script>
-        // יצירת PWA Manifest
+        // PWA
         const manifest = { "name": "קהילת קשר", "short_name": "קשר", "start_url": ".", "display": "standalone", "background_color": "#ffffff", "theme_color": "#E63946", "icons": [{ "src": "https://api.dicebear.com/9.x/shapes/svg?seed=Love", "sizes": "192x192", "type": "image/svg+xml" }] };
         const stringManifest = JSON.stringify(manifest);
         const blob = new Blob([stringManifest], {type: 'application/json'});
         const manifestURL = URL.createObjectURL(blob);
         document.querySelector('#dynamic-manifest').setAttribute('href', manifestURL);
 
-        // --- הגדרות Firebase ---
+        // Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCrcxC420HW5PXGNd8M4KuclUkiJSwHreM", 
             authDomain: "kesher-bakir.firebaseapp.com",
@@ -518,7 +369,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- ניהול מצב ---
+        // State
         const store = {
             user: null,
             currentPage: 'loading',
@@ -536,7 +387,6 @@
         };
         const MASTER_ADMIN_EMAIL = "meircha.ai@gmail.com";
 
-        // --- לוגו ונתונים ---
         const LOGO_SVG = `<div class="logo-container"><i class="fa-solid fa-heart logo-heart"></i><i class="fa-solid fa-handshake logo-hands"></i></div>`;
         const BIG_LOGO_SVG = `<div class="relative w-24 h-24 flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-heart text-red-600 text-7xl heart-beat"></i><i class="fa-solid fa-handshake text-white absolute text-3xl" style="top: 55%; left: 50%; transform: translate(-50%, -50%);"></i></div>`;
 
@@ -579,7 +429,6 @@
             } catch(e) { console.error("Points Error", e); }
         }
 
-        // --- מערכת ---
         async function ensureCategories() {
             const snap = await db.collection('sys_categories').get();
             if(snap.empty) {
@@ -625,7 +474,6 @@
         }
         async function deleteSuggestion(id) { if(confirm("למחוק?")) await db.collection('suggestions').doc(id).delete(); }
 
-        // --- פונקציות עזר ---
         function navigate(page, params = {}) {
             store.currentPage = page;
             store.params = params;
@@ -689,7 +537,6 @@
             }
         }
 
-        // --- תמונות ---
         function getActivityImage(category) {
             const map = { 'טיול': 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=400&fit=crop&q=80', 'ספורט': 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop&q=80', 'הרצאה': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600&h=400&fit=crop&q=80', 'ארוחה': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop&q=80', 'משחקי חברה': 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=600&h=400&fit=crop&q=80', 'אחר': 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&h=400&fit=crop&q=80' };
             return map[category] || map['אחר'];
@@ -712,16 +559,15 @@
             document.getElementById('shareModal').classList.add('hidden');
         }
 
-        // --- פעולות ---
-        async function updateUserRole(uid, newRole) { 
-            if (uid === store.user.uid) return alert("לא ניתן לשנות לעצמך"); 
-            try {
-                await db.collection('users').doc(uid).update({ role: newRole });
-                alert("הדרגה עודכנה בהצלחה!");
-            } catch (e) {
-                console.error(e);
-                alert("שגיאה בעדכון: " + e.message);
-            }
+        async function updateUserRole(uid, role) { 
+            if(uid===store.user.uid) return alert("לא ניתן לשנות לעצמך"); 
+            try{
+                await db.collection('users').doc(uid).update({role});
+                alert("עודכן בהצלחה!");
+            }catch(e){
+                console.error("Error updating role:", e);
+                alert("שגיאה בעדכון: ייתכן שאין לך הרשאות מתאימות ב-Firebase Rules.\n" + e.message);
+            } 
         }
         
         async function approveUser(uid) {
@@ -745,7 +591,6 @@
         }
         async function toggleJoin(actId) { const a=store.data.activities.find(x=>x.id===actId); if(a) db.collection('activities').doc(actId).update({attendees: a.attendees.includes(store.user.uid)?firebase.firestore.FieldValue.arrayRemove(store.user.uid):firebase.firestore.FieldValue.arrayUnion(store.user.uid)}); }
 
-        // --- פרופיל והרשמה ---
         function openProfileModal() { 
             document.getElementById('editCity').value = store.user.city || '';
             document.getElementById('editGender').value = store.user.gender || 'male';
@@ -809,8 +654,18 @@
             }
         }
 
-        // --- Login/Register ---
-        async function handleLogin(e,p) { try{await auth.signInWithEmailAndPassword(e,p)}catch(err){alert("שגיאה: "+err.message)} }
+        // --- Login Handling ---
+        async function handleLogin(e,p) { 
+            try{
+                await auth.signInWithEmailAndPassword(e,p)
+            } catch(err){
+                let msg = "שגיאה בהתחברות: " + err.message;
+                if(err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.message.includes('INVALID')) {
+                    msg = "שגיאה: המייל או הסיסמה אינם נכונים.";
+                }
+                alert(msg);
+            } 
+        }
         
         async function handleRegister(n,e,p,c,dob,g,refEmail) { 
             try {
@@ -1198,10 +1053,6 @@
             const adminAlerts = (store.data.reports?.length||0) + (store.data.suggestions?.length||0);
             
             return `<div class="flex justify-between items-center w-full h-full px-2 relative">
-                    <div class="absolute top-2 left-2 z-30">
-                        <div class="sos-btn" onclick="triggerSOS()">SOS</div>
-                    </div>
-
                     <div class="header-side-group right gap-2">
                          <div class="header-bubble" onclick="document.getElementById('suggestionModal').classList.remove('hidden')">
                             <i class="fa-regular fa-lightbulb header-icon text-yellow-600"></i>
@@ -1410,7 +1261,7 @@
             let filteredUsers = store.data.users.filter(u => u.id !== store.user.uid);
             
             if (store.chatFilterName) filteredUsers = filteredUsers.filter(u => u.name.toLowerCase().includes(store.chatFilterName.toLowerCase()));
-            if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city && u.city.toLowerCase().includes(store.chatFilterCity.toLowerCase()));
+            if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city && u.city.includes(store.chatFilterCity));
             if (store.chatFilterGender && store.chatFilterGender !== "" && store.chatFilterGender !== "all") filteredUsers = filteredUsers.filter(u => u.gender === store.chatFilterGender);
             if (store.chatFilterOnline) { const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000); filteredUsers = filteredUsers.filter(u => u.lastSeen && u.lastSeen.toDate() > fiveMinAgo); }
             
