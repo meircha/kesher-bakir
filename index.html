@@ -19,10 +19,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
     <style>
-        /* ========================================= */
-        /* הגדרות עיצוב (CSS)               */
-        /* ========================================= */
-
         :root {
             --primary: #E63946;       
             --primary-hover: #C81D2A; 
@@ -45,7 +41,6 @@
             height: 100vh; width: 100vw;
         }
 
-        /* מבנה ראשי */
         .main-app-container {
             max-width: 1024px;
             margin: 0 auto;
@@ -56,7 +51,6 @@
             flex-direction: column;
         }
         
-        /* איזור תוכן גליל */
         .content-area {
             flex: 1;
             margin-top: var(--header-height);    
@@ -74,7 +68,6 @@
             flex-direction: column;
         }
 
-        /* רכיבים גרפיים */
         .btn-primary {
             background-color: var(--primary);
             color: white;
@@ -108,7 +101,6 @@
         .text-overlay { text-shadow: 0 2px 4px rgba(0,0,0,0.8); color: white; }
         .gradient-overlay { background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%); }
         
-        /* --- לוגו --- */
         .logo-container { 
             position: relative; width: 45px; height: 45px; 
             display: flex; align-items: center; justify-content: center; 
@@ -118,7 +110,6 @@
         .logo-heart { font-size: 42px; color: #E63946; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
         .logo-hands { position: absolute; font-size: 22px; color: white; top: 52%; left: 50%; transform: translate(-50%, -50%); }
 
-        /* --- בועות Header --- */
         .header-bubble {
             background-color: var(--bubble-bg);
             border: 1px solid #e5e7eb;
@@ -133,7 +124,6 @@
         .header-text { font-size: 0.6rem; font-weight: bold; text-align: center; line-height: 1; color: #1D3557; margin-bottom: 2px;}
         .badge-text { font-size: 0.55rem; background: #f3f4f6; padding: 1px 3px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 58px; line-height: 1; color: #555; font-weight: bold; }
 
-        /* התאמות למובייל - Header */
         @media (max-width: 600px) {
             .header-bubble { height: 50px; width: 50px; min-width: 50px; border-radius: 0.8rem; padding: 2px; }
             .header-icon { font-size: 1rem; margin-bottom: 0; }
@@ -143,7 +133,6 @@
             .content-area { padding: 0.5rem; }
         }
 
-        /* --- צ'אט --- */
         .chat-split-container { display: flex; width: 100%; height: 100%; background: white; overflow: hidden; position: relative; }
         .chat-sidebar { width: 35%; min-width: 250px; border-left: 1px solid #e5e7eb; background-color: #f9fafb; display: flex; flex-direction: column; height: 100%; }
         .chat-main-area { flex: 1; display: flex; flex-direction: column; background-color: #ffffff; position: relative; height: 100%; }
@@ -167,7 +156,6 @@
 
         #chatMessagesArea { flex: 1; overflow-y: auto; padding: 1rem; background-color: #f8fafc; scroll-behavior: smooth; }
 
-        /* תפריט תחתון */
         #bottom-nav-bar {
             position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
             z-index: 9999; background-color: white; border-top: 1px solid #e5e7eb;
@@ -179,7 +167,6 @@
         .nav-item i { font-size: 1.5rem; margin-bottom: 4px; }
         .nav-item span { font-size: 0.75rem; font-weight: bold; }
         
-        /* כותרת עליונה - עיצוב יציב */
         #main-header {
             position: fixed; top: 0; left: 0; right: 0; height: var(--header-height);
             z-index: 9998; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
@@ -214,7 +201,6 @@
             <div class="text-6xl mb-4">⏳</div>
             <h2 class="text-2xl font-bold mb-2">ההרשמה התקבלה!</h2>
             <p class="text-gray-600 mb-4">למען ביטחון הקהילה, כל חבר חדש עובר אישור ע"י מנהל המערכת.</p>
-            <p class="font-bold text-orange-600">אנו נודיע לך ברגע שהחשבון יאושר.</p>
             <button onclick="location.reload()" class="mt-6 text-blue-600 underline">בדוק שוב</button>
         </div>
     </div>
@@ -746,7 +732,7 @@
             render();
         }
 
-        // --- צ'אט ---
+        // --- צ'אט וקול ---
         window.addEmoji = function(e) { store.chatDraft+=e; store.showEmojiPicker=false; render(); setTimeout(()=>{const i=document.getElementById('chatInput');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},50); }
         window.updateDraft = function(v) { store.chatDraft=v; }
         function toggleEmojiPicker() { store.showEmojiPicker=!store.showEmojiPicker; render(); }
@@ -1045,10 +1031,10 @@
                             <i class="fa-regular fa-lightbulb header-icon text-yellow-600"></i>
                             <span class="header-text text-gray-600">הצעות<br>ייעול</span>
                         </div>
-                        <div class="header-bubble">
-                            <span class="text-xl mb-0">${badge.icon}</span>
-                            <span class="header-text text-gray-600 font-bold text-xs">${u.points} נק'</span>
-                            <div class="badge-text text-gray-600 bg-gray-100 px-1 rounded">${badgeName}</div>
+                        
+                        <div class="header-bubble" onclick="navigate('help')">
+                            <i class="fa-solid fa-hand-holding-heart header-icon text-purple-600"></i>
+                            <span class="header-text text-gray-600">עזרה</span>
                         </div>
                     </div>
 
@@ -1084,14 +1070,22 @@
             return `
             <div class="space-y-8 p-2">
                 <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white p-6 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
+                    
+                    <div class="absolute top-4 left-4 bg-white/20 backdrop-blur rounded-xl p-2 text-center text-white shadow-sm border border-white/30 z-20">
+                        <div class="text-2xl leading-none filter drop-shadow-md">${badge.icon}</div>
+                        <div class="font-bold text-sm mt-1 leading-none">${u.points} נק'</div>
+                        <div class="text-[10px] opacity-90 mt-1">${badge.name.split(' ')[0]}</div>
+                    </div>
+
                     <div class="relative z-10 max-w-lg text-center md:text-right w-full">
-                        <h2 class="text-3xl font-bold mb-2">שלום, ${u.name.split(' ')[0]}</h2>
-                        <div class="flex flex-wrap gap-3 items-center justify-center md:justify-start">
+                        <h2 class="text-3xl font-bold mb-2 pr-2">שלום, ${u.name.split(' ')[0]}</h2>
+                        <div class="flex flex-wrap gap-3 items-center justify-center md:justify-start mt-4">
                             <div class="bg-white/20 backdrop-blur p-2 rounded-lg text-sm"><i class="fa-solid fa-lightbulb text-yellow-300"></i> טיפ: ${tip}</div>
                             <button onclick="openShareModal()" class="bg-white text-red-600 px-3 py-2 rounded-lg font-bold shadow hover:bg-gray-100 flex items-center gap-2 text-sm"><i class="fa-solid fa-share-nodes"></i> הזמן חבר</button>
                         </div>
                     </div>
                 </div>
+                
                 <div>
                     <div class="flex justify-between items-end mb-3 px-2">
                         <h3 class="text-xl font-bold text-gray-800 border-r-4 border-blue-500 pr-2">דיונים מובילים</h3>
@@ -1247,7 +1241,7 @@
         function renderChatsList() {
             let filteredUsers = store.data.users.filter(u => u.id !== store.user.uid);
             if (store.chatFilterName) filteredUsers = filteredUsers.filter(u => u.name.toLowerCase().includes(store.chatFilterName.toLowerCase()));
-            if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city && u.city.includes(store.chatFilterCity));
+            if (store.chatFilterCity) filteredUsers = filteredUsers.filter(u => u.city && u.city.toLowerCase().includes(store.chatFilterCity.toLowerCase()));
             if (store.chatFilterGender && store.chatFilterGender !== "" && store.chatFilterGender !== "all") filteredUsers = filteredUsers.filter(u => u.gender === store.chatFilterGender);
             if (store.chatFilterOnline) { const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000); filteredUsers = filteredUsers.filter(u => u.lastSeen && u.lastSeen.toDate() > fiveMinAgo); }
             
@@ -1381,11 +1375,13 @@
                 </div>
             `;
 
+            // כאן היה התיקון החשוב: הפרדת כל קטגוריה לבלוק HTML משלה
             return `
             <div class="space-y-6 p-4 pb-24">
                 <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg flex justify-between items-center">
                     <h2 class="text-2xl font-bold">ניהול מערכת</h2>
                 </div>
+                
                 ${pendingUsers.length > 0 ? `
                 <div class="bg-orange-50 border border-orange-200 rounded-xl shadow overflow-hidden">
                     <div class="bg-orange-100 p-4 font-bold text-orange-800 border-b border-orange-200">משתמשים ממתינים לאישור (${pendingUsers.length})</div>
@@ -1398,17 +1394,18 @@
                         `).join('')}
                     </div>
                 </div>` : ''}
+
                 <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-red-500">
                     <div class="bg-gray-100 p-4 font-bold border-b flex justify-between"><span><i class="fa-solid fa-triangle-exclamation text-red-500"></i> דיווחים</span><span class="bg-red-100 text-red-600 px-2 rounded text-xs">${store.data.reports ? store.data.reports.length : 0}</span></div>
                     <div class="divide-y max-h-64 overflow-y-auto">
                         ${(store.data.reports || []).map(r => `<div class="p-4 hover:bg-gray-50 text-sm"><p class="font-bold text-red-700">דיווח</p><p class="text-gray-800 mt-1">"${r.content}"</p><div class="flex justify-between mt-2 text-xs text-gray-500"><span>מדווח: ${r.reporterName}</span><button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline">מחק</button></div></div>`).join('')}
                     </div>
                 </div>
-                
+
                 <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-purple-500">
                     <div class="bg-gray-100 p-4 font-bold border-b">הצעות ייעול (${store.data.suggestions ? store.data.suggestions.length : 0})</div>
                     <div class="divide-y max-h-64 overflow-y-auto">
-                        ${(store.data.suggestions && store.data.suggestions.length > 0) ? store.data.suggestions.map(s => `
+                        ${(store.data.suggestions || []).length > 0 ? store.data.suggestions.map(s => `
                             <div class="p-4 hover:bg-gray-50 text-sm flex justify-between">
                                 <div>
                                     <span class="font-bold ${s.urgency === 'קריטי' ? 'text-red-600' : s.urgency === 'חשוב' ? 'text-orange-500' : 'text-green-600'}">${s.urgency}</span> 
@@ -1457,8 +1454,7 @@
                     ${un > 0 ? `<span class="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">${un}</span>` : ''}
                 </div>
                 <span>הודעות</span>
-            </button>
-            <button onclick="navigate('help')" class="nav-item ${a('help')}"><i class="fa-solid fa-hand-holding-heart"></i><span>עזרה</span></button>`; 
+            </button>`; 
         }
     </script>
 </body>
