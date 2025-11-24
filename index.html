@@ -2044,7 +2044,7 @@ function renderAdminPanel() {
                     </div>
                 ` : ''}
 
-                ${store.adminTab === 'reports' ? renderAdminUsersTable(users) : ''}
+                ${store.adminTab === 'reports' ? renderAdminReportsAndSuggestions() : ''}
 
                 ${store.adminTab === 'msg' ? renderAdminBroadcastSystem(users) : ''}
 
