@@ -1363,7 +1363,8 @@
         }
 
         // --- GAMES RENDER ---
-        function renderGamesHub() {
+function renderGamesHub() {
+            // הסרנו מכאן את ה-div של המודאלים כדי למנוע כפילות מזהים (Duplicate IDs)
             return `
             <div class="space-y-6 p-4 pb-24">
                 <h2 class="text-3xl font-bold text-center text-purple-800 mb-6">משחקים למוח</h2>
@@ -1377,6 +1378,27 @@
                             <p class="text-xs text-gray-500">אימון לזיכרון חזותי</p>
                         </div>
                     </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4" 
+                         onclick="openGameLevelModal('sudoku')">
+                        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-3xl">🧩</div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">סודוקו</h3>
+                            <p class="text-xs text-gray-500">אתגר מספרים קלאסי</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4" 
+                         onclick="openGameLevelModal('wordsearch')">
+                        <div class="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center text-3xl">🔤</div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">תפזורת מילים</h3>
+                            <p class="text-xs text-gray-500">מצא את המילים המסתתרות</p>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
                     
                     <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4" 
                          onclick="openGameLevelModal('sudoku')">
