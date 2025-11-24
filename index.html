@@ -866,9 +866,89 @@
             recognition.start();
         }
 
+// פונקציה לאכיפת גיל (חדש)
+        async function enforceAgeLimit() {
+            const minAge = parseInt(document.getElementById('adminMinAgeInput').value);
+            if (!minAge || minAge < 0) return alert("נא להזין גיל תקין");
+            
+            if(!confirm(`האם אתה בטוח שברצונך לחסום את כל המשתמשים מתחת לגיל ${minAge}?`)) return;
+
+            const usersSnap = await db.collection('users').where('isActive', '==', true).get();
+            const batch = db.batch();
+            let count = 0;
+
+            usersSnap.forEach(doc => {
+                const u = doc.data();
+                if (u.dob && u.role !== 'admin') { // לא חוסמים אדמין
+                    const dob = new Date(u.dob);
+                    const ageDifMs = Date.now() - dob.getTime();
+                    const ageDate = new Date(ageDifMs); 
+                    const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+                    
+                    if (age < minAge) {
+                        batch.update(doc.ref, { isActive: false }); // משעה את המשתמש
+                        count++;
+                    }
+                }
+            });
+
+            if (count > 0) {
+                await batch.commit();
+                alert(`בוצע! ${count} משתמשים מתחת לגיל ${minAge} הושעו מהמערכת.`);
+            } else {
+                alert("לא נמצאו משתמשים מתחת לגיל זה.");
+            }
+        }
+
+        // רשימת מילים אסורות מורחבת
         function containsBadWords(text) {
-            const badWords = ['זבל', 'מטומטם', 'סיסמה', 'אשראי', 'בנק', 'העברה', 'טיפש'];
+            const badWords = ['זבל', 'מטומטם', 'סיסמה', 'אשראי', 'בנק', 'העברה', 'טיפש', 'אידיוט', 'מכוער', 'שנאה', 'הרביץ', 'זונה', 'כוס', 'זין', 'חרא'];
             return badWords.some(word => text.includes(word));
+        }
+
+        // פונקציית שליחת הודעה עם דיווח אוטומטי (מעודכן)
+        async function sendMessage(rid) { 
+            const t = store.chatDraft; 
+            if(!rid || !t.trim()) return; 
+            
+            // בדיקת שפה לא נאותה ודיווח אוטומטי
+            if (containsBadWords(t)) {
+                alert("הודעה זו מכילה שפה לא נאותה ונחסמה. נשלח דיווח אוטומטי למערכת.");
+                
+                // שליחת הדיווח לפיירבייס
+                try {
+                    await db.collection('reports').add({
+                        type: 'auto-profanity', // סוג הדיווח
+                        content: `ניסיון שליחת הודעה: "${t}"`,
+                        reporterId: 'SYSTEM', // המדווח הוא המערכת
+                        reporterName: 'מערכת אוטומטית',
+                        reportedUserId: store.user.uid, // המשתמש שדיווחו עליו (זה שניסה לשלוח)
+                        reportedUserName: store.user.name,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        status: 'new'
+                    });
+                } catch(e) { console.error("Error reporting:", e); }
+                
+                return; // עוצר את השליחה
+            }
+
+            store.chatDraft = ""; store.showEmojiPicker = false; 
+            render();
+            
+            const cid = [store.user.uid, rid].sort().join("_"); 
+            const r = store.data.users.find(u => u.id === rid); 
+            try { 
+                await db.collection('chats').doc(cid).collection('messages').add({
+                    senderId: store.user.uid, content: t, timestamp: firebase.firestore.FieldValue.serverTimestamp(), read: false
+                }); 
+                await db.collection('chats').doc(cid).set({
+                    participants: [store.user.uid, rid],
+                    participantNames: { [store.user.uid]: store.user.name, [rid]: r ? r.name : 'משתמש' },
+                    lastMessage: t,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    ['unread_' + rid]: firebase.firestore.FieldValue.increment(1)
+                }, { merge: true }); 
+            } catch(e){ console.error(e) } 
         }
 
         function updateChatListOnly() {
@@ -949,23 +1029,7 @@
             render(); 
         }
 
-        async function sendMessage(rid) { 
-            const t = store.chatDraft; 
-            if(!rid || !t.trim()) return; 
-            
-            if (containsBadWords(t)) {
-                alert("הודעה זו מכילה מילים לא הולמות ונחסמה.");
-                db.collection('reports').add({
-                    type: 'auto-block',
-                    content: t,
-                    reporterId: 'system',
-                    reportedUserId: store.user.uid,
-                    reportedUserName: store.user.name,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'new'
-                });
-                return;
-            }
+
 
             store.chatDraft = ""; store.showEmojiPicker = false; 
             render();
@@ -1297,7 +1361,7 @@ function checkWordSearch() {
 
         function renderLogin() { return `<div class="min-h-screen flex items-center justify-center bg-red-50 p-4"><div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-red-500 text-center animate-fade-in"><div class="flex justify-center items-center gap-3 mb-4 transform scale-125">${BIG_LOGO_SVG}</div><h1 class="text-4xl font-bold text-red-600 mb-2">קהילת קשר</h1><p class="text-gray-500 mb-8">הבית החם של גיל הזהב</p><form onsubmit="event.preventDefault(); handleLogin(this.email.value, this.password.value)"><input type="email" name="email" placeholder="דוא''ל" required><input type="password" name="password" placeholder="סיסמה" required><button class="w-full btn-primary py-3 rounded-xl text-xl font-bold shadow-lg mt-4">כניסה</button></form><button onclick="resetPassword()" class="mt-4 text-sm text-gray-500 hover:underline block w-full">שכחתי סיסמה</button><button onclick="navigate('register')" class="mt-2 text-blue-600 font-medium hover:underline block w-full">אין לך חשבון? הירשם כאן</button></div></div>`; }
         
-        function renderRegister() { 
+function renderRegister() { 
             const avatars = store.data.systemAvatars.length > 0 ? store.data.systemAvatars : DEFAULT_AVATARS;
             return `
             <div class="min-h-screen flex flex-col items-center justify-start bg-blue-50 p-4 overflow-y-auto pt-10 pb-10">
@@ -1332,6 +1396,17 @@ function checkWordSearch() {
                         <input name="email" placeholder="דוא''ל" required>
                         <input type="password" name="password" placeholder="סיסמה (6 תווים לפחות)" required minlength="6">
                         <input name="referrer" placeholder="מייל החבר שהזמין אותך (אופציונלי)">
+                        
+                        <div class="mb-4 mt-2 bg-gray-50 p-3 rounded-lg border text-right">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" required class="mt-1 w-5 h-5 accent-blue-600" style="width:20px !important;">
+                                <span class="text-xs text-gray-600 leading-tight">
+                                    אני מצהיר/ה כי קראתי ומסכימ/ה <span class="text-blue-600 font-bold underline cursor-pointer" onclick="alert('תנאי שימוש והצהרת אחריות:\\n\\n1. השימוש באפליקציה הוא באחריות המשתמש בלבד.\\n2. הנהלת האפליקציה אינה אחראית לכל נזק, ישיר או עקיף.\\n3. המשתמש מתחייב לשמור על שפה נקייה, מכבדת ותרבותית.\\n4. חל איסור מוחלט על הטרדה, אלימות מילולית או הפצת תוכן פוגעני.\\n5. המערכת מנטרת באופן אוטומטי שימוש בשפה לא נאותה.\\n6. הפרת הכללים תגרור חסימה מיידית ודיווח לרשויות במידת הצורך.')">לתקנון ולתנאי השימוש</span>.
+                                    אני מסיר/ה כל אחריות מהנהלת האפליקציה ומתחייב/ת להתנהלות מכבדת.
+                                </span>
+                            </label>
+                        </div>
+
                         <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg mt-2">הירשם</button>
                     </form>
                     <button onclick="navigate('login')" class="w-full mt-4 text-gray-600 hover:underline text-sm">חזרה לכניסה</button>
@@ -1809,7 +1884,7 @@ function renderChatsList() {
             return `<div class="bg-white p-6 rounded-2xl shadow mt-4"><h2 class="text-2xl font-bold mb-4 text-purple-600">בקשת עזרה</h2><div class="bg-yellow-50 p-4 rounded mb-4 text-sm text-yellow-800 border border-yellow-200">שים לב: העזרה על אחריות המשתמש בלבד.</div><form onsubmit="event.preventDefault(); db.collection('helpRequests').add({category:this.cat.value, description:this.desc.value, requesterId:store.user.uid, requesterName:store.user.name, requesterCity:store.user.city, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); navigate('help');"><select name="cat" class="w-full mb-4"><option>ייעוץ רפואי</option><option>ייעוץ משפטי</option><option>עזרה טכנית</option><option>הסעה</option><option>אחר</option></select><textarea name="desc" rows="4" class="w-full mb-4" required></textarea><div class="flex gap-2 mb-6"><input type="checkbox" required> <label>מאשר שקראתי.</label></div><button class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">שלח</button></form></div>`; 
         }
         
-        function renderAdminPanel() {
+function renderAdminPanel() {
             if (store.user.role !== 'admin' && store.user.role !== 'senior') { setTimeout(() => navigate('home'), 0); return ''; }
             const isAdmin = store.user.role === 'admin';
             const pendingUsers = store.data.users.filter(u => !u.isActive);
@@ -1829,6 +1904,18 @@ function renderChatsList() {
                     <button onclick="document.getElementById('addAvatarModal').classList.remove('hidden')" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold w-full">+ הוסף אווטאר חדש</button>
                 </div>
             `;
+
+            // קוביית ניהול גיל חדשה
+            const ageManager = isAdmin ? `
+                <div class="bg-white p-6 rounded-2xl shadow-xl mt-6 border-t-4 border-blue-600">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">👮 אכיפת גיל מינימלי</h3>
+                    <p class="text-sm text-gray-500 mb-3">קבע גיל מינימלי. לחיצה על "אכוף" תסרוק את כל המשתמשים ותשעה אוטומטית את מי שמתחת לגיל.</p>
+                    <div class="flex gap-2">
+                        <input type="number" id="adminMinAgeInput" placeholder="גיל (למשל 60)" class="border p-2 rounded w-24 text-center">
+                        <button onclick="enforceAgeLimit()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-700 flex-1">עדכן ואכוף</button>
+                    </div>
+                </div>
+            ` : '';
 
             return `
             <div class="space-y-6 p-4 pb-24">
@@ -1852,7 +1939,7 @@ function renderChatsList() {
                 <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-red-500">
                     <div class="bg-gray-100 p-4 font-bold border-b flex justify-between"><span><i class="fa-solid fa-triangle-exclamation text-red-500"></i> דיווחים</span><span class="bg-red-100 text-red-600 px-2 rounded text-xs">${store.data.reports ? store.data.reports.length : 0}</span></div>
                     <div class="divide-y max-h-64 overflow-y-auto">
-                        ${(store.data.reports || []).map(r => `<div class="p-4 hover:bg-gray-50 text-sm"><p class="font-bold text-red-700">דיווח</p><p class="text-gray-800 mt-1">"${r.content}"</p><div class="flex justify-between mt-2 text-xs text-gray-500"><span>מדווח: ${r.reporterName}</span><button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline">מחק</button></div></div>`).join('')}
+                        ${(store.data.reports || []).map(r => `<div class="p-4 hover:bg-gray-50 text-sm"><p class="font-bold text-red-700">דיווח אוטומטי/ידני</p><p class="text-gray-800 mt-1">"${r.content}"</p><div class="flex justify-between mt-2 text-xs text-gray-500"><span>מדווח: ${r.reporterName}</span><button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline">מחק</button></div></div>`).join('')}
                     </div>
                 </div>
                 
@@ -1895,7 +1982,8 @@ function renderChatsList() {
                         `).join('')}
                     </div>
                 </div>
-                ${avatarManager}` : ''}
+                ${avatarManager}
+                ${ageManager}` : ''}
             </div>`;
         }
 
