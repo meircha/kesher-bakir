@@ -672,10 +672,23 @@
             } 
         }
         
-        async function approveUser(uid) {
-            if(confirm("לאשר משתמש זה?")) {
-                await db.collection('users').doc(uid).update({isActive: true});
-                alert("משתמש אושר בהצלחה!");
+async function approveUser(uid, email, name) {
+            if(confirm("לאשר את המשתמש " + name + "?")) {
+                try {
+                    await db.collection('users').doc(uid).update({isActive: true});
+                    
+                    // שואל את האדמין אם לשלוח הודעה
+                    if(confirm("המשתמש אושר בהצלחה!\nהאם תרצה לשלוח לו הודעת 'ברוך הבא' כעת?")) {
+                        const msg = `היי ${name}, שמחים לבשר לך שחשבונך בקהילת קשר אושר! אתה מוזמן להיכנס לאפליקציה.`;
+                        
+                        // בדיקה פשוטה: אם זה נראה כמו טלפון נשלח ווצאפ, אחרת מייל (ברירת מחדל מייל למקרה של ג'ימייל)
+                        // כאן נפתח את המייל כברירת מחדל כי לרוב המשתמשים נרשמים עם אימייל
+                        const mailLink = `mailto:${email}?subject=ברוכים הבאים לקהילת קשר&body=${encodeURIComponent(msg)}`;
+                        window.open(mailLink, '_blank');
+                    }
+                } catch(e) {
+                    alert("שגיאה באישור: " + e.message);
+                }
             }
         }
 
@@ -782,8 +795,22 @@
             } 
         }
         
-        async function handleRegister(n,e,p,c,dob,g,refEmail) { 
+async function handleRegister(n,e,p,c,dob,g,refEmail) { 
             try {
+                // בדיקה האם ההרשמה פתוחה או דורשת אישור
+                let isActive = false; // ברירת מחדל: דורש אישור
+                
+                // האדמין הראשי תמיד פעיל
+                if (e === MASTER_ADMIN_EMAIL) {
+                    isActive = true;
+                } else {
+                    // בדיקה במסד הנתונים מה ההגדרה הנוכחית
+                    const configDoc = await db.collection('sys_config').doc('main').get();
+                    if (configDoc.exists && configDoc.data().registrationOpen === true) {
+                        isActive = true; // ההרשמה פתוחה לכולם
+                    }
+                }
+
                 const r = await auth.createUserWithEmailAndPassword(e,p); 
                 const userData = {
                     name: n, email: e, city: c, dob: dob, gender: g,
@@ -791,20 +818,24 @@
                     customImage: store.registerCustomImage || null, 
                     points: 0,
                     joinDate: firebase.firestore.FieldValue.serverTimestamp(),
-                    isActive: false, 
+                    isActive: isActive, // כאן נקבע הסטטוס לפי ההגדרה
                     hasSeenWelcome: false, 
                     role: e===MASTER_ADMIN_EMAIL?'admin':'user'
                 };
                 
-                if (e === MASTER_ADMIN_EMAIL) userData.isActive = true;
-
                 await db.collection('users').doc(r.user.uid).set(userData); 
                 
                 if(refEmail){
                     const q = await db.collection('users').where('email','==',refEmail).get(); 
                     if(!q.empty) addPoints(q.docs[0].id, 40, 'ref');
                 } 
-                if(e !== MASTER_ADMIN_EMAIL) alert("הרשמתך התקבלה! המתן לאישור מנהל.");
+                
+                if (!isActive) {
+                    alert("הרשמתך התקבלה! המתן לאישור מנהל.");
+                } else {
+                    // אם פעיל, נכנס ישר
+                    // ה-Auth Listener יעביר אותו לבד ל-Home
+                }
 
             } catch(err){ alert("שגיאה: "+err.message) } 
         }
@@ -1291,6 +1322,13 @@ function checkWordSearch() {
 
             db.collection('sys_categories').onSnapshot(s=>{store.data.sysCategories=s.docs.map(d=>({id:d.id,...d.data()})); if(['admin','activities','forums','createActivity'].includes(store.currentPage)) render();});
             db.collection('users').onSnapshot(s=>{store.data.users=s.docs.map(d=>({id:d.id,...d.data()}));if(['chats','admin'].includes(store.currentPage))render();});
+            // טעינת הגדרות מערכת (חדש)
+            db.collection('sys_config').doc('main').onSnapshot(doc => {
+                if (doc.exists) {
+                    store.data.sysConfig = doc.data();
+                    if (store.currentPage === 'admin') render();
+                }
+            });
             db.collection('forums').orderBy('createdAt','desc').onSnapshot(s=>{store.data.forums=s.docs.map(d=>({id:d.id,...d.data()}));if(['forums','home'].includes(store.currentPage))render();});
             
             db.collection('activities').orderBy('date','asc').onSnapshot(s=>{
@@ -1997,7 +2035,7 @@ function renderAdminPanel() {
                                         <p class="text-xs text-gray-500">נרשם: ${formatDate(u.joinDate)}</p>
                                     </div>
                                     <div class="flex gap-2">
-                                        <button onclick="approveUser('${u.id}')" class="bg-green-500 text-white px-4 py-2 rounded shadow font-bold hover:bg-green-600">אשר</button>
+                                    <button onclick="approveUser('${u.id}', '${u.email}', '${u.name}')" class="bg-green-500 text-white px-4 py-2 rounded shadow font-bold hover:bg-green-600">אשר</button>
                                         <button onclick="deleteItem('users', '${u.id}')" class="bg-red-500 text-white px-4 py-2 rounded shadow font-bold hover:bg-red-600">דחה</button>
                                     </div>
                                 </div>
@@ -2085,10 +2123,24 @@ function renderAdminPanel() {
         }
 
         // עזר: כלי מערכת (ניהול גילאים ואווטארים מהקוד הקודם)
+// עזר: כלי מערכת (כולל כפתור מצב הרשמה החדש)
         function renderAdminSystemTools() {
             const avatars = store.data.systemAvatars || [];
+            // בדיקה האם המצב הנוכחי הוא 'פתוח' או 'דורש אישור' (ברירת מחדל: דורש אישור)
+            const isRegistrationOpen = store.data.sysConfig && store.data.sysConfig.registrationOpen;
+
             return `
             <div class="space-y-4">
+                <div class="bg-white p-6 rounded-2xl shadow border-t-4 ${isRegistrationOpen ? 'border-green-500' : 'border-orange-500'}">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">🛡️ בקרת כניסה</h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        מצב נוכחי: <span class="font-bold">${isRegistrationOpen ? 'פתוח (כולם נכנסים מיד)' : 'מוגן (דורש אישור מנהל)'}</span>
+                    </p>
+                    <button onclick="toggleRegistrationMode(!${isRegistrationOpen})" class="w-full py-2 rounded-lg font-bold shadow text-white ${isRegistrationOpen ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'}">
+                        ${isRegistrationOpen ? 'הפעל סינון (דרוש אישור)' : 'בטל סינון (הרשמה פתוחה)'}
+                    </button>
+                </div>
+
                 <div class="bg-white p-6 rounded-2xl shadow border-t-4 border-red-600">
                     <h3 class="text-xl font-bold text-gray-800 mb-2">👮 אכיפת גיל</h3>
                     <div class="flex gap-2">
@@ -2105,6 +2157,16 @@ function renderAdminPanel() {
                     <button onclick="document.getElementById('addAvatarModal').classList.remove('hidden')" class="bg-green-600 text-white w-full py-2 rounded font-bold">הוסף חדש</button>
                 </div>
             </div>`;
+        }
+
+        // פונקציה לשינוי מצב הרשמה
+        async function toggleRegistrationMode(isOpen) {
+            try {
+                await db.collection('sys_config').doc('main').set({ registrationOpen: isOpen }, { merge: true });
+                alert(isOpen ? "ההרשמה נפתחה! משתמשים חדשים יכנסו אוטומטית." : "הסינון הופעל. משתמשים חדשים ידרשו אישור.");
+            } catch(e) {
+                alert("שגיאה: " + e.message);
+            }
         }
 
         // --- לוגיקה לשליחת הודעות תפוצה ---
