@@ -930,21 +930,33 @@
             document.getElementById('gameLevelModal').classList.remove('hidden');
         }
         
+      // ==========================================
+        // תיקון באג משחקים - העתק והדבק במקום הפונקציות הישנות
+        // ==========================================
+
         function closeGameLevelModal() {
             document.getElementById('gameLevelModal').classList.add('hidden');
-            store.currentGameType = null;
+            // ביטלנו את השורה שמאפסת את ה-type כאן, כי זה הרס את טעינת המשחק.
+            // האיפוס יתבצע בעת יציאה מהמשחק או כניסה מחדש לתפריט.
         }
 
         function startGameWithLevel(level) {
+            // שמירת סוג המשחק הנוכחי למשתנה זמני ליתר ביטחון
+            const currentType = store.currentGameType;
+
             closeGameLevelModal();
+            
+            // שחזור/וידוא שסוג המשחק שמור ב-store
+            store.currentGameType = currentType;
             store.gameLevel = level;
             
+            // אתחול לוגיקה לפי סוג המשחק
             if (store.currentGameType === 'memory') initMemoryGame(level);
             else if (store.currentGameType === 'sudoku') initSudokuGame(level);
             else if (store.currentGameType === 'wordsearch') initWordSearch(level);
             
+            // מעבר לעמוד המשחק ורינדור מחדש
             navigate('playGame');
-            render(); // תיקון: רינדור מיידי
         }
 
         // Memory
