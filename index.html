@@ -1034,21 +1034,7 @@
             store.chatDraft = ""; store.showEmojiPicker = false; 
             render();
             
-            const cid = [store.user.uid, rid].sort().join("_"); 
-            const r = store.data.users.find(u => u.id === rid); 
-            try { 
-                await db.collection('chats').doc(cid).collection('messages').add({
-                    senderId: store.user.uid, content: t, timestamp: firebase.firestore.FieldValue.serverTimestamp(), read: false
-                }); 
-                await db.collection('chats').doc(cid).set({
-                    participants: [store.user.uid, rid],
-                    participantNames: { [store.user.uid]: store.user.name, [rid]: r ? r.name : 'משתמש' },
-                    lastMessage: t,
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                    ['unread_' + rid]: firebase.firestore.FieldValue.increment(1)
-                }, { merge: true }); 
-            } catch(e){ console.error(e) } 
-        }
+
 
         // --- יצירה ---
         async function createPost(fid, t, c) { await db.collection('forums').doc(fid).collection('posts').add({title:t, content:c, creatorId:store.user.uid, creatorName:store.user.name, creatorAvatar:store.user.avatarSeed, createdAt:firebase.firestore.FieldValue.serverTimestamp(), replies:[]}); await db.collection('forums').doc(fid).update({postCount:firebase.firestore.FieldValue.increment(1), lastActivity:firebase.firestore.FieldValue.serverTimestamp()}); addPoints(store.user.uid, 10, 'post'); }
