@@ -628,10 +628,36 @@
         }
 
         function openShareModal() { document.getElementById('shareModal').classList.remove('hidden'); }
-        function shareVia(m) {
-            const t="הצטרפו לקהילת קשר: ", u="https://meircha.github.io/kesher-bakir/", msg=t+u;
+// פונקציית שיתוף מתוקנת (וואטסאפ, SMS, העתקה)
+        function shareVia(platform) {
+            const msg = "היי! אני מזמין אותך להצטרף לקהילת קשר - הרשת החברתית לגיל הזהב: https://meircha.github.io/kesher-bakir/";
+            
+            // בונוס נקודות על השיתוף
             addPoints(store.user.uid, 20, 'invite');
-            alert("קישור הועתק!");
+
+            if (platform === 'whatsapp') {
+                // פתיחת וואטסאפ עם ההודעה
+                window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(msg), "_blank");
+            } 
+            else if (platform === 'sms') {
+                // זיהוי המכשיר כדי לדעת איזה סימן לשים בקישור ה-SMS
+                const ua = navigator.userAgent.toLowerCase();
+                const isiOS = ua.includes("iphone") || ua.includes("ipad");
+                const separator = isiOS ? "&" : "?";
+                window.location.href = "sms:" + separator + "body=" + encodeURIComponent(msg);
+            } 
+            else if (platform === 'copy') {
+                // העתקה ללוח
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(msg)
+                        .then(() => alert("הקישור הועתק ללוח בהצלחה!"))
+                        .catch(() => prompt("לא הצלחנו להעתיק אוטומטית. העתק מפה:", msg));
+                } else {
+                    prompt("העתק את הקישור:", msg);
+                }
+            }
+            
+            // סגירת החלונית
             document.getElementById('shareModal').classList.add('hidden');
         }
 
