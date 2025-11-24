@@ -1933,7 +1933,55 @@ function renderChatsList() {
        function renderCreateHelp() { 
             return `<div class="bg-white p-6 rounded-2xl shadow mt-4"><h2 class="text-2xl font-bold mb-4 text-purple-600">בקשת עזרה</h2><div class="bg-yellow-50 p-4 rounded mb-4 text-sm text-yellow-800 border border-yellow-200">שים לב: העזרה על אחריות המשתמש בלבד.</div><form onsubmit="event.preventDefault(); db.collection('helpRequests').add({category:this.cat.value, description:this.desc.value, requesterId:store.user.uid, requesterName:store.user.name, requesterCity:store.user.city, createdAt:firebase.firestore.FieldValue.serverTimestamp()}); navigate('help');"><select name="cat" class="w-full mb-4"><option>ייעוץ רפואי</option><option>ייעוץ משפטי</option><option>עזרה טכנית</option><option>הסעה</option><option>אחר</option></select><textarea name="desc" rows="4" class="w-full mb-4" required></textarea><div class="flex gap-2 mb-6"><input type="checkbox" required> <label>מאשר שקראתי.</label></div><button class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">שלח</button></form></div>`; 
         }
-        
+
+        // פונקציית עזר: תצוגת דוחות והצעות ייעול
+        function renderAdminReportsAndSuggestions() {
+            const reports = store.data.reports || [];
+            const suggestions = store.data.suggestions || [];
+
+            return `
+            <div class="space-y-6">
+                <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-red-500">
+                    <div class="bg-gray-100 p-4 font-bold border-b flex justify-between">
+                        <span><i class="fa-solid fa-triangle-exclamation text-red-500"></i> דיווחים וחריגות</span>
+                        <span class="bg-red-100 text-red-600 px-2 rounded text-xs">${reports.length}</span>
+                    </div>
+                    <div class="divide-y max-h-64 overflow-y-auto">
+                        ${reports.length === 0 ? '<p class="p-4 text-gray-500 text-center">אין דיווחים חדשים.</p>' : ''}
+                        ${reports.map(r => `
+                            <div class="p-4 hover:bg-gray-50 text-sm">
+                                <p class="font-bold text-red-700">סוג: ${r.type || 'כללי'}</p>
+                                <p class="text-gray-800 mt-1 bg-red-50 p-2 rounded">"${r.content}"</p>
+                                <div class="flex justify-between mt-2 text-xs text-gray-500">
+                                    <span>מדווח: ${r.reporterName} | על משתמש: ${r.reportedUserName || 'מערכת'}</span>
+                                    <button onclick="deleteReport('${r.id}')" class="text-blue-600 hover:underline font-bold">סמן כטופל / מחק</button>
+                                </div>
+                            </div>`).join('')}
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow overflow-hidden border-t-4 border-purple-500">
+                    <div class="bg-gray-100 p-4 font-bold border-b flex justify-between">
+                        <span><i class="fa-regular fa-lightbulb text-purple-500"></i> הצעות ייעול</span>
+                        <span class="bg-purple-100 text-purple-600 px-2 rounded text-xs">${suggestions.length}</span>
+                    </div>
+                    <div class="divide-y max-h-64 overflow-y-auto">
+                        ${suggestions.length === 0 ? '<p class="p-4 text-gray-500 text-center">אין הצעות חדשות.</p>' : ''}
+                        ${suggestions.map(s => `
+                            <div class="p-4 hover:bg-gray-50 text-sm flex justify-between items-start">
+                                <div>
+                                    <span class="font-bold ${s.urgency === 'קריטי' ? 'text-red-600' : s.urgency === 'חשוב' ? 'text-orange-500' : 'text-green-600'}">${s.urgency}</span> 
+                                    <span class="font-bold text-gray-700">${s.category}</span>
+                                    <p class="mt-1">${s.content}</p>
+                                    <p class="text-xs text-gray-400 mt-1">מאת: ${s.name}</p>
+                                </div>
+                                <button onclick="deleteSuggestion('${s.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>`;
+        }
 function renderAdminPanel() {
             if (store.user.role !== 'admin' && store.user.role !== 'senior') { setTimeout(() => navigate('home'), 0); return ''; }
             
